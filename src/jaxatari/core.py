@@ -6,6 +6,7 @@ from jaxatari.environment import JaxEnvironment
 
 # Map of game names to their module paths
 GAME_MODULES = {
+    "asterix": "jaxatari.games.jax_asterix",
     "pong": "jaxatari.games.jax_pong",
     "seaquest": "jaxatari.games.jax_seaquest",
     "kangaroo": "jaxatari.games.jax_kangaroo",

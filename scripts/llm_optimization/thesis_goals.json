@@ -1,0 +1,83 @@
+{
+  "project_scope": {
+    "method_name": "LeGPS",
+    "method_expansion": "Language Guided Policy Search",
+    "method_summary": "Use the LLM for high-level policy structure and the optimizer for low-level numeric control."
+  },
+  "active_thesis_direction": {
+    "note": "These research questions can still evolve, but this is the current agreed framing and the current milestone logic.",
+    "primary_goal": "Keep the work aligned with the thesis questions rather than treating each game as an isolated experiment."
+  },
+  "research_questions": [
+    {
+      "id": "RQ1",
+      "question": "Can LeGPS produce successful RL agents?",
+      "purpose": "Establish that the method can produce working agents on the training tasks.",
+      "evidence_needed": [
+        "Produce policies that work on the original training tasks.",
+        "Do this across many games, not only one or two.",
+        "Use the current training-task experiments as the main evidence base."
+      ],
+      "current_interpretation": "This corresponds to getting strong policies on the original versions of Pong, Freeway, Asterix, and later more games."
+    },
+    {
+      "id": "RQ2",
+      "question": "Are these RL agents correctly aligned?",
+      "purpose": "Check whether the agents behave according to the intended task rather than exploiting unintended shortcuts.",
+      "evidence_needed": [
+        "Test the agents on task simplifications.",
+        "See whether behavior remains sensible under simpler variants of the same task.",
+        "Use these tests to study shortcut behavior and alignment."
+      ],
+      "current_interpretation": "This is the alignment / shortcut-learning question."
+    },
+    {
+      "id": "RQ3",
+      "question": "Can these RL agents easily be adapted to task variations?",
+      "purpose": "Measure whether the method can quickly adapt policies when the task structure or goal changes.",
+      "evidence_needed": [
+        "Use task modifications that alter the task structure or goal.",
+        "Ask whether the LLM can quickly adapt the policy under the new variation.",
+        "Evaluate adaptation quality and speed."
+      ],
+      "current_interpretation": "This is the task-variation / transfer question."
+    },
+    {
+      "id": "RQ4",
+      "question": "How important is the optimizer? (LLM without CMA-ES)",
+      "purpose": "Ablate the numeric optimizer to determine how much of the performance comes from search rather than code generation alone.",
+      "evidence_needed": [
+        "Modify the prompt to remove CMA-ES from the process.",
+        "Let the LLM generate a policy without tunable parameters, or with parameters that it sets itself.",
+        "Compare the resulting performance against the full LeGPS method."
+      ],
+      "current_interpretation": "This is the optimizer ablation question."
+    }
+  ],
+  "next_milestones": [
+    {
+      "milestone": "RQ1 evidence expansion",
+      "description": "Continue producing working policies on the original training tasks for more games."
+    },
+    {
+      "milestone": "RQ2 evaluation design",
+      "description": "Define and test task simplifications to probe alignment and shortcut behavior."
+    },
+    {
+      "milestone": "RQ3 adaptation design",
+      "description": "Create task modifications that change structure or goal and evaluate how quickly the method adapts."
+    },
+    {
+      "milestone": "RQ4 ablation implementation",
+      "description": "Create an LLM-only version without CMA-ES and compare it against the full LeGPS method."
+    }
+  ],
+  "working_reminder": {
+    "instruction": "When planning next experiments, prioritize alignment with RQ1-RQ4 and treat them as the thesis backbone.",
+    "current_games_explored": [
+      "pong",
+      "freeway",
+      "asterix"
+    ]
+  }
+}

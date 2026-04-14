@@ -4,8 +4,13 @@ env
 .venv
 .vscode
 .idea
+.pytest_cache/
 *.bc
 results/
+scripts/llm_optimization/outputs/
+scripts/llm_optimization/**/outputs/
+scripts/llm_optimization/**/figures/
+scripts/llm_optimization/**/reports/
 .DS_Store
 docs/build/
 

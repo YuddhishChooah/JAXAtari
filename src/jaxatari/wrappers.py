@@ -2,6 +2,7 @@
 
 import functools
 from typing import Any, Dict, Tuple, Union, Optional
+from dataclasses import asdict, is_dataclass
 
 import chex
 from flax import struct
@@ -21,6 +22,14 @@ class JaxatariWrapper(object):
     # provide proxy access to regular attributes of wrapped object
     def __getattr__(self, name):
         return getattr(self._env, name)
+
+
+def _flatten_obs_tree(obs_tree: chex.ArrayTree) -> chex.Array:
+    leaves = jax.tree.leaves(obs_tree)
+    flat_leaves = [jnp.ravel(leaf) for leaf in leaves]
+    if not flat_leaves:
+        return jnp.zeros((0,), dtype=jnp.int32)
+    return jnp.concatenate(flat_leaves)
 
 @struct.dataclass
 class AtariState:
@@ -184,6 +193,8 @@ class AtariWrapper(JaxatariWrapper):
         if hasattr(infos, '_asdict'):
             # It's a namedtuple or similar, convert to dict
             info_items = infos._asdict().items()
+        elif is_dataclass(infos):
+            info_items = asdict(infos).items()
         else:
             # It's already a dict
             info_items = infos.items()
@@ -269,7 +280,7 @@ class ObjectCentricWrapper(JaxatariWrapper):
     ) -> Tuple[chex.Array, EnvState]:
         obs, state = self._env.reset(key)
         # Flatten each frame in the stack
-        flat_obs = jax.vmap(self._env.obs_to_flat_array)(obs)
+        flat_obs = jax.vmap(_flatten_obs_tree)(obs)
         return flat_obs, state
 
     @functools.partial(jax.jit, static_argnums=(0,))
@@ -280,7 +291,7 @@ class ObjectCentricWrapper(JaxatariWrapper):
     ) -> Tuple[chex.Array, EnvState, float, bool, Any]:  # dict]:
         obs, state, reward, done, info = self._env.step(state, action)
         # Flatten each frame in the stack
-        flat_obs = jax.vmap(self._env.obs_to_flat_array)(obs)
+        flat_obs = jax.vmap(_flatten_obs_tree)(obs)
         return flat_obs, state, reward, done, info
 
 
@@ -465,7 +476,7 @@ class PixelAndObjectCentricWrapper(JaxatariWrapper):
         obs_stack, atari_state = self._env.reset(key)
 
         # 2. Flatten the object-centric part
-        flat_obs = jax.vmap(self._env.obs_to_flat_array)(obs_stack)
+        flat_obs = jax.vmap(_flatten_obs_tree)(obs_stack)
 
         # 3. Render and preprocess the image
         image = self._env.render(atari_state.env_state)
@@ -486,7 +497,7 @@ class PixelAndObjectCentricWrapper(JaxatariWrapper):
         obs_stack, atari_state, reward, done, info = self._env.step(state.atari_state, action)
 
         # 2. Flatten the new object-centric observation stack
-        flat_obs = jax.vmap(self._env.obs_to_flat_array)(obs_stack)
+        flat_obs = jax.vmap(_flatten_obs_tree)(obs_stack)
 
         # 3. Render and preprocess the new image
         image = self._env.render(atari_state.env_state)
