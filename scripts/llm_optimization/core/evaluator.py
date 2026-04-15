@@ -61,12 +61,10 @@ class ParallelEvaluator:
         episodic_life = self.episodic_life if self.episodic_life is not None else (False if self.game_name == "freeway" else True)
         self.env = FlattenObservationWrapper(
             ObjectCentricWrapper(
-                AtariWrapper(
-                    base_env,
-                    frame_stack_size=1,
-                    frame_skip=frame_skip,
-                    episodic_life=episodic_life,
-                )
+                AtariWrapper(base_env, episodic_life=episodic_life),
+                frame_stack_size=1,
+                frame_skip=frame_skip,
+                clip_reward=False,
             )
         )
         self.action_space_n = self.env.action_space().n
@@ -110,12 +108,13 @@ class ParallelEvaluator:
             action = jnp.clip(action, 0, self.effective_action_clip_max).astype(jnp.int32)
             
             # Step environment (state first, then action)
-            next_obs, next_state, reward, next_done, info = self.env.step(state, action)
+            next_obs, next_state, reward, terminated, truncated, info = self.env.step(state, action)
             next_obs_flat = next_obs[-self.obs_size:] if next_obs.shape[0] > self.obs_size else next_obs
             
             next_total_reward = total_reward + reward
             
             # Track done state
+            next_done = jnp.logical_or(terminated, truncated)
             new_done = jnp.logical_or(done, next_done)
             
             # Track step count for episode length

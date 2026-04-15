@@ -1,0 +1,1810 @@
+import os
+from functools import partial
+from typing import Tuple, NamedTuple
+import jax
+import jax.numpy as jnp
+import chex
+import jaxatari.spaces as spaces
+import jaxatari.rendering.jax_rendering_utils as render_utils
+import numpy as np
+from flax import struct
+from jaxatari.environment import JaxEnvironment, ObjectObservation, JAXAtariAction as Action
+from jaxatari.spaces import Space
+from jaxatari.modification import AutoDerivedConstants
+
+# Phoenix Game by: Florian Schmidt, Finn Keller
+
+def _create_static_procedural_sprites() -> dict:
+    """Creates procedural sprites that don't depend on dynamic values."""
+    # Create a black background (210x160)
+    # We must add at least one pixel with alpha > 0
+    # so the color (0,0,0) is added to the palette.
+    bg_data = jnp.zeros((210, 160, 4), dtype=jnp.uint8)
+    bg_data = bg_data.at[0, 0, 3].set(255) # Add one black, opaque pixel
+    
+    return {
+        'background': bg_data
+    }
+
+def _get_default_asset_config() -> tuple:
+    """
+    Returns the default declarative asset manifest for Phoenix.
+    Kept immutable (tuple of dicts) to fit NamedTuple defaults.
+    """
+    static_procedural = _create_static_procedural_sprites()
+    return (
+        # --- Background & Field ---
+        {'name': 'background', 'type': 'background', 'data': static_procedural['background']},
+        {'name': 'floor', 'type': 'single', 'file': 'floor.npy'},
+        
+        # --- UI ---
+        {'name': 'digits', 'type': 'digits', 'pattern': 'digits/{}.npy'},
+        {'name': 'life_indicator', 'type': 'single', 'file': 'life_indicator.npy'},
+        
+        # --- Player ---
+        # This group's order must match the logic in render()
+        # 0: idle, 1: death_1, 2: death_2, 3: death_3, 4: move
+        {'name': 'player', 'type': 'group', 'files': [
+            'player/player.npy', 
+            'player/player_death_1.npy', 
+            'player/player_death_2.npy', 
+            'player/player_death_3.npy', 
+            'player/player_move.npy'
+        ]},
+        {'name': 'player_ability', 'type': 'single', 'file': 'ability.npy'},
+        
+        # --- Projectiles ---
+        {'name': 'player_projectile', 'type': 'single', 'file': 'projectiles/player_projectile.npy'},
+        {'name': 'enemy_projectile', 'type': 'single', 'file': 'projectiles/enemy_projectile.npy'},
+        
+        # --- Phoenix ---
+        # This group's order must match the logic in render()
+        # 0: phoenix_1, 1: phoenix_2, 2: attack, 3: death_1, 4: death_2
+        {'name': 'phoenix', 'type': 'group', 'files': [
+            'enemy_phoenix/enemy_phoenix.npy',
+            'enemy_phoenix/enemy_phoenix_2.npy',
+            'enemy_phoenix/enemy_phoenix_attack.npy',
+            'enemy_phoenix/enemy_phoenix_death_1.npy',
+            'enemy_phoenix/enemy_phoenix_death_2.npy'
+        ]},
+        
+        # --- Bat Blue ---
+        # 0: main, 1: death_1, 2: death_2, 3: death_3
+        {'name': 'bat_blue_body', 'type': 'group', 'files': [
+            'enemy_bats/bats_blue/bat_blue_main.npy',
+            'enemy_bats/bats_blue/bat_blue_death_1.npy',
+            'enemy_bats/bats_blue/bat_blue_death_2.npy',
+            'enemy_bats/bats_blue/bat_blue_death_3.npy'
+        ]},
+        # 0: left_mid, 1: right_mid, 2: left_up, 3: right_up, ...
+        {'name': 'bat_blue_wings', 'type': 'group', 'files': [
+            'enemy_bats/bats_blue/bat_blue_left_wing_middle.npy',
+            'enemy_bats/bats_blue/bat_blue_right_wing_middle.npy',
+            'enemy_bats/bats_blue/bat_blue_left_wing_up.npy',
+            'enemy_bats/bats_blue/bat_blue_right_wing_up.npy',
+            'enemy_bats/bats_blue/bat_blue_left_wing_down.npy',
+            'enemy_bats/bats_blue/bat_blue_right_wing_down.npy',
+            'enemy_bats/bats_blue/bat_blue_left_wing_down_2.npy',
+            'enemy_bats/bats_blue/bat_blue_right_wing_down_2.npy'
+        ]},
+        
+        # --- Bat Red ---
+        {'name': 'bat_red_body', 'type': 'group', 'files': [
+            'enemy_bats/bats_red/bat_red_main.npy',
+            'enemy_bats/bats_red/bat_red_death_1.npy',
+            'enemy_bats/bats_red/bat_red_death_2.npy',
+            'enemy_bats/bats_red/bat_red_death_3.npy'
+        ]},
+        {'name': 'bat_red_wings', 'type': 'group', 'files': [
+            'enemy_bats/bats_red/bat_red_left_wing_middle.npy',
+            'enemy_bats/bats_red/bat_red_right_wing_middle.npy',
+            'enemy_bats/bats_red/bat_red_left_wing_up.npy',
+            'enemy_bats/bats_red/bat_red_right_wing_up.npy',
+            'enemy_bats/bats_red/bat_red_left_wing_down.npy',
+            'enemy_bats/bats_red/bat_red_right_wing_down.npy',
+            'enemy_bats/bats_red/bat_red_left_wing_down_2.npy',
+            'enemy_bats/bats_red/bat_red_right_wing_down_2.npy'
+        ]},
+
+        # --- Boss ---
+        {'name': 'boss', 'type': 'single', 'file': 'boss/boss.npy'},
+        {'name': 'boss_block_red', 'type': 'single', 'file': 'boss/red_block.npy'},
+        {'name': 'boss_block_blue', 'type': 'single', 'file': 'boss/blue_block.npy'},
+        {'name': 'boss_block_green', 'type': 'single', 'file': 'boss/green_block.npy'},
+    )
+
+# new Constant class
+class PhoenixConstants(AutoDerivedConstants):
+    """Game constants for Phoenix."""
+    PLAYER_POSITION: Tuple[int, int] = struct.field(pytree_node=False, default_factory=lambda: (79, 173))
+    PLAYER_COLOR: Tuple[int, int, int] = struct.field(pytree_node=False, default_factory=lambda: (213, 130, 74))
+    WIDTH: int = struct.field(pytree_node=False, default=160)
+    HEIGHT: int = struct.field(pytree_node=False, default=210)
+    WINDOW_WIDTH: int = struct.field(pytree_node=False, default_factory=lambda: 160 * 3)
+    WINDOW_HEIGHT: int = struct.field(pytree_node=False, default_factory=lambda: 210 * 3)
+    MAX_PLAYER: int = struct.field(pytree_node=False, default=1)
+    MAX_PLAYER_PROJECTILE: int = struct.field(pytree_node=False, default=1)
+    MAX_PHOENIX: int = struct.field(pytree_node=False, default=8)
+    MAX_BATS: int = struct.field(pytree_node=False, default=7)
+    MAX_BOSS: int = struct.field(pytree_node=False, default=1)
+    MAX_BOSS_BLOCK_GREEN: int = struct.field(pytree_node=False, default=30)
+    MAX_BOSS_BLOCK_BLUE: int = struct.field(pytree_node=False, default=48)
+    MAX_BOSS_BLOCK_RED: int = struct.field(pytree_node=False, default=126)
+    PROJECTILE_WIDTH: int = struct.field(pytree_node=False, default=2)
+    PROJECTILE_HEIGHT: int = struct.field(pytree_node=False, default=4) 
+    ENEMY_WIDTH: int = struct.field(pytree_node=False, default=6)
+    ENEMY_HEIGHT:int = struct.field(pytree_node=False, default=5)
+    WING_WIDTH: int = struct.field(pytree_node=False, default=5)
+    BAT_REGEN: int = struct.field(pytree_node=False, default=250)
+    BLOCK_WIDTH:int = struct.field(pytree_node=False, default=4)
+    BLOCK_HEIGHT:int = struct.field(pytree_node=False, default=4)
+    SCORE_COLOR: Tuple[int, int, int] = struct.field(pytree_node=False, default_factory=lambda: (210, 210, 64))
+    PLAYER_BOUNDS: Tuple[int, int] = struct.field(pytree_node=False, default_factory=lambda: (0, 155))  # (left, right)
+    PLAYER_EDGE_MARGIN: int = struct.field(pytree_node=False, default=16)  # pixels from each horizontal edge where movement stops
+    ENEMY_DEATH_DURATION: int = struct.field(pytree_node=False, default=60) # ca. 0,5 Sekunden bei 30 FPS
+    PLAYER_DEATH_DURATION: int = struct.field(pytree_node=False, default=180) # ca. 1,5 Sekunden bei 30 FPS
+    ENEMY_PROJECTILE_SPEED: int = struct.field(pytree_node=False, default=2)
+    PLAYER_PROJECTILE_SPEED: int = struct.field(pytree_node=False, default=6)
+    PLAYER_PROJECTILE_INITIAL_OFFSET: int = struct.field(pytree_node=False, default=-5)
+    PLAYER_RESPAWN_DURATION: int = struct.field(pytree_node=False, default=720) # ca. 6 Sekunden bei 30 FPS
+    ABILITY_COOLDOWN: int = struct.field(pytree_node=False, default=1200) # ca. 10 sekunden bei 30FPS
+    FIRE_CHANCE: float = struct.field(pytree_node=False, default=0.0025)
+    LEVEL_TRANSITION_DURATION: int = struct.field(pytree_node=False, default=480) # ca. 4 Sekunden bei 30 FPS
+    ENEMY_ANIMATION_SPEED: int = struct.field(pytree_node=False, default=60)  # ca. 0,5 Sekunden bei 30 FPS
+    PLAYER_ANIMATION_SPEED: int = struct.field(pytree_node=False, default=12)  # ca. 0,1 Sekunden bei 30 FPS
+    PLAYER_LIVES: int = struct.field(pytree_node=False, default=4) # Anzahl der Leben
+    ENEMY_POSITIONS_X: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array([
+        [123 - 160 // 2, 123 - 160 // 2, 136 - 160 // 2, 136 - 160 // 2, 160 - 160 // 2, 160 - 160 // 2,
+         174 - 160 // 2, 174 - 160 // 2],
+        [141 - 160 // 2, 155 - 160 // 2, 127 - 160 // 2, 169 - 160 // 2, 134 - 160 // 2, 162 - 160 // 2,
+         120 - 160 // 2, 176 - 160 // 2],
+        [123 - 160 // 2, 170 - 160 // 2, 123 - 160 // 2, 180 - 160 // 2, 123 - 160 // 2, 170 - 160 // 2,
+         123 - 160 // 2, -1],
+        [123 - 160 // 2, 180 - 160 // 2, 123 - 160 // 2, 170 - 160 // 2, 123 - 160 // 2, 180 - 160 // 2,
+         123 - 160 // 2, -1],
+        [72, -1, -1, -1, -1, -1, -1, -1],
+    ], dtype=jnp.float32))
+    ENEMY_POSITIONS_Y: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array([
+        [210 - 135, 210 - 153, 210 - 117, 210 - 171, 210 - 117, 210 - 171, 210 - 135, 210 - 153],
+        [210 - 171, 210 - 171, 210 - 135, 210 - 135, 210 - 153, 210 - 153, 210 - 117, 210 - 117],
+        [210 - 99, 210 - 117, 210 - 135, 210 - 153, 210 - 171, 210 - 63, 210 - 81, 210 + 20],
+        [210 - 63, 210 - 81, 210 - 99, 210 - 117, 210 - 135, 210 - 153, 210 - 171, 210 + 20],
+        [76, 210 + 20, 210 + 20, 210 + 20, 210 + 20, 210 + 20, 210 + 20, 210 + 20],
+    ], dtype=jnp.float32))
+
+    #BLUE_BLOCK_X = jnp.linspace(PLAYER_BOUNDS[0] + 32, PLAYER_BOUNDS[1] - 32,
+    #                            24).astype(jnp.int32)
+    BLUE_BLOCK_X: jnp.ndarray = struct.field(pytree_node=False, default=None)
+    BLUE_BLOCK_Y_1: jnp.ndarray = struct.field(pytree_node=False, default=None)
+    BLUE_BLOCK_Y_2: jnp.ndarray = struct.field(pytree_node=False, default=None)
+    BLUE_BLOCK_POSITIONS: jnp.ndarray = struct.field(pytree_node=False, default=None)
+
+    # 1 Line with Blocks the same amount as Blue Blocks
+    RED_BLOCK_X_1: jnp.ndarray = struct.field(pytree_node=False, default=None)
+    RED_BLOCK_X_2: jnp.ndarray = struct.field(pytree_node=False, default=None)
+    RED_BLOCK_X_3: jnp.ndarray = struct.field(pytree_node=False, default=None)
+    RED_BLOCK_X_4: jnp.ndarray = struct.field(pytree_node=False, default=None)
+    RED_BLOCK_X_5: jnp.ndarray = struct.field(pytree_node=False, default=None)
+    RED_BLOCK_X_6: jnp.ndarray = struct.field(pytree_node=False, default=None)
+    RED_BLOCK_X_7: jnp.ndarray = struct.field(pytree_node=False, default=None)
+    RED_BLOCK_POSITIONS: jnp.ndarray = struct.field(pytree_node=False, default=None)
+
+    GREEN_BLOCK_Y_1: jnp.ndarray = struct.field(pytree_node=False, default=None)
+    GREEN_BLOCK_X_1: jnp.ndarray = struct.field(pytree_node=False, default=None)
+    GREEN_BLOCK_X_2: jnp.ndarray = struct.field(pytree_node=False, default=None)
+    GREEN_BLOCK_Y_2: jnp.ndarray = struct.field(pytree_node=False, default=None)
+    GREEN_BLOCK_X_3: jnp.ndarray = struct.field(pytree_node=False, default=None)
+    GREEN_BLOCK_Y_3: jnp.ndarray = struct.field(pytree_node=False, default=None)
+    GREEN_BLOCK_X_4: jnp.ndarray = struct.field(pytree_node=False, default=None)
+    GREEN_BLOCK_Y_4: jnp.ndarray = struct.field(pytree_node=False, default=None)
+    GREEN_BLOCK_X_5: jnp.ndarray = struct.field(pytree_node=False, default=None)
+    GREEN_BLOCK_Y_5: jnp.ndarray = struct.field(pytree_node=False, default=None)
+    # mirror the blocks to the left side
+    GREEN_BLOCK_Y_6: jnp.ndarray = struct.field(pytree_node=False, default=None)
+    GREEN_BLOCK_X_6: jnp.ndarray = struct.field(pytree_node=False, default=None)
+    GREEN_BLOCK_X_7: jnp.ndarray = struct.field(pytree_node=False, default=None)
+    GREEN_BLOCK_Y_7: jnp.ndarray = struct.field(pytree_node=False, default=None)
+    GREEN_BLOCK_X_8: jnp.ndarray = struct.field(pytree_node=False, default=None)
+    GREEN_BLOCK_Y_8: jnp.ndarray = struct.field(pytree_node=False, default=None)
+    GREEN_BLOCK_X_9: jnp.ndarray = struct.field(pytree_node=False, default=None)
+    GREEN_BLOCK_Y_9: jnp.ndarray = struct.field(pytree_node=False, default=None)
+    GREEN_BLOCK_X_10: jnp.ndarray = struct.field(pytree_node=False, default=None)
+    GREEN_BLOCK_Y_10: jnp.ndarray = struct.field(pytree_node=False, default=None)
+    GREEN_BLOCK_POSITIONS: jnp.ndarray = struct.field(pytree_node=False, default=None)
+
+    # Asset config baked into constants (immutable default) for asset overrides
+    ASSET_CONFIG: tuple = _get_default_asset_config()
+
+
+    def compute_derived(self):
+        # Blue blocks (Center rotating belt - Y=92 and Y=96)
+        blue_x = jnp.arange(32, 128, 4, dtype=jnp.int32)
+        blue_y1 = jnp.full((24,), 92, dtype=jnp.int32)
+        blue_y2 = jnp.full((24,), 96, dtype=jnp.int32)
+        blue_block_positions = jnp.concatenate([
+            jnp.stack((blue_x, blue_y1), axis=1), jnp.stack((blue_x, blue_y2), axis=1),
+        ])
+
+        # Red blocks (Under blue, starting flush at Y=100 and stepping down)
+        red_x1 = jnp.arange(32, 128, 4, dtype=jnp.int32) # 24 blocks
+        red_x2 = jnp.arange(36, 124, 4, dtype=jnp.int32) # 22 blocks
+        red_x3 = jnp.arange(40, 120, 4, dtype=jnp.int32) # 20 blocks
+        red_x4 = jnp.arange(44, 116, 4, dtype=jnp.int32) # 18 blocks
+        red_x5 = jnp.arange(48, 112, 4, dtype=jnp.int32) # 16 blocks
+        red_x6 = jnp.arange(52, 108, 4, dtype=jnp.int32) # 14 blocks
+        red_x7 = jnp.arange(56, 104, 4, dtype=jnp.int32) # 12 blocks
+        
+        red_block_positions = jnp.concatenate([
+            jnp.stack((red_x1, jnp.full((24,), 100, dtype=jnp.int32)), axis=1),
+            jnp.stack((red_x2, jnp.full((22,), 104, dtype=jnp.int32)), axis=1),
+            jnp.stack((red_x3, jnp.full((20,), 108, dtype=jnp.int32)), axis=1),
+            jnp.stack((red_x4, jnp.full((18,), 112, dtype=jnp.int32)), axis=1),
+            jnp.stack((red_x5, jnp.full((16,), 116, dtype=jnp.int32)), axis=1),
+            jnp.stack((red_x6, jnp.full((14,), 120, dtype=jnp.int32)), axis=1),
+            jnp.stack((red_x7, jnp.full((12,), 124, dtype=jnp.int32)), axis=1)
+        ], axis=0)
+
+        # Green blocks (Above blue, creating the protective walls)
+        def make_g_row(y, xl, num_l, xr, num_r):
+            left = jnp.arange(xl, xl + num_l*4, 4, dtype=jnp.int32)
+            right = jnp.arange(xr, xr + num_r*4, 4, dtype=jnp.int32)
+            return jnp.stack((left, jnp.full((num_l,), y, dtype=jnp.int32)), axis=1), \
+                   jnp.stack((right, jnp.full((num_r,), y, dtype=jnp.int32)), axis=1)
+
+        gl1, gr1 = make_g_row(88, 52, 5, 88, 5)
+        gl2, gr2 = make_g_row(84, 56, 4, 88, 4)
+        gl3, gr3 = make_g_row(80, 60, 3, 88, 3)
+        gl4, gr4 = make_g_row(76, 64, 2, 88, 2)
+        gl5, gr5 = make_g_row(72, 68, 1, 88, 1)
+
+        green_block_positions = jnp.concatenate([
+            gl1, gr1, gl2, gr2, gl3, gr3, gl4, gr4, gl5, gr5
+        ], axis=0)
+
+        return {
+            "BLUE_BLOCK_POSITIONS": blue_block_positions,
+            "RED_BLOCK_POSITIONS": red_block_positions,
+            "GREEN_BLOCK_POSITIONS": green_block_positions,
+        }
+
+# === GAME STATE ===
+@struct.dataclass
+class PhoenixState:
+    player_x: chex.Array
+    player_y: chex.Array
+    step_counter: chex.Array
+    enemies_x: chex.Array # Gegner X-Positionen
+    enemies_y: chex.Array
+    horizontal_direction_enemies: chex.Array
+    vertical_direction_enemies: chex.Array
+    blue_blocks: chex.Array
+    red_blocks: chex.Array
+    green_blocks: chex.Array
+    invincibility: chex.Array
+    invincibility_timer: chex.Array
+    ability_cooldown: chex.Array
+
+    bat_wings: chex.Array
+    bat_dying: chex.Array # Bat dying status, (8,), bool
+    bat_death_timer: chex.Array # Timer for Bat death animation, (8,), int
+    bat_wing_regen_timer: chex.Array
+    bat_y_cooldown: chex.Array
+
+    phoenix_do_attack: chex.Array  # Phoenix attack state
+    phoenix_attack_target_y: chex.Array  # Target Y position for Phoenix attack
+    phoenix_original_y: chex.Array  # Original Y position of the Phoenix
+    phoenix_cooldown: chex.Array
+    phoenix_drift: chex.Array
+    phoenix_returning: chex.Array # Returning status of the Phoenix
+    phoenix_dying: chex.Array # Dying status of the Phoenix, (8,), bool
+    phoenix_death_timer: chex.Array # Timer for Phoenix death animation, (8,), int
+
+    player_dying: chex.Array = struct.field(default_factory=lambda: jnp.array(False))  # Player dying status, bool
+    player_death_timer: chex.Array = struct.field(default_factory=lambda: jnp.array(0))  # Timer for player death animation, int
+    player_moving: chex.Array = struct.field(default_factory=lambda: jnp.array(False)) # Player moving status, bool
+
+    projectile_x: chex.Array = struct.field(default_factory=lambda: jnp.array(-1))  # Standardwert: kein Projektil
+    projectile_y: chex.Array = struct.field(default_factory=lambda: jnp.array(-1))  # Standardwert: kein Projektil # Gegner Y-Positionen
+    enemy_projectile_x: chex.Array = struct.field(default_factory=lambda: jnp.full((8,), -1)) # Enemy projectile X-Positionen
+    enemy_projectile_y: chex.Array = struct.field(default_factory=lambda: jnp.full((8,), -1)) # Enemy projectile Y-Positionen
+
+    score: chex.Array = struct.field(default_factory=lambda: jnp.array(0))  # Score
+    lives: chex.Array = struct.field(default_factory=lambda: jnp.array(5)) # Lives
+    player_respawn_timer: chex.Array = struct.field(default_factory=lambda: jnp.array(0)) # Invincibility timer
+    level: chex.Array = struct.field(default_factory=lambda: jnp.array(1))  # Level, starts at 1
+    level_transition_timer: chex.Array = struct.field(default_factory=lambda: jnp.array(0)) # Timer for level transition
+
+@struct.dataclass
+class PhoenixObservation:
+    player: ObjectObservation
+    player_projectile: ObjectObservation
+    enemy_projectiles: ObjectObservation  # n=8
+    enemies: ObjectObservation  # n=8, state encodes wings
+    boss: ObjectObservation
+    boss_blocks: ObjectObservation
+    player_score: chex.Array
+    lives: chex.Array
+
+@struct.dataclass
+class PhoenixInfo:
+    step_counter: jnp.ndarray
+
+@struct.dataclass
+class CarryState:
+    score: chex.Array
+
+@struct.dataclass
+class EntityPosition:## not sure
+    x: chex.Array
+    y: chex.Array
+
+class JaxPhoenix(JaxEnvironment[PhoenixState, PhoenixObservation, PhoenixInfo, None]):
+    # Minimal ALE action set for Phoenix
+    ACTION_SET: jnp.ndarray = jnp.array(
+        [
+            Action.NOOP,
+            Action.FIRE,
+            Action.RIGHT,
+            Action.LEFT,
+            Action.DOWN,
+            Action.RIGHTFIRE,
+            Action.LEFTFIRE,
+            Action.DOWNFIRE,
+        ],
+        dtype=jnp.int32,
+    )
+    
+    def __init__(self, consts: PhoenixConstants = None):
+        consts = consts or PhoenixConstants()
+        super().__init__(consts)
+        self.renderer = PhoenixRenderer(self.consts)
+        self.step_counter = 0
+
+    @partial(jax.jit, static_argnums=(0,))
+    def _get_observation(self, state: PhoenixState) -> PhoenixObservation:
+        c = self.consts
+        w, h = int(c.WIDTH), int(c.HEIGHT)
+
+        # --- Player ---
+        p_alive = (~state.player_dying & (state.player_respawn_timer == 0)).astype(jnp.int32)
+        player = ObjectObservation.create(
+            x=jnp.clip(jnp.array(state.player_x, dtype=jnp.int32), 0, w),
+            y=jnp.clip(jnp.array(state.player_y, dtype=jnp.int32), 0, h),
+            width=jnp.array(13, dtype=jnp.int32),
+            height=jnp.array(8, dtype=jnp.int32),
+            active=p_alive
+        )
+
+        # --- Player Projectile ---
+        p_active = (state.projectile_y > -1).astype(jnp.int32)
+        player_projectile = ObjectObservation.create(
+            x=jnp.clip(jnp.array(state.projectile_x, dtype=jnp.int32), 0, w),
+            y=jnp.clip(jnp.array(state.projectile_y, dtype=jnp.int32), 0, h),
+            width=jnp.array(c.PROJECTILE_WIDTH, dtype=jnp.int32),
+            height=jnp.array(c.PROJECTILE_HEIGHT, dtype=jnp.int32),
+            active=p_active
+        )
+
+        # --- Enemy Projectiles ---
+        ep_active = (state.enemy_projectile_y > -1).astype(jnp.int32)
+        enemy_projectiles = ObjectObservation.create(
+            x=jnp.clip(state.enemy_projectile_x.astype(jnp.int32), 0, w),
+            y=jnp.clip(state.enemy_projectile_y.astype(jnp.int32), 0, h),
+            width=jnp.full((8,), c.PROJECTILE_WIDTH, dtype=jnp.int32),
+            height=jnp.full((8,), c.PROJECTILE_HEIGHT, dtype=jnp.int32),
+            active=ep_active
+        )
+
+        # --- Enemies ---
+        # Map bat_wings (-1..2) to positive state (0..3)
+        # -1 (Left) -> 1
+        #  0 (None) -> 0
+        #  1 (Right) -> 2
+        #  2 (Both) -> 3
+        # In non-bat levels, reset to 3 (Full)
+        is_bat_level = jnp.logical_or((state.level % 5) == 3, (state.level % 5) == 4)
+        raw_wings = state.bat_wings
+        
+        # Remap: -1->1, 0->0, 1->2, 2->3
+        wing_state = jnp.select(
+            [raw_wings == 0, raw_wings == -1, raw_wings == 1, raw_wings == 2],
+            [0, 1, 2, 3],
+            3 # Default to full
+        ).astype(jnp.int32)
+        
+        # If not bat level, visual state is generic (3/Full)
+        final_state = jnp.where(is_bat_level, wing_state, 3)
+        
+        # Encode death animation in the observation state while keeping enemies active on-screen.
+        # Convention for this env:
+        # - base state (0..3): wing status (bat levels) or generic (non-bat)
+        # - +4: enemy is in death animation (still present, but different)
+        dying_mask = jnp.where(is_bat_level, state.bat_dying, state.phoenix_dying).astype(jnp.int32)
+        obs_enemy_state = (final_state + (dying_mask * 4)).astype(jnp.int32)
+
+        enemies = ObjectObservation.create(
+            x=jnp.clip(state.enemies_x.astype(jnp.int32), 0, w),
+            y=jnp.clip(state.enemies_y.astype(jnp.int32), 0, h),
+            width=jnp.full((8,), c.ENEMY_WIDTH, dtype=jnp.int32),
+            height=jnp.full((8,), c.ENEMY_HEIGHT, dtype=jnp.int32),
+            active=((state.enemies_x > -1) & (state.enemies_y < h + 10)).astype(jnp.int32),
+            state=obs_enemy_state
+        )
+
+        # --- Boss ---
+        boss_active = (((state.level % 5) == 0) & (state.enemies_x[0] > -1)).astype(jnp.int32)
+        boss = ObjectObservation.create(
+            x=jnp.clip(state.enemies_x[0].astype(jnp.int32), 0, w),
+            y=jnp.clip(state.enemies_y[0].astype(jnp.int32), 0, h),
+            width=jnp.array(32, dtype=jnp.int32),
+            height=jnp.array(16, dtype=jnp.int32),
+            active=boss_active
+        )
+
+        # --- Boss Blocks ---
+        # Flatten blocks
+        is_boss_level = ((state.level % 5) == 0)
+
+        def extract_blocks(blocks, start_id):
+            bx = blocks[:, 0].astype(jnp.int32)
+            by = blocks[:, 1].astype(jnp.int32)
+            active = ((bx > -99) & is_boss_level).astype(jnp.int32)
+            vid = jnp.full(bx.shape, start_id, dtype=jnp.int32)
+            return bx, by, active, vid
+
+        bx_b, by_b, ba_b, vid_b = extract_blocks(state.blue_blocks, 0)
+        bx_r, by_r, ba_r, vid_r = extract_blocks(state.red_blocks, 1)
+        bx_g, by_g, ba_g, vid_g = extract_blocks(state.green_blocks, 2)
+        
+        blocks_x = jnp.concatenate([bx_b, bx_r, bx_g])
+        blocks_y = jnp.concatenate([by_b, by_r, by_g])
+        blocks_active = jnp.concatenate([ba_b, ba_r, ba_g])
+        blocks_vid = jnp.concatenate([vid_b, vid_r, vid_g])
+        
+        total_blocks = (
+            c.BLUE_BLOCK_POSITIONS.shape[0]
+            + c.RED_BLOCK_POSITIONS.shape[0]
+            + c.GREEN_BLOCK_POSITIONS.shape[0]
+        )
+        
+        boss_blocks = ObjectObservation.create(
+            x=jnp.clip(blocks_x, 0, w),
+            y=jnp.clip(blocks_y, 0, h),
+            width=jnp.full((total_blocks,), c.BLOCK_WIDTH, dtype=jnp.int32),
+            height=jnp.full((total_blocks,), c.BLOCK_HEIGHT, dtype=jnp.int32),
+            active=blocks_active,
+            visual_id=blocks_vid
+        )
+
+        return PhoenixObservation(
+            player=player,
+            player_projectile=player_projectile,
+            enemy_projectiles=enemy_projectiles,
+            enemies=enemies,
+            boss=boss,
+            boss_blocks=boss_blocks,
+            player_score=state.score,
+            lives=state.lives
+        )
+
+    @partial(jax.jit, static_argnums=(0,))
+    def _get_info(self, state: PhoenixState) -> PhoenixInfo:
+        return PhoenixInfo(
+            step_counter=state.step_counter,
+        )
+
+    @partial(jax.jit, static_argnums=(0,))
+    def _get_done(self, state: PhoenixState) -> Tuple[bool, PhoenixState]:
+        return jnp.less_equal(state.lives, 0)
+
+    @partial(jax.jit, static_argnums=(0,))
+    def _get_reward(self, previous_state: PhoenixState, state: PhoenixState):
+        return state.score - previous_state.score
+
+
+    def action_space(self) -> spaces.Discrete:
+        return spaces.Discrete(len(self.ACTION_SET))
+
+    def observation_space(self) -> spaces.Dict:
+        screen_size = (int(self.consts.HEIGHT), int(self.consts.WIDTH))
+        single_obj = spaces.get_object_space(n=None, screen_size=screen_size)
+        total_blocks = (
+            int(self.consts.BLUE_BLOCK_POSITIONS.shape[0])
+            + int(self.consts.RED_BLOCK_POSITIONS.shape[0])
+            + int(self.consts.GREEN_BLOCK_POSITIONS.shape[0])
+        )
+        
+        return spaces.Dict({
+            "player": single_obj,
+            "player_projectile": single_obj,
+            "enemy_projectiles": spaces.get_object_space(n=8, screen_size=screen_size),
+            "enemies": spaces.get_object_space(n=8, screen_size=screen_size),
+            "boss": single_obj,
+            "boss_blocks": spaces.get_object_space(n=total_blocks, screen_size=screen_size),
+            "player_score": spaces.Box(low=0, high=99999, shape=(), dtype=jnp.int32),
+            "lives": spaces.Box(low=0, high=9, shape=(), dtype=jnp.int32),
+        })
+
+    def image_space(self) -> spaces.Box:
+        return spaces.Box(
+            low=0,
+            high=255,
+            shape=(210, 160, 3),
+            dtype=jnp.uint8
+        )
+
+    @partial(jax.jit, static_argnums=(0,))
+    def player_step(self, state: PhoenixState, action: chex.Array) -> tuple[chex.Array]:
+        step_size = 1  # Größerer Wert = schnellerer Schritt
+        # left action
+        left = jnp.any(
+            jnp.array(
+                [
+                    action == Action.LEFT,
+                    action == Action.LEFTFIRE,
+                ]
+            )
+        )
+        # right action
+        right = jnp.any(
+            jnp.array(
+                [
+                    action == Action.RIGHT,
+                    action == Action.RIGHTFIRE,
+                ]
+            )
+        )
+         #Ability : it holds on for ... amount
+        invinsibility = jnp.any(jnp.array([action == Action.DOWN])) & (state.ability_cooldown == 0) & (state.invincibility_timer == 0)
+
+        new_invinsibility = jnp.where(invinsibility, True, state.invincibility)
+        new_timer = jnp.where(invinsibility & (state.invincibility_timer == 0), 200, state.invincibility_timer)
+
+        new_timer = jnp.where(new_timer > 0, new_timer - 1, 0)
+        new_invinsibility = jnp.where(new_timer == 0, False, new_invinsibility)
+
+        new_cooldown = jnp.where(new_timer == 2, self.consts.ABILITY_COOLDOWN, state.ability_cooldown)
+        new_cooldown = jnp.where(new_cooldown > 0, new_cooldown - 1, 0)
+        # movement right/left
+        player_x = jnp.where(
+            right & jnp.logical_not(new_invinsibility),
+            state.player_x + step_size,
+            jnp.where(left & jnp.logical_not(new_invinsibility), state.player_x - step_size, state.player_x),
+        )
+
+        # apply horizontal edge margin
+        left_limit = self.consts.PLAYER_BOUNDS[0] + self.consts.PLAYER_EDGE_MARGIN
+        right_limit = self.consts.PLAYER_BOUNDS[1] - self.consts.PLAYER_EDGE_MARGIN
+        player_x = jnp.where(
+            player_x < left_limit,
+            left_limit,
+            jnp.where(player_x > right_limit, right_limit, player_x),
+        )
+
+        # Did the player move?
+        player_moved = jnp.not_equal(player_x.astype(jnp.int32), state.player_x.astype(jnp.int32))
+        new_player_moving = player_moved.astype(jnp.bool_)
+
+        state = state.replace(player_x= player_x.astype(jnp.int32),
+                               invincibility=new_invinsibility,
+                               invincibility_timer=new_timer,
+                                player_moving=new_player_moving,
+                                 ability_cooldown=new_cooldown
+        )
+
+        return state
+
+    def phoenix_step(self, state):
+        enemy_step_size = 0.4
+        attack_speed = 1#0.4
+        tolerance = 0.5 #TODO Kann evtl entfernt werden
+
+        # Nur Gegner mit gültiger Position im Spielfeld bewegen
+        active_enemies = (state.enemies_x > -1) & (state.enemies_y < self.consts.HEIGHT + 10) & (~state.phoenix_dying)
+
+        # Unterste aktive Phoenixe (zum Starten eines Angriffs)
+        masked_enemies_y = jnp.where(active_enemies, state.enemies_y, -jnp.inf)
+        max_y = jnp.max(masked_enemies_y)
+        lowest_mask = (state.enemies_y == max_y) & active_enemies
+
+        # Angriff starten nur wenn nicht bereits am Angreifen/Zurückkehren und kein Cooldown
+        can_attack = (
+                lowest_mask
+                & (~state.phoenix_do_attack)
+                & (~state.phoenix_returning)
+                & (state.phoenix_cooldown == 0)
+                & ((state.phoenix_original_y == -1) | (state.enemies_y == state.phoenix_original_y))
+        )
+        key = jax.random.PRNGKey(state.step_counter)
+        attack_chance = jax.random.uniform(key, shape=()) < 0.005
+        attack_trigger = lowest_mask & jnp.any(can_attack & attack_chance)
+
+        # Zielbereich für den Angriff
+        min_attack_y = jnp.max(jnp.where(active_enemies & (~state.phoenix_do_attack), state.enemies_y, -jnp.inf)) + 20
+        max_attack_y = jnp.minimum(state.player_y - 10, self.consts.HEIGHT - 50)
+        common_target_y = jax.random.randint(key, (), minval=min_attack_y, maxval=max_attack_y)
+
+        new_phoenix_do_attack = jnp.where(attack_trigger, True, state.phoenix_do_attack)
+        new_phoenix_attack_target_y = jnp.where(
+            attack_trigger,
+            jnp.full_like(state.phoenix_attack_target_y, common_target_y),
+            state.phoenix_attack_target_y
+        ).astype(jnp.float32)
+        new_phoenix_original_y = jnp.where(attack_trigger, state.enemies_y, state.phoenix_original_y).astype(
+            jnp.float32)
+
+        # Drift nur beim Abtauchen/Anflug
+        drift_prob = 0.6
+        drift_max = 0.6#0.35
+        num = state.enemies_x.shape[0]
+        drift_key = jax.random.PRNGKey(state.step_counter + 999)
+        dir_key, mag_key, on_key = jax.random.split(drift_key, 3)
+        dir_sign = jnp.where(jax.random.uniform(dir_key, (num,)) < 0.5, -1.0, 1.0)
+        magnitude = jax.random.uniform(mag_key, (num,)) * drift_max
+        apply = jax.random.uniform(on_key, (num,)) < drift_prob
+        drift_sample = jnp.where(apply, dir_sign * magnitude, 0.0).astype(jnp.float32)
+        new_phoenix_drift = jnp.where(attack_trigger, drift_sample, state.phoenix_drift)
+
+        # Angriffsbewegung (runter/hoch zum Ziel)
+        going_down = new_phoenix_do_attack & (state.enemies_y < new_phoenix_attack_target_y - tolerance)
+        going_up = new_phoenix_do_attack & (state.enemies_y > new_phoenix_attack_target_y + tolerance)
+
+        # WICHTIG: Y-Bewegung nur für aktive Gegner
+        new_enemies_y = jnp.where(active_enemies & going_down, state.enemies_y + attack_speed, state.enemies_y)
+        new_enemies_y = jnp.where(active_enemies & going_up, new_enemies_y - attack_speed, new_enemies_y)
+
+        # Seiten-Drift nur während des Abtauchens/an Zielanflug
+        lateral_drift = jnp.where(going_down | going_up, new_phoenix_drift, 0.0).astype(jnp.float32)
+
+        # Ziel erreicht? -> gemeinsamen "unten bleiben"-Cooldown starten
+        target_reached = (~going_down) & (~going_up) & new_phoenix_do_attack
+        key_delay = jax.random.PRNGKey(state.step_counter + 123)
+        common_delay = jax.random.randint(key_delay, (), 30, 120)
+        any_reached_target = jnp.any(target_reached & (state.phoenix_cooldown == 0))
+
+        new_phoenix_cooldown = jnp.where(
+            any_reached_target,
+            jnp.full_like(state.phoenix_cooldown, common_delay),
+            state.phoenix_cooldown
+        )
+
+        # Rückflug-Start wenn Cooldown abgelaufen
+        start_return = target_reached & (new_phoenix_cooldown == 1)
+        new_phoenix_returning = jnp.where(start_return, True, state.phoenix_returning)
+        new_phoenix_do_attack = jnp.where(start_return, False, new_phoenix_do_attack)
+        new_phoenix_attack_target_y = jnp.where(start_return, -1, new_phoenix_attack_target_y)
+
+        # Rückflug: gleiches Tempo wie Angriff (nur aktive Gegner)
+        returning_active = new_phoenix_returning
+        dy = new_phoenix_original_y - new_enemies_y
+        step = jnp.clip(dy, -attack_speed, attack_speed)
+        new_enemies_y = jnp.where(active_enemies & returning_active, new_enemies_y + step, new_enemies_y)
+
+        arrived = active_enemies & returning_active & (jnp.abs(new_enemies_y - new_phoenix_original_y) <= tolerance)
+        new_enemies_y = jnp.where(arrived, new_phoenix_original_y, new_enemies_y)
+        new_phoenix_returning = jnp.where(arrived, False, new_phoenix_returning)
+        new_phoenix_original_y = jnp.where(arrived, -1, new_phoenix_original_y)
+        new_phoenix_cooldown = jnp.where(arrived, 30, new_phoenix_cooldown)
+
+        # Gruppenbewegung: nur während des Abtauchens ausnehmen
+        group_mask = active_enemies & (~going_down)
+
+        # Richtungswechsel nur anhand der oberen Formation
+        direction_mask = active_enemies & (new_phoenix_original_y == -1)
+
+        at_left_boundary = jnp.any(jnp.logical_and(state.enemies_x <= self.consts.PLAYER_BOUNDS[0], direction_mask))
+        at_right_boundary = jnp.any(
+            jnp.logical_and(
+                state.enemies_x >= self.consts.PLAYER_BOUNDS[1] - self.consts.ENEMY_WIDTH / 2,
+                direction_mask
+            )
+        )
+        new_direction = jax.lax.cond(
+            at_left_boundary,
+            lambda: jnp.full_like(state.horizontal_direction_enemies, 1.0, dtype=jnp.float32),
+            lambda: jax.lax.cond(
+                at_right_boundary,
+                lambda: jnp.full_like(state.horizontal_direction_enemies, -1.0, dtype=jnp.float32),
+                lambda: state.horizontal_direction_enemies.astype(jnp.float32),
+            ),
+        )
+
+        # Horizontale Bewegung anwenden
+        group_step = jnp.where(group_mask, new_direction * enemy_step_size, 0.0).astype(jnp.float32)
+        new_enemies_x = jnp.where(
+            active_enemies,
+            state.enemies_x + group_step + lateral_drift,
+            state.enemies_x
+        )
+        # WICHTIG: Clipping nur für aktive Gegner, damit Tote (-1) nicht auf 0 geclippt werden
+        clipped_x = jnp.clip(new_enemies_x, self.consts.PLAYER_BOUNDS[0], self.consts.PLAYER_BOUNDS[1])
+        new_enemies_x = jnp.where(active_enemies, clipped_x, state.enemies_x)
+
+        # Cooldown am Ende einmal dekrementieren
+        new_phoenix_cooldown = jnp.where(new_phoenix_cooldown > 0, new_phoenix_cooldown - 1, 0)
+
+
+        state = state.replace(
+            enemies_x=new_enemies_x.astype(jnp.float32),
+            horizontal_direction_enemies=new_direction.astype(jnp.float32),
+            enemies_y=new_enemies_y.astype(jnp.float32),
+            vertical_direction_enemies=state.vertical_direction_enemies.astype(jnp.float32),
+            blue_blocks=state.blue_blocks.astype(jnp.float32),
+            red_blocks=state.red_blocks.astype(jnp.float32),
+            green_blocks=state.green_blocks.astype(jnp.float32),
+            phoenix_do_attack=new_phoenix_do_attack,
+            phoenix_attack_target_y=new_phoenix_attack_target_y.astype(jnp.float32),
+            phoenix_original_y=new_phoenix_original_y.astype(jnp.float32),
+            phoenix_cooldown=new_phoenix_cooldown.astype(jnp.int32),
+            phoenix_drift=new_phoenix_drift.astype(jnp.float32),
+            phoenix_returning=new_phoenix_returning.astype(jnp.bool_),
+            phoenix_dying=state.phoenix_dying.astype(jnp.bool_),
+            phoenix_death_timer=state.phoenix_death_timer.astype(jnp.int32),
+            player_dying=state.player_dying.astype(jnp.bool_),
+            player_death_timer=state.player_death_timer.astype(jnp.int32),
+        )
+        return state, 0.0, False
+
+    def bat_step(self, state):
+        bat_step_size = 0.5
+        bat_y_step = 2
+        bat_y_chance = 0.1
+        active_bats = (state.enemies_x > -1) & (state.enemies_y < self.consts.HEIGHT + 10) & (~state.bat_dying)
+        proj_pos = jnp.array([state.projectile_x, state.projectile_y])
+        cooldown_ready = (state.bat_y_cooldown == 0) & active_bats
+
+        key = jax.random.PRNGKey(state.step_counter)
+        y_move_chance = jax.random.uniform(key, shape=state.enemies_y.shape) < bat_y_chance
+        dir_key = jax.random.PRNGKey(state.step_counter + 123)
+        y_direction = jnp.where(jax.random.uniform(dir_key, shape=state.enemies_y.shape) < 0.5,1.0,-1.0)
+
+        y_move = jnp.where(cooldown_ready & y_move_chance, bat_y_step * y_direction, 0.0)
+
+        # Initialisiere neue Richtungen für jede Fledermaus
+        new_directions = jnp.where(
+            jnp.logical_and(state.enemies_x <= self.consts.PLAYER_BOUNDS[0] + 3, active_bats),
+            jnp.ones(state.horizontal_direction_enemies.shape, dtype=jnp.float32),  # Force array shape
+            jnp.where(
+                jnp.logical_and(state.enemies_x >= self.consts.PLAYER_BOUNDS[1] - self.consts.ENEMY_WIDTH / 2,
+                                active_bats),
+                jnp.ones(state.horizontal_direction_enemies.shape, dtype=jnp.float32) * -1,  # Force array shape
+                state.horizontal_direction_enemies.astype(jnp.float32)  # Ensure consistency
+            )
+        )
+
+        # Bewege Fledermäuse basierend auf ihrer individuellen Richtung
+        #new_enemies_x = jnp.where(active_bats, state.enemies_x + (new_directions * bat_step_size), state.enemies_x)
+        #enemy_pos = jnp.stack([new_enemies_x, state.enemies_y], axis=1)
+        #new_enemies_x = jnp.clip(new_enemies_x, self.consts.PLAYER_BOUNDS[0], self.consts.PLAYER_BOUNDS[1])
+
+        #new_enemies_y = jnp.where(active_bats, state.enemies_y + y_move, state.enemies_y)
+        #new_enemies_y = jnp.clip(new_enemies_y, 0, self.consts.HEIGHT - self.consts.ENEMY_HEIGHT)
+        #new_y_cooldown = jnp.where(cooldown_ready & y_move_chance, 50, jnp.maximum(state.bat_y_cooldown-1,0))
+
+        # Horizontal: nur aktive Bats bewegen und clippen
+        proposed_x = jnp.where(active_bats, state.enemies_x + (new_directions * bat_step_size), state.enemies_x)
+        clipped_x = jnp.clip(proposed_x, self.consts.PLAYER_BOUNDS[0], self.consts.PLAYER_BOUNDS[1])
+        new_enemies_x = jnp.where(active_bats, clipped_x, state.enemies_x)
+
+        # Vertikal: nur aktive Bats bewegen und clippen
+        proposed_y = jnp.where(active_bats, state.enemies_y + y_move, state.enemies_y)
+        clipped_y = jnp.clip(proposed_y, 0, self.consts.HEIGHT - self.consts.ENEMY_HEIGHT)
+        new_enemies_y = jnp.where(active_bats, clipped_y, state.enemies_y)
+
+        # Für Kollisionen die neuen Y-Werte verwenden
+        enemy_pos = jnp.stack([new_enemies_x, new_enemies_y], axis=1)
+
+        new_y_cooldown = jnp.where(cooldown_ready & y_move_chance, 50, jnp.maximum(state.bat_y_cooldown - 1, 0))
+
+        def check_collision(entity_pos, projectile_pos):
+            enemy_x, enemy_y = entity_pos
+            proj_x, proj_y = projectile_pos
+            wing_left_x = enemy_x - 5
+            wing_y = enemy_y + 2
+            wing_right_x = enemy_x + 5
+            collision_x_left = (proj_x + self.consts.PROJECTILE_WIDTH > wing_left_x) & (
+                    proj_x < wing_left_x + self.consts.WING_WIDTH)
+            collision_y = (proj_y + self.consts.PROJECTILE_HEIGHT > wing_y) & (
+                    proj_y < enemy_y + 2)
+            collision_x_right = (proj_x + self.consts.PROJECTILE_WIDTH > wing_right_x) & (
+                    proj_x < wing_right_x + self.consts.WING_WIDTH)
+
+            return collision_x_left & collision_y, collision_x_right & collision_y
+
+        left_wing_collision, right_wing_collision = jax.vmap(lambda entity_pos: check_collision(entity_pos, proj_pos))(enemy_pos)
+        raw_left_valid = left_wing_collision & ((state.bat_wings == 2) | (state.bat_wings == -1))
+        raw_right_valid = right_wing_collision & ((state.bat_wings == 2) | (state.bat_wings == 1))
+
+        # Find the lowest left wing hit
+        y_left = jnp.where(raw_left_valid, new_enemies_y, -jnp.inf)
+        best_left_idx = jnp.argmax(y_left)
+        any_left = jnp.any(raw_left_valid)
+        
+        # Find the lowest right wing hit
+        y_right = jnp.where(raw_right_valid, new_enemies_y, -jnp.inf)
+        best_right_idx = jnp.argmax(y_right)
+        any_right = jnp.any(raw_right_valid)
+
+        # Prioritize whichever wing hit is lowest overall
+        best_y_left = jnp.max(y_left)
+        best_y_right = jnp.max(y_right)
+        
+        apply_left = any_left & (best_y_left >= best_y_right)
+        apply_right = any_right & (~apply_left)
+        
+        left_hit_valid = (jnp.arange(8) == best_left_idx) & apply_left
+        right_hit_valid = (jnp.arange(8) == best_right_idx) & apply_right
+
+        # Only remove the projectile if any valid hit occurred
+        any_valid_hit = jnp.any(left_hit_valid | right_hit_valid)
+        def update_wing_state(current_state, left_hit, right_hit):
+            # current_state: int (-1,0,1,2), left_hit & right_hit: bool
+
+            # First handle left wing hit
+            updated = jnp.where(
+                left_hit,
+                jnp.where(current_state == 2, 1,  # both wings → right wing only
+                          jnp.where(current_state == -1, 0, current_state)),  # right only → none, else unchanged
+                current_state
+            )
+
+            # Then handle right wing hit
+            updated = jnp.where(
+                right_hit,
+                jnp.where(updated == 2, -1,  # both wings → left wing only
+                          jnp.where(updated == 1, 0, updated)),  # left only → none, else unchanged
+                updated
+            )
+
+            return updated
+
+        new_bat_wings = jax.vmap(update_wing_state)(state.bat_wings, left_wing_collision, right_wing_collision)
+
+        no_wings = (new_bat_wings == 0) & active_bats
+        new_regen_timer = jnp.where(no_wings, state.bat_wing_regen_timer + 1, 0)
+        regenerated = (new_regen_timer >= self.consts.BAT_REGEN)
+        new_bat_wings = jnp.where(regenerated, 2, new_bat_wings)
+        new_regen_timer = jnp.where(regenerated, 0, new_regen_timer)
+
+        state = state.replace(
+            enemies_x=new_enemies_x.astype(jnp.float32),
+            enemies_y=new_enemies_y.astype(jnp.float32),
+            horizontal_direction_enemies=new_directions.astype(jnp.float32),
+            blue_blocks=state.blue_blocks.astype(jnp.float32),
+            red_blocks=state.red_blocks.astype(jnp.float32),
+            green_blocks=state.green_blocks.astype(jnp.float32),
+            bat_wings= new_bat_wings,
+            bat_wing_regen_timer=new_regen_timer,
+            bat_y_cooldown=new_y_cooldown.astype(jnp.int32)
+        )
+
+        return state, jnp.where(any_valid_hit, 20.0, 0.0), any_valid_hit
+
+    def boss_step(self, state):
+        step_size = 4.0  # Must be 4 to align with the rendering grid cell size
+        step_count = state.step_counter
+
+        # Move down exactly 1 cell (4 pixels) every 8 seconds (480 frames)
+        condition = (state.enemies_y[0] <= 140) & ((step_count % 480) == 0)
+
+        def move_blocks(blocks):
+            # Move all blocks down evenly so they keep their proper row Y-alignment
+            return blocks.at[:, 1].set(
+                jnp.where(condition, blocks[:, 1] + step_size, blocks[:, 1])
+            )
+
+        new_green_blocks = move_blocks(state.green_blocks)
+        new_red_blocks = move_blocks(state.red_blocks)
+        new_blue_blocks = move_blocks(state.blue_blocks)
+
+        new_enemy_y = jnp.where(condition, state.enemies_y + step_size, state.enemies_y.astype(jnp.float32))
+
+        projectile_active = (state.projectile_x >= 0) & (state.projectile_y >= 0)
+        projectile_pos = jnp.array([state.projectile_x, state.projectile_y])
+
+        def check_collision(entity_pos, projectile_pos):
+            enemy_x, enemy_y = entity_pos
+            projectile_x, projectile_y = projectile_pos
+
+            # Stricter X collision: requires the center pixel of the projectile to hit the block.
+            # Use inclusive bounds so boundary-aligned shots still count as a hit.
+            proj_center_x = projectile_x + 1  # width=2 -> take right pixel as "center"
+            collision_x = (proj_center_x >= enemy_x) & (
+                proj_center_x <= (enemy_x + self.consts.BLOCK_WIDTH - 1)
+            )
+            
+            collision_y = (projectile_y + self.consts.PROJECTILE_HEIGHT > enemy_y) & (
+                           projectile_y < enemy_y + self.consts.BLOCK_HEIGHT)
+            return collision_x & collision_y
+
+        def process_collisions(_):
+            # Check collisions for each block group
+            c_green = jax.vmap(lambda pos: check_collision(pos, projectile_pos))(new_green_blocks)
+            c_red = jax.vmap(lambda pos: check_collision(pos, projectile_pos))(new_red_blocks)
+            c_blue = jax.vmap(lambda pos: check_collision(pos, projectile_pos))(new_blue_blocks)
+
+            # Find the Y-coordinates of all hit blocks (-inf if not hit)
+            y_green = jnp.where(c_green, new_green_blocks[:, 1], -jnp.inf)
+            y_red = jnp.where(c_red, new_red_blocks[:, 1], -jnp.inf)
+            y_blue = jnp.where(c_blue, new_blue_blocks[:, 1], -jnp.inf)
+
+            max_y_green = jnp.max(y_green)
+            max_y_red = jnp.max(y_red)
+            max_y_blue = jnp.max(y_blue)
+
+            any_green = jnp.any(c_green)
+            any_red = jnp.any(c_red)
+            any_blue = jnp.any(c_blue)
+            hit_any = any_green | any_red | any_blue
+
+            # Find the absolute max Y (lowest block on screen) among the three groups
+            max_y = jnp.max(jnp.array([
+                jnp.where(any_green, max_y_green, -jnp.inf),
+                jnp.where(any_red, max_y_red, -jnp.inf),
+                jnp.where(any_blue, max_y_blue, -jnp.inf),
+            ]))
+
+            # Prioritize the lowest block group
+            remove_red = any_red & (max_y_red == max_y)
+            remove_blue = any_blue & (max_y_blue == max_y) & (~remove_red)
+            remove_green = any_green & (max_y_green == max_y) & (~remove_red) & (~remove_blue)
+
+            def remove_from_group(blocks, y_array):
+                best_idx = jnp.argmax(y_array)
+                # Hide the block by setting X to -100, preserving Y so it still moves down
+                return blocks.at[best_idx, 0].set(-100)
+
+            res_green = jax.lax.cond(remove_green, lambda: remove_from_group(new_green_blocks, y_green), lambda: new_green_blocks)
+            res_red = jax.lax.cond(remove_red, lambda: remove_from_group(new_red_blocks, y_red), lambda: new_red_blocks)
+            res_blue = jax.lax.cond(remove_blue, lambda: remove_from_group(new_blue_blocks, y_blue), lambda: new_blue_blocks)
+
+            return res_green, res_red, res_blue, hit_any
+
+        def skip_collisions(_):
+            return (new_green_blocks, new_red_blocks, new_blue_blocks, False)
+
+        new_green_blocks, new_red_blocks, new_blue_blocks, projectile_hit_detected = jax.lax.cond(
+            projectile_active, process_collisions, skip_collisions, operand=None
+        )
+
+        def rotate(arr):
+            # 1. Extract the alive status (X > -99)
+            alive = arr[:, 0] > -99
+            
+            # 2. Roll the alive status. Row 1 (0-23) goes right, Row 2 (24-47) goes left.
+            alive_row1 = jnp.roll(alive[:24], 1)
+            alive_row2 = jnp.roll(alive[24:], -1)
+            new_alive = jnp.concatenate([alive_row1, alive_row2])
+            
+            # 3. Retrieve the fixed base X coordinates from constants
+            base_x = self.consts.BLUE_BLOCK_POSITIONS[:, 0]
+            
+            # 4. Assign the correct X coordinate if alive, else hide it at -100
+            new_x = jnp.where(new_alive, base_x, -100)
+            return arr.at[:, 0].set(new_x)
+
+        new_blue_blocks = jax.lax.cond(
+            step_count % 20 == 0,
+            lambda: rotate(new_blue_blocks),
+            lambda: new_blue_blocks,
+        )
+
+        state = state.replace(
+            enemies_y=new_enemy_y.astype(jnp.float32),
+            blue_blocks=new_blue_blocks.astype(jnp.float32),
+            red_blocks=new_red_blocks.astype(jnp.float32),
+            green_blocks=new_green_blocks.astype(jnp.float32),
+            enemies_x = state.enemies_x.astype(jnp.float32),
+        )
+        return state, jnp.where(projectile_hit_detected, 20, 0.0), projectile_hit_detected
+
+    def reset(self, key: jax.random.PRNGKey = jax.random.PRNGKey(42)) -> Tuple[PhoenixObservation, PhoenixState]:
+
+        return_state = PhoenixState(
+            player_x=jnp.array(self.consts.PLAYER_POSITION[0], dtype=jnp.int32),
+            player_y=jnp.array(self.consts.PLAYER_POSITION[1], dtype=jnp.int32),
+            step_counter=jnp.array(0),
+            enemies_x = self.consts.ENEMY_POSITIONS_X[0],
+            enemies_y = self.consts.ENEMY_POSITIONS_Y[0],
+            horizontal_direction_enemies = jnp.full((8,), -1.0),
+            vertical_direction_enemies = jnp.full((8,), 1.0),
+            enemy_projectile_x=jnp.full((8,), -1),
+            enemy_projectile_y=jnp.full((8,), -1),
+            projectile_x=jnp.array(-1),  # Standardwert: kein Projektil
+            score = jnp.array(0), # Standardwert: Score=0
+            lives=jnp.array(self.consts.PLAYER_LIVES), # Standardwert: 4 Leben
+            player_respawn_timer=jnp.array(5),
+            level=jnp.array(1),
+            level_transition_timer=jnp.array(0),  # Timer for level transition, starts at 0
+
+            invincibility=jnp.array(False),
+            invincibility_timer=jnp.array(0),
+            ability_cooldown=jnp.array(0),
+
+            bat_wings=jnp.full((8,), 2),
+            bat_dying=jnp.full((8,), False, dtype=jnp.bool), # Bat dying status, (8,), bool
+            bat_death_timer=jnp.full((8,), 0, dtype=jnp.int32), # Timer for Bat death animation, (8,), int
+            bat_wing_regen_timer=jnp.full((8,), 0, dtype=jnp.int32),
+            bat_y_cooldown=jnp.full((8,), 0, dtype=jnp.int32),
+            phoenix_do_attack = jnp.full((8,), 0, dtype=jnp.bool),  # Phoenix attack state
+            phoenix_attack_target_y = jnp.full((8,), -1, dtype=jnp.float32),  # Target Y position for Phoenix attack
+            phoenix_original_y = jnp.full((8,), -1, dtype=jnp.float32),  # Original Y position of the Phoenix
+            phoenix_cooldown=jnp.full((8,), 0),  # Cooldown für Phoenix-Angriff
+            phoenix_drift=jnp.full((8,), 0.0, dtype=jnp.float32),  # Drift-Werte für Phoenix
+            phoenix_returning=jnp.full((8,), False, dtype=jnp.bool),  # Returning status of the Phoenix
+            phoenix_dying=jnp.full((8,), False, dtype=jnp.bool),  # Dying status of the Phoenix
+            phoenix_death_timer=jnp.full((8,), 0, dtype=jnp.int32),  # Timer for Phoenix death animation
+
+            player_dying=jnp.array(False, dtype = jnp.bool),  # Player dying status, bool
+            player_death_timer=jnp.array(0, dtype = jnp.int32),  # Timer for player death animation, int
+            player_moving=jnp.array(False, dtype = jnp.bool), # Player moving status, bool
+
+            # Initialierung der Blockpositionen
+            blue_blocks=self.consts.BLUE_BLOCK_POSITIONS.astype(jnp.float32),
+            red_blocks=self.consts.RED_BLOCK_POSITIONS.astype(jnp.float32),
+            green_blocks = self.consts.GREEN_BLOCK_POSITIONS.astype(jnp.float32),
+        )
+
+        initial_obs = self._get_observation(return_state)
+        return initial_obs, return_state
+
+    @partial(jax.jit, static_argnums=(0,))
+    def step(self, state, action: int) -> Tuple[PhoenixObservation, PhoenixState, float, bool, PhoenixInfo]:
+        # Translate agent action index to ALE console action
+        atari_action = jnp.take(self.ACTION_SET, jnp.asarray(action, dtype=jnp.int32))
+        
+        new_respawn_timer = jnp.where(state.player_respawn_timer > 0, state.player_respawn_timer - 1, 0)
+        respawn_ended = (state.player_respawn_timer > 0) & (new_respawn_timer == 0)
+
+        state = state.replace(player_respawn_timer=new_respawn_timer.astype(jnp.int32))
+
+        state = jax.lax.cond(
+            jnp.logical_or(state.player_dying, state.player_respawn_timer > 0),
+            lambda s: s,
+            lambda s: self.player_step(s, atari_action),
+            state
+        ) # Player_step only if not dying
+
+        projectile_active = state.projectile_y >= 0
+
+        # Can fire only if inactive
+        can_fire = (~projectile_active) & (~state.player_dying) & (state.player_respawn_timer <= 0)
+        fire_actions = jnp.array([
+            atari_action == Action.FIRE,
+            atari_action == Action.LEFTFIRE,
+            atari_action == Action.RIGHTFIRE,
+            atari_action == Action.DOWNFIRE,
+        ])
+        firing = jnp.any(fire_actions) & can_fire
+
+        state, sub_step_score, sub_step_hit = jax.lax.cond(
+            jnp.logical_or((state.level % 5) == 1, (state.level % 5) == 2),
+            lambda: self.phoenix_step(state),
+            lambda: jax.lax.cond(
+                jnp.logical_or((state.level % 5) == 3, (state.level % 5) == 4),
+                lambda: self.bat_step(state),
+                lambda: self.boss_step(state),
+            )
+        )
+
+        # Clear projectile when sub-step detected a hit; otherwise spawn on FIRE or move active projectile
+        projectile_active = state.projectile_y >= 0
+        projectile_x = jnp.where(
+            sub_step_hit,
+            -1,
+            jnp.where(firing, state.player_x + 2, state.projectile_x),
+        )
+        projectile_y = jnp.where(
+            sub_step_hit,
+            -1,
+            jnp.where(
+                firing,
+                state.player_y - self.consts.PLAYER_PROJECTILE_INITIAL_OFFSET,
+                jnp.where(
+                    projectile_active,
+                    state.projectile_y - self.consts.PLAYER_PROJECTILE_SPEED,
+                    state.projectile_y,
+                ),
+            ),
+        )
+        projectile_y = jnp.where(projectile_y < 0, -1, projectile_y)
+        projectile_x = projectile_x.astype(jnp.int32)
+        projectile_y = projectile_y.astype(jnp.int32)
+
+        projectile_active = projectile_y >= 0
+        
+        projectile_pos = jnp.array([projectile_x, projectile_y])
+        # use step_counter for randomness
+        def generate_fire_key_and_chance(step_counter: int, fire_chance: float) -> Tuple[jax.random.PRNGKey, float]:
+            key = jax.random.PRNGKey(step_counter)
+            return key, fire_chance
+
+        key, fire_chance = generate_fire_key_and_chance(state.step_counter, self.consts.FIRE_CHANCE)
+
+        is_boss_level = (state.level % 5) == 0
+        
+        # Give the boss a higher fire rate to compensate for its size
+        actual_fire_chance = jnp.where(is_boss_level, fire_chance * 3.0, fire_chance)
+        enemy_should_fire = jax.random.uniform(key, (8,)) < actual_fire_chance
+
+        # Generate random firing ports for the boss across its full width (32px)
+        key_offset, key = jax.random.split(key)
+        boss_half_width = 16  # half of 32px boss width
+        # Sample symmetric offsets around 0: [-16, 16)
+        boss_offsets = jax.random.randint(key_offset, (8,), -boss_half_width, boss_half_width)
+        proj_offsets = jnp.where(is_boss_level, boss_offsets, self.consts.ENEMY_WIDTH // 2)
+
+        # In the boss level, treat state.enemies_x[0] as the boss center
+        boss_is_alive = state.enemies_x[0] > -1
+        # NOTE: state.enemies_x[0] already represents the boss center.
+        # Adding boss_half_width here would shift all spawn points to the right side.
+        boss_center_x = state.enemies_x[0]
+        eff_enemy_x = jnp.where(is_boss_level & boss_is_alive, boss_center_x, state.enemies_x)
+        eff_enemy_y = jnp.where(is_boss_level & boss_is_alive, state.enemies_y[0], state.enemies_y)
+
+        # Fire only from active positions
+        can_fire = (state.enemy_projectile_y < 0) & (eff_enemy_x > -1)
+        not_attacking = jnp.logical_not(jnp.logical_or(state.phoenix_do_attack, state.phoenix_returning))
+        enemy_fire_mask = enemy_should_fire & can_fire & not_attacking
+
+        # Calculate exact X/Y origins
+        enemy_projectile_x = jnp.where(enemy_fire_mask, eff_enemy_x + proj_offsets, state.enemy_projectile_x)
+        
+        # Standard enemies fire from bottom (height 5), Boss fires from below the blue layer (offset 21)
+        spawn_y_offset = jnp.where(is_boss_level, 21, self.consts.ENEMY_HEIGHT)
+        enemy_projectile_y = jnp.where(enemy_fire_mask, eff_enemy_y + spawn_y_offset, state.enemy_projectile_y)
+
+        # Move enemy projectiles downwards
+        enemy_projectile_y = jnp.where(state.enemy_projectile_y >= 0, state.enemy_projectile_y + self.consts.ENEMY_PROJECTILE_SPEED,
+                                           enemy_projectile_y)
+
+        # Remove enemy projectile if off-screen
+        enemy_projectile_y = jnp.where(enemy_projectile_y > 185 - self.consts.PROJECTILE_HEIGHT, -1, enemy_projectile_y) # TODO 185 durch Konstante ersetzen, die global geändert werden kann.
+
+
+
+        projectile_pos = jnp.array([projectile_x, projectile_y])
+        enemy_positions = jnp.stack((state.enemies_x, state.enemies_y), axis=1)
+
+        def check_collision(entity_pos, projectile_pos):
+            enemy_x, enemy_y = entity_pos
+            projectile_x, projectile_y = projectile_pos
+
+            collision_x = (projectile_x + self.consts.PROJECTILE_WIDTH > enemy_x) & (projectile_x < enemy_x + self.consts.ENEMY_WIDTH)
+            collision_y = (projectile_y + self.consts.PROJECTILE_HEIGHT > enemy_y) & (projectile_y < enemy_y + self.consts.ENEMY_HEIGHT)
+            return collision_x & collision_y
+
+
+        # Kollisionsprüfung Gegner
+        enemy_collisions_raw = jax.vmap(lambda enemy_pos: check_collision(enemy_pos, projectile_pos))(enemy_positions)
+
+        # Boss level: blocks act as a shield. If the projectile overlaps any visible block,
+        # do not allow an immediate hit on the boss core behind it.
+        def boss_shield_collision(_):
+            blocks = jnp.concatenate([state.blue_blocks, state.red_blocks, state.green_blocks], axis=0)
+            bx = blocks[:, 0].astype(jnp.int32)
+            by = blocks[:, 1].astype(jnp.int32)
+            alive = bx > -99
+
+            proj_center_x = projectile_x + 1  # width=2 -> take right pixel as "center"
+            hit_x = (proj_center_x >= bx) & (proj_center_x <= (bx + self.consts.BLOCK_WIDTH - 1))
+            hit_y = (projectile_y + self.consts.PROJECTILE_HEIGHT > by) & (
+                projectile_y < by + self.consts.BLOCK_HEIGHT
+            )
+            return jnp.any(alive & hit_x & hit_y)
+
+        shield_hit = jax.lax.cond(
+            is_boss_level & (projectile_y >= 0) & (state.enemies_x[0] > -1),
+            boss_shield_collision,
+            lambda _: jnp.array(False),
+            operand=None,
+        )
+
+        enemy_collisions_raw = enemy_collisions_raw.at[0].set(
+            jnp.where(is_boss_level & shield_hit, False, enemy_collisions_raw[0])
+        )
+        is_bat_level = jnp.logical_or((state.level % 5) == 3, (state.level % 5) == 4)
+        dying_mask = jnp.where(is_bat_level, state.bat_dying, state.phoenix_dying)
+        
+        # Filter to only valid living enemies
+        valid_enemy_collisions = enemy_collisions_raw & (~dying_mask)
+        
+        # Select ONLY the lowest enemy (highest Y) if multiple overlap the fast missile
+        hit_y_coords_enemies = jnp.where(valid_enemy_collisions, state.enemies_y, -jnp.inf)
+        lowest_enemy_idx = jnp.argmax(hit_y_coords_enemies)
+        
+        enemy_hit_detected = jnp.any(valid_enemy_collisions)
+        
+        # Create a new mask where ONLY the lowest hit enemy is True
+        enemy_collisions = (jnp.arange(8) == lowest_enemy_idx) & enemy_hit_detected
+
+        # Phoenix-Death-Animation starten (nur Phoenix-Levels)
+        p_hit_mask = enemy_collisions & (~is_bat_level)
+        new_phoenix_dying = jnp.where(p_hit_mask, True, state.phoenix_dying)
+        new_phoenix_death_timer = jnp.where(
+            p_hit_mask, self.consts.ENEMY_DEATH_DURATION, state.phoenix_death_timer
+        )
+        p_dec_timer = jnp.where(
+            new_phoenix_dying & (new_phoenix_death_timer > 0),
+            new_phoenix_death_timer - 1,
+            new_phoenix_death_timer,
+        )
+        p_death_done = new_phoenix_dying & (p_dec_timer == 0)
+        new_phoenix_dying = jnp.where(p_death_done, False, new_phoenix_dying)
+        p_dec_timer = jnp.where(p_death_done, 0, p_dec_timer)
+
+        # Bat-Death-Animation starten (nur Bat-Levels)
+        b_hit_mask = enemy_collisions & is_bat_level
+        new_bat_dying = jnp.where(b_hit_mask, True, state.bat_dying)
+        new_bat_death_timer = jnp.where(
+            b_hit_mask, self.consts.ENEMY_DEATH_DURATION, state.bat_death_timer
+        )
+        b_dec_timer = jnp.where(
+            new_bat_dying & (new_bat_death_timer > 0),
+            new_bat_death_timer - 1,
+            new_bat_death_timer,
+        )
+        b_death_done = new_bat_dying & (b_dec_timer == 0)
+        new_bat_dying = jnp.where(b_death_done, False, new_bat_dying)
+        b_dec_timer = jnp.where(b_death_done, 0, b_dec_timer)
+
+        # Phoenix-Angriffsstatus nur in Phoenix-Levels zurücksetzen
+        phoenix_do_attack = jnp.where(p_hit_mask, False, state.phoenix_do_attack)
+        phoenix_attack_target_y = jnp.where(p_hit_mask, -1, state.phoenix_attack_target_y)
+        phoenix_original_y = jnp.where(p_hit_mask, -1, state.phoenix_original_y)
+
+        # Projektil zurücksetzen bei Treffer
+        projectile_x = jnp.where(enemy_hit_detected, -1, projectile_x)
+        projectile_y = jnp.where(enemy_hit_detected, -1, projectile_y)
+
+        # --- DYNAMIC SCORING LOGIC ---
+        # 1. Small Birds (Levels 1 & 2)
+        # 20 points horizontal, 80 points if swooping[cite: 96, 97].
+        is_swooping = state.phoenix_do_attack | state.phoenix_returning
+        small_bird_scores = jnp.where(is_swooping, 80, 20)
+
+        # 2. Large Birds / Bats (Levels 3 & 4)
+        # 100 to 500 points based on 5 proximity lanes[cite: 101, 102].
+        # Lane 0 (Top) = 100, Lane 1 = 200, Lane 2 = 300, Lane 3 = 400, Lane 4 (Bottom) = 500
+        bat_lane = jnp.clip((state.enemies_y - 20) / 30.0, 0.0, 4.0).astype(jnp.int32)
+        large_bird_scores = 100 + (bat_lane * 100)
+
+        # 3. Boss (Level 5)
+        # 1000 to 4000 based on proximity in the first round[cite: 104].
+        boss_lane = jnp.clip((state.enemies_y - 20) / 25.0, 0.0, 3.0).astype(jnp.int32)
+        boss_base_score = 1000 + (boss_lane * 1000)
+        
+        # Max score increases by 1000 per loop round, capped at 9000[cite: 106].
+        boss_round = (state.level - 1) // 5
+        boss_scores = jnp.clip(boss_base_score + (boss_round * 1000), 1000, 9000)
+
+        # Identify level type
+        level_type = (state.level % 5)
+        is_small_bird_level = (level_type == 1) | (level_type == 2)
+        is_bat_level = (level_type == 3) | (level_type == 4)
+        
+        # Map the correct score logic to the enemies array based on current level
+        enemy_hit_scores = jnp.where(
+            is_small_bird_level, small_bird_scores,
+            jnp.where(is_bat_level, large_bird_scores, boss_scores)
+        )
+
+        # Mask scores so only hit enemies award points, then sum 
+        actual_hit_scores = jnp.where(enemy_collisions, enemy_hit_scores, 0)
+        total_hit_score = jnp.sum(actual_hit_scores)
+
+        # Update overall score with sub_step (wings) + main kills
+        score = (state.score + sub_step_score + total_hit_score).astype(jnp.int32)
+
+        # Gegner entfernen nach Ablauf der jeweiligen Death-Animation
+        death_done_any = jnp.where(is_bat_level, b_death_done, p_death_done)
+        enemies_x = jnp.where(death_done_any, -1, state.enemies_x)
+        enemies_y = jnp.where(death_done_any, self.consts.HEIGHT + 20, state.enemies_y)
+
+
+        # Checken ob alle Gegner getroffen wurden
+        #all_enemies_hit = jnp.all(enemies_y >= self.consts.HEIGHT + 10)
+        #new_level = jnp.where(all_enemies_hit, (state.level % 5) + 1, state.level)
+        #new_enemies_x = jax.lax.cond(
+        #    all_enemies_hit,
+        #    lambda: jax.lax.switch((new_level -1 )% 5, self.consts.ENEMY_POSITIONS_X_LIST).astype(jnp.float32),
+        #    lambda: state.enemies_x.astype(jnp.float32)
+        #)
+        #new_enemies_y = jax.lax.cond(
+        #    all_enemies_hit,
+        #    lambda: jax.lax.switch((new_level -1 )% 5, self.consts.ENEMY_POSITIONS_Y_LIST).astype(jnp.float32),
+        #    lambda: enemies_y.astype(jnp.float32)
+        #)
+        #enemies_x = new_enemies_x
+        #enemies_y = new_enemies_y
+        #level = new_level
+
+        # 1) Level-Übergangstimer starten/fortschreiben
+        all_enemies_cleared = jnp.all(enemies_y >= self.consts.HEIGHT + 10)
+        start_transition = all_enemies_cleared & (state.level_transition_timer == 0)
+
+        new_level_transition_timer = jnp.where(
+            start_transition,
+            self.consts.LEVEL_TRANSITION_DURATION,
+            state.level_transition_timer
+        )
+        new_level_transition_timer = jnp.where(new_level_transition_timer > 0, new_level_transition_timer - 1, 0)
+
+        transition_ended = (state.level_transition_timer > 0) & (new_level_transition_timer == 0)
+
+        # 2) Nächstes Level vormerken und erst bei Timerende aktivieren
+        pending_next_level = (state.level % 5) + 1
+        level = jnp.where(transition_ended, pending_next_level, state.level)
+
+        # 3) Gegner-Formationen nur bei Timerende spawnen
+        formation_idx = (pending_next_level - 1) % 5
+        next_enemies_x = self.consts.ENEMY_POSITIONS_X[formation_idx]
+        next_enemies_y = self.consts.ENEMY_POSITIONS_Y[formation_idx]
+
+
+        reset_mask = transition_ended
+        enemies_x = jnp.where(reset_mask, next_enemies_x.astype(jnp.float32), enemies_x)
+        enemies_y = jnp.where(reset_mask, next_enemies_y.astype(jnp.float32), enemies_y)
+
+        # Richtungen der Formation zurücksetzen
+        new_horizontal_direction_enemies = jnp.where(
+            reset_mask, jnp.full((8,), -1.0, dtype=jnp.float32), state.horizontal_direction_enemies
+        )
+        new_vertical_direction_enemies = jnp.where(
+            reset_mask, jnp.full((8,), 1.0, dtype=jnp.float32), state.vertical_direction_enemies
+        )
+
+        # Death-/Timer-/Flügel-Status zurücksetzen
+        new_phoenix_dying = jnp.where(reset_mask, jnp.full((8,), False), new_phoenix_dying)
+        p_dec_timer = jnp.where(reset_mask, jnp.full((8,), 0), p_dec_timer)
+
+        new_bat_dying = jnp.where(reset_mask, jnp.full((8,), False), new_bat_dying)
+        b_dec_timer = jnp.where(reset_mask, jnp.full((8,), 0), b_dec_timer)
+        new_bat_wings = jnp.where(reset_mask, jnp.full((8,), 2, dtype=jnp.int32), state.bat_wings)
+
+        # Boss-Blöcke nur beim Eintritt in das Boss-Level neu initialisieren
+        enter_boss_next = ((pending_next_level % 5) == 0)
+        reset_blocks = reset_mask & enter_boss_next
+        blue_blocks = jnp.where(reset_blocks, self.consts.BLUE_BLOCK_POSITIONS.astype(jnp.float32), state.blue_blocks)
+        red_blocks = jnp.where(reset_blocks, self.consts.RED_BLOCK_POSITIONS.astype(jnp.float32), state.red_blocks)
+        green_blocks = jnp.where(reset_blocks, self.consts.GREEN_BLOCK_POSITIONS.astype(jnp.float32), state.green_blocks)
+
+        # Gegner-Respawn nach Spieler-Respawn nur, wenn kein Level-Übergang läuft
+        respawn_formation_idx = (level - 1) % 5
+        enemy_respawn_x = self.consts.ENEMY_POSITIONS_X[respawn_formation_idx]
+        enemy_respawn_y = self.consts.ENEMY_POSITIONS_Y[respawn_formation_idx]
+
+        enemy_respawn_mask = respawn_ended & (new_level_transition_timer == 0)
+        enemy_alive_mask = (enemies_x > -1) & (enemies_y < self.consts.HEIGHT + 10)
+        enemies_x = jnp.where(enemy_respawn_mask & enemy_alive_mask, enemy_respawn_x, enemies_x)
+        enemies_y = jnp.where(enemy_respawn_mask & enemy_alive_mask, enemy_respawn_y, enemies_y)
+
+
+
+        is_vulnerable = (new_respawn_timer <= 0) & (~state.player_dying) & (~state.invincibility)
+
+        def check_player_hit(projectile_xs, projectile_ys, player_x, player_y):
+            def is_hit(px, py):
+                hit_x = (px + self.consts.PROJECTILE_WIDTH > player_x) & (px < player_x + 5) # TODO 5 durch Konstante ersetzen, die global geändert werden kann.
+                hit_y = (py + self.consts.PROJECTILE_HEIGHT > player_y) & (py < player_y + self.consts.PROJECTILE_HEIGHT)
+                return hit_x & hit_y
+
+            hits = jax.vmap(is_hit)(projectile_xs, projectile_ys)
+            return jnp.any(hits)
+
+
+
+        # Kollisionsüberprüfung Spieler
+        player_hit_detected = jnp.where(
+            is_vulnerable & (state.invincibility == jnp.array(False)),
+            check_player_hit(enemy_projectile_x, enemy_projectile_y, state.player_x, state.player_y),
+            False
+        )
+
+        # Bei Treffer: Spieler-Dying-Status setzen und Timer starten
+        player_death_duration = self.consts.PLAYER_DEATH_DURATION
+        new_player_dying = jnp.where(player_hit_detected, True, state.player_dying)
+        player_death_timer_start = jnp.where(player_hit_detected, player_death_duration, state.player_death_timer)
+
+        lives = jnp.where(player_hit_detected, state.lives - 1, state.lives)
+
+
+        # Enemy Projectile entfernen wenn eine Kollision mit dem Spieler erkannt wurde
+        enemy_projectile_x = jnp.where(player_hit_detected, -1, enemy_projectile_x)
+        enemy_projectile_y = jnp.where(player_hit_detected, -1, enemy_projectile_y)
+
+        # Player-Death-Teimer herunterzählen
+        dec_player_timer = jnp.where(
+            new_player_dying & (player_death_timer_start > 0),
+            player_death_timer_start - 1,
+            player_death_timer_start
+        )
+        player_death_done = new_player_dying & (dec_player_timer == 0) & (player_death_timer_start > 0)
+
+        player_x = jnp.where(player_death_done, self.consts.PLAYER_POSITION[0], state.player_x)
+        player_respawn_timer = jnp.where(
+            player_death_done,
+            self.consts.PLAYER_RESPAWN_DURATION,
+            new_respawn_timer
+        )
+
+        new_player_moving = jnp.where(
+            jnp.logical_or(new_player_dying, player_respawn_timer > 0),
+            jnp.array(False, dtype=jnp.bool_),
+            state.player_moving
+        )
+
+        #enemy_respawn_x = jax.lax.switch((level - 1) % 5, self.consts.ENEMY_POSITIONS_X_LIST).astype(jnp.float32)
+        #enemy_respawn_y = jax.lax.switch((level - 1) % 5, self.consts.ENEMY_POSITIONS_Y_LIST).astype(jnp.float32)
+
+        #enemies_x = jnp.where(respawn_ended, enemy_respawn_x, enemies_x)
+        #enemies_y = jnp.where(respawn_ended, enemy_respawn_y, enemies_y)
+
+        new_player_dying = jnp.where(player_death_done, False, new_player_dying).astype(jnp.bool_)
+        new_player_death_timer = jnp.where(player_death_done, 0, dec_player_timer).astype(jnp.int32)
+
+        formation_reset = transition_ended | (respawn_ended & (new_level_transition_timer == 0))
+        new_phoenix_do_attack = jnp.where(formation_reset, jnp.full((8,), False), state.phoenix_do_attack)
+        new_phoenix_returning = jnp.where(formation_reset, jnp.full((8,), False), state.phoenix_returning)
+        new_phoenix_attack_target = jnp.where(formation_reset, jnp.full((8,), -1.0), state.phoenix_attack_target_y)
+        new_phoenix_cooldown = jnp.where(formation_reset, jnp.full((8,), 0), state.phoenix_cooldown)
+        new_phoenix_drift = jnp.where(formation_reset, jnp.full((8,), 0.0), state.phoenix_drift)
+        new_phoenix_original_y = jnp.where(formation_reset, jnp.full((8,), -1.0), state.phoenix_original_y)
+
+        return_state = PhoenixState(
+            player_x = player_x,
+            player_y = state.player_y,
+            step_counter = state.step_counter + 1,
+            projectile_x = projectile_x,
+            projectile_y = projectile_y,
+            enemies_x = enemies_x,
+            enemies_y = enemies_y,
+            horizontal_direction_enemies = new_horizontal_direction_enemies,
+            score=score,
+            enemy_projectile_x=enemy_projectile_x.astype(jnp.int32),
+            enemy_projectile_y=enemy_projectile_y.astype(jnp.int32),
+            lives=lives,
+            player_respawn_timer = player_respawn_timer,
+            level = level,
+            vertical_direction_enemies=new_vertical_direction_enemies,
+            blue_blocks=blue_blocks.astype(jnp.float32),
+            red_blocks=red_blocks.astype(jnp.float32),
+            green_blocks=green_blocks.astype(jnp.float32),
+            invincibility=state.invincibility,
+            invincibility_timer=state.invincibility_timer,
+            bat_wings=new_bat_wings,
+            bat_dying=new_bat_dying,
+            bat_death_timer=b_dec_timer,
+            phoenix_do_attack=new_phoenix_do_attack,
+            phoenix_attack_target_y=new_phoenix_attack_target,
+            phoenix_original_y=new_phoenix_original_y,
+            phoenix_cooldown=new_phoenix_cooldown,
+            phoenix_drift=new_phoenix_drift,
+            phoenix_returning=new_phoenix_returning,
+            phoenix_dying=new_phoenix_dying,
+            phoenix_death_timer=p_dec_timer,
+            player_dying=new_player_dying,
+            player_death_timer=new_player_death_timer,
+            player_moving=new_player_moving,
+            level_transition_timer=new_level_transition_timer,
+            ability_cooldown=state.ability_cooldown,
+            bat_wing_regen_timer=state.bat_wing_regen_timer,
+            bat_y_cooldown=state.bat_y_cooldown,
+
+        )
+        observation = self._get_observation(return_state)
+        env_reward = self._get_reward(state, return_state)
+        done = self._get_done(return_state)
+        info = self._get_info(return_state)
+        return observation, return_state, env_reward, done, info
+
+    def render(self, state:PhoenixState) -> jnp.ndarray:
+        return self.renderer.render(state)
+
+from jaxatari.renderers import JAXGameRenderer
+
+class PhoenixRenderer(JAXGameRenderer):
+    def __init__(self, consts: PhoenixConstants = None, config: render_utils.RendererConfig = None):
+        self.consts = consts or PhoenixConstants()
+        super().__init__(self.consts)
+        
+        # Use injected config if provided, else default
+        if config is None:
+            self.config = render_utils.RendererConfig(
+                game_dimensions=(210, 160),
+                channels=3,
+                downscale=None
+            )
+        else:
+            self.config = config
+        self.jr = render_utils.JaxRenderingUtils(self.config)
+        
+        # 2. Define sprite path
+        sprite_path = os.path.join(render_utils.get_base_sprite_dir(), "phoenix")
+        
+        # 3. Use asset config from constants
+        final_asset_config = list(self.consts.ASSET_CONFIG)
+        
+        # 4. Load all assets, create palette, and generate ID masks in one call
+        (
+            self.PALETTE,
+            self.SHAPE_MASKS,
+            self.BACKGROUND,
+            self.COLOR_TO_ID,
+            self.FLIP_OFFSETS
+        ) = self.jr.load_and_setup_assets(final_asset_config, sprite_path)
+
+    @partial(jax.jit, static_argnums=(0,))
+    def render(self, state):
+        # Start with the background raster
+        raster = self.jr.create_object_raster(self.BACKGROUND)
+
+        # Render common elements
+        raster = self._render_common(state, raster)
+
+        # Single switch for level-specific renderers (avoids 4 sequential conds)
+        level_idx = (state.level - 1) % 5
+        raster = jax.lax.switch(
+            level_idx,
+            [
+                lambda r: self._render_phoenix_level(state, r),
+                lambda r: self._render_phoenix_level(state, r),
+                lambda r: self._render_bat_level(state, r, True),
+                lambda r: self._render_bat_level(state, r, False),
+                lambda r: self._render_boss_level(state, r),
+            ],
+            raster,
+        )
+
+        # UI on top
+        raster = self._render_ui(state, raster)
+
+        # Final palette lookup
+        return self.jr.render_from_palette(raster, self.PALETTE)
+
+    @partial(jax.jit, static_argnums=(0,))
+    def _render_common(self, state, raster):
+        raster = self.jr.render_at(raster, 0, 185, self.SHAPE_MASKS['floor'])
+
+        player_death_sprite_duration = self.consts.PLAYER_DEATH_DURATION // 3
+        death_idx = jax.lax.select(
+            state.player_death_timer >= 2 * player_death_sprite_duration,
+            1,
+            jax.lax.select(state.player_death_timer >= player_death_sprite_duration, 2, 3)
+        )
+        anim_toggle = (((state.step_counter // self.consts.PLAYER_ANIMATION_SPEED) % 2) == 0)
+        alive_idx = jax.lax.select(
+            state.invincibility,
+            4,
+            jax.lax.select(state.player_moving & anim_toggle, 4, 0)
+        )
+        player_frame_index = jax.lax.select(state.player_dying, death_idx, alive_idx)
+        player_mask = self.SHAPE_MASKS["player"][player_frame_index]
+        player_flip_offset = self.FLIP_OFFSETS["player"]
+
+        def draw_player(r):
+            return self.jr.render_at(r, state.player_x, state.player_y, player_mask, flip_offset=player_flip_offset)
+
+        raster = jax.lax.cond(
+            jnp.logical_or(state.player_dying, state.player_respawn_timer <= 0),
+            draw_player, lambda r: r, raster
+        )
+
+        # Player projectile: don't render if it's inside the player sprite
+        projectile_mask = self.SHAPE_MASKS["player_projectile"]
+        proj_h, proj_w = projectile_mask.shape
+        player_mask_local = self.SHAPE_MASKS["player"][player_frame_index]
+        ph, pw = player_mask_local.shape
+
+        overlap_x = (state.projectile_x + proj_w > state.player_x) & (state.projectile_x < state.player_x + pw)
+        overlap_y = (state.projectile_y + proj_h > state.player_y) & (state.projectile_y < state.player_y + ph)
+        projectile_inside_player = overlap_x & overlap_y
+
+        def render_player_projectile(r):
+            return self.jr.render_at(r, state.projectile_x, state.projectile_y, projectile_mask)
+
+        raster = jax.lax.cond(
+            (state.projectile_x > -1) & (~projectile_inside_player),
+            render_player_projectile,
+            lambda r: r,
+            raster,
+        )
+
+        def render_ability(r):
+            ability_mask = self.SHAPE_MASKS['player_ability']
+            player_mask_local = self.SHAPE_MASKS["player"][player_frame_index]
+            ah, aw = ability_mask.shape
+            ph, pw = player_mask_local.shape
+            ax = state.player_x + (pw - aw) // 2
+            ay = state.player_y + (ph - ah) // 2
+            return self.jr.render_at(r, ax, ay, ability_mask)
+
+        ability_visible = state.invincibility & ((state.step_counter % 4) == 0)
+        raster = jax.lax.cond(ability_visible, render_ability, lambda r: r, raster)
+
+        def render_enemy_projectile(i, current_raster):
+            x, y = state.enemy_projectile_x[i], state.enemy_projectile_y[i]
+            return jax.lax.cond(
+                y > -1,
+                lambda r: self.jr.render_at_clipped(r, x, y, self.SHAPE_MASKS['enemy_projectile']),
+                lambda r: r,
+                current_raster
+            )
+
+        raster = jax.lax.fori_loop(0, state.enemy_projectile_x.shape[0], render_enemy_projectile, raster)
+        return raster
+
+    @partial(jax.jit, static_argnums=(0,))
+    def _render_phoenix_level(self, state, raster):
+        tol = 0.5
+        going_down = state.phoenix_do_attack & (state.enemies_y < state.phoenix_attack_target_y - tol)
+        going_up = state.phoenix_do_attack & (state.enemies_y > state.phoenix_attack_target_y + tol)
+        returning_moving = state.phoenix_returning & (jnp.abs(state.enemies_y - state.phoenix_original_y) > tol)
+        is_moving_vert = going_down | going_up | returning_moving
+
+        phoenix_death_flags = state.phoenix_dying
+        phoenix_death_phase = (state.phoenix_death_timer <= self.consts.ENEMY_DEATH_DURATION // 2).astype(jnp.int32)
+        anim_toggle = ((state.step_counter // self.consts.ENEMY_ANIMATION_SPEED) % 2) == 0
+        phoenix_flip_offset = self.FLIP_OFFSETS['phoenix']
+
+        def render_single_phoenix(i, current_raster):
+            x, y = state.enemies_x[i], state.enemies_y[i]
+            is_active = (x > -1) & (y < self.consts.HEIGHT + 10)
+
+            def draw_enemy(r):
+                death_idx = jax.lax.select(phoenix_death_phase[i] == 0, 3, 4)
+                alive_idx = jax.lax.select(is_moving_vert[i], 2, jax.lax.select(anim_toggle, 0, 1))
+                frame_idx = jax.lax.select(phoenix_death_flags[i], death_idx, alive_idx)
+                mask = self.SHAPE_MASKS['phoenix'][frame_idx]
+                return self.jr.render_at(r, x, y, mask, flip_offset=phoenix_flip_offset)
+
+            return jax.lax.cond(is_active, draw_enemy, lambda r: r, current_raster)
+
+        return jax.lax.fori_loop(0, state.enemies_x.shape[0], render_single_phoenix, raster)
+
+    @partial(jax.jit, static_argnums=(0, 3))
+    def _render_bat_level(self, state, raster, is_blue_level: bool):
+        bat_death_seg = jnp.maximum(1, self.consts.ENEMY_DEATH_DURATION // 3)
+        body_masks = self.SHAPE_MASKS['bat_blue_body'] if is_blue_level else self.SHAPE_MASKS['bat_red_body']
+        body_offsets = self.FLIP_OFFSETS['bat_blue_body'] if is_blue_level else self.FLIP_OFFSETS['bat_red_body']
+        wing_masks = self.SHAPE_MASKS['bat_blue_wings'] if is_blue_level else self.SHAPE_MASKS['bat_red_wings']
+        wing_offsets = self.FLIP_OFFSETS['bat_blue_wings'] if is_blue_level else self.FLIP_OFFSETS['bat_red_wings']
+        left_wing_mask = wing_masks[0]
+        right_wing_mask = wing_masks[1]
+
+        def render_single_bat(i, current_raster):
+            x = state.enemies_x[i].astype(jnp.int32)
+            y = state.enemies_y[i].astype(jnp.int32)
+            is_active = (x > -1) & (y < self.consts.HEIGHT + 10)
+            is_dying = state.bat_dying[i]
+
+            def draw_one(rr):
+                def draw_death(r):
+                    death_timer = state.bat_death_timer[i].astype(jnp.int32)
+                    death_idx = jax.lax.select(
+                        death_timer > 2 * bat_death_seg, 1,
+                        jax.lax.select(death_timer > bat_death_seg, 2, 3)
+                    )
+                    death_mask = body_masks[death_idx]
+                    bh, bw = body_masks[0].shape
+                    dh, dw = death_mask.shape
+                    ox = x + (bw - dw) // 2 - 5
+                    oy = y + (bh - dh) // 2
+                    return self.jr.render_at(r, ox, oy, death_mask, flip_offset=body_offsets)
+
+                def draw_alive(r):
+                    r_new = self.jr.render_at(r, x, y, body_masks[0], flip_offset=body_offsets)
+                    wing_state = state.bat_wings[i].astype(jnp.int32)
+                    draw_left = (wing_state == 2) | (wing_state == -1)
+                    draw_right = (wing_state == 2) | (wing_state == 1)
+                    x_left = x - self.consts.WING_WIDTH
+                    x_right = x + self.consts.ENEMY_WIDTH - 1
+                    y_wings = y + 2
+                    r_new = jax.lax.cond(
+                        draw_left,
+                        lambda r2: self.jr.render_at(r2, x_left, y_wings, left_wing_mask, flip_offset=wing_offsets),
+                        lambda r2: r2,
+                        r_new
+                    )
+                    r_new = jax.lax.cond(
+                        draw_right,
+                        lambda r2: self.jr.render_at(r2, x_right, y_wings, right_wing_mask, flip_offset=wing_offsets),
+                        lambda r2: r2,
+                        r_new
+                    )
+                    return r_new
+
+                return jax.lax.cond(is_dying, draw_death, draw_alive, rr)
+
+            return jax.lax.cond(is_active, draw_one, lambda rr: rr, current_raster)
+
+        return jax.lax.fori_loop(0, state.enemies_x.shape[0], render_single_bat, raster)
+
+    @partial(jax.jit, static_argnums=(0,))
+    def _render_boss_level(self, state, raster):
+        boss_mask = self.SHAPE_MASKS['boss']
+        boss_flip_offset = self.FLIP_OFFSETS['boss']
+
+        def render_single_boss(i, current_raster):
+            x, y = state.enemies_x[i], state.enemies_y[i]
+            is_active = (x > -1) & (y < self.consts.HEIGHT + 10)
+            return jax.lax.cond(
+                is_active,
+                lambda r: self.jr.render_at(r, x, y, boss_mask, flip_offset=boss_flip_offset),
+                lambda r: r,
+                current_raster
+            )
+
+        raster = jax.lax.fori_loop(0, state.enemies_x.shape[0], render_single_boss, raster)
+
+        # Efficient grid-based block rendering using inverse mapping
+        grid_rows = (self.consts.HEIGHT + self.consts.BLOCK_HEIGHT - 1) // self.consts.BLOCK_HEIGHT
+        grid_cols = (self.consts.WIDTH + self.consts.BLOCK_WIDTH - 1) // self.consts.BLOCK_WIDTH
+        object_id_grid = jnp.zeros((grid_rows, grid_cols), dtype=jnp.int32)
+
+        def positions_to_grid_ids(obj_grid, positions, obj_id):
+            pos = positions[:, 0:2].astype(jnp.int32)
+            valid = (pos[:, 0] >= 0) & (pos[:, 1] >= 0)
+            pos = jnp.where(valid[:, None], pos, -1)
+            cols = jnp.clip(pos[:, 0] // self.consts.BLOCK_WIDTH, 0, grid_cols - 1)
+            rows = jnp.clip(pos[:, 1] // self.consts.BLOCK_HEIGHT, 0, grid_rows - 1)
+            rows = jnp.where(valid, rows, 0)
+            cols = jnp.where(valid, cols, 0)
+            return obj_grid.at[rows, cols].set(
+                jnp.where(valid, jnp.int32(obj_id), obj_grid[rows, cols])
+            )
+
+        object_id_grid = positions_to_grid_ids(object_id_grid, state.blue_blocks, 1)
+        object_id_grid = positions_to_grid_ids(object_id_grid, state.red_blocks, 2)
+        object_id_grid = positions_to_grid_ids(object_id_grid, state.green_blocks, 3)
+
+        blue_color_id = jnp.asarray(self.SHAPE_MASKS['boss_block_blue'][0, 0], dtype=jnp.uint8)
+        red_color_id = jnp.asarray(self.SHAPE_MASKS['boss_block_red'][0, 0], dtype=jnp.uint8)
+        green_color_id = jnp.asarray(self.SHAPE_MASKS['boss_block_green'][0, 0], dtype=jnp.uint8)
+        color_map = jnp.array([self.BACKGROUND[0, 0], blue_color_id, red_color_id, green_color_id], dtype=jnp.uint8)
+
+        raster = self.jr.render_grid_inverse(
+            raster,
+            grid_state=object_id_grid,
+            grid_origin=(0, 0),
+            cell_size=(self.consts.BLOCK_WIDTH, self.consts.BLOCK_HEIGHT),
+            color_map=color_map,
+        )
+
+        return raster
+
+    @partial(jax.jit, static_argnums=(0,))
+    def _render_ui(self, state, raster):
+        max_digits = 5
+        spacing = 8
+        score_y = 10
+        digit_masks = self.SHAPE_MASKS['digits']
+        digit_w = digit_masks[0].shape[1]
+        score_digits = self.jr.int_to_digits(state.score, max_digits=max_digits)
+        has_nonzero = jnp.any(score_digits != 0)
+        first_idx = jnp.where(has_nonzero, jnp.argmax(score_digits != 0), max_digits - 1)
+        num_to_render = jnp.where(has_nonzero, max_digits - first_idx, 1)
+        start_index = first_idx
+        field_total_w = max_digits * spacing
+        base_left = (self.consts.WIDTH - field_total_w) // 2
+        score_x = base_left + first_idx * spacing
+        raster = self.jr.render_label_selective(
+            raster, score_x, score_y,
+            score_digits, digit_masks,
+            start_index, num_to_render,
+            spacing=spacing, max_digits_to_render=max_digits
+        )
+        life_mask = self.SHAPE_MASKS['life_indicator']
+        life_w = life_mask.shape[1]
+        life_spacing = 4
+        lives_y = 20
+        lives_count = jnp.clip(state.lives.astype(jnp.int32), 0, 9)
+        score_right_edge = base_left + (max_digits - 1) * spacing + digit_w
+        total_lives_width = jnp.where(lives_count > 0, (lives_count - 1) * life_spacing + life_w, 0)
+        lives_x = score_right_edge - total_lives_width
+        raster = self.jr.render_indicator(
+            raster, lives_x, lives_y,
+            lives_count, life_mask,
+            spacing=life_spacing, max_value=9
+        )
+        return raster

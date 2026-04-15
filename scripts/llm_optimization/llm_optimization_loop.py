@@ -884,7 +884,10 @@ class ParallelEvaluator:
         # Use ObjectCentricWrapper for flat observations
         self.env = FlattenObservationWrapper(
             ObjectCentricWrapper(
-                AtariWrapper(base_env, frame_stack_size=frame_stack_size, frame_skip=frame_skip, episodic_life=episodic_life)
+                AtariWrapper(base_env, episodic_life=episodic_life),
+                frame_stack_size=frame_stack_size,
+                frame_skip=frame_skip,
+                clip_reward=False,
             )
         )
         self.action_space_n = self.env.action_space().n
@@ -920,7 +923,7 @@ class ParallelEvaluator:
             action = jnp.clip(action, 0, self.action_clip_max).astype(jnp.int32)
             
             # Step environment
-            next_obs, next_state, reward, next_done, info = self.env.step(state, action)
+            next_obs, next_state, reward, terminated, truncated, info = self.env.step(state, action)
             
             # Get last frame observation using dynamic observation size
             next_obs_flat = next_obs[-self.obs_size:] if next_obs.shape[0] > self.obs_size else next_obs
@@ -930,6 +933,7 @@ class ParallelEvaluator:
             next_total_reward = total_reward + reward
             
             # Continue or terminate
+            next_done = jnp.logical_or(terminated, truncated)
             new_done = jnp.logical_or(done, next_done)
             
             # Keep old state if already done
@@ -1050,7 +1054,7 @@ class ParallelEvaluator:
             action = int(jnp.clip(action, 0, self.action_clip_max))
             
             # Step environment
-            next_obs, next_state, reward, next_done, info = self.env.step(state, action)
+            next_obs, next_state, reward, terminated, truncated, info = self.env.step(state, action)
             
             # Log state (Logger will auto-unwrap to get game state)
             try:
@@ -1065,7 +1069,7 @@ class ParallelEvaluator:
             obs_flat = next_obs[-self.obs_size:] if next_obs.shape[0] > self.obs_size else next_obs
             obs_flat = jnp.asarray(obs_flat, dtype=jnp.float32)
             state = next_state
-            done = bool(next_done)
+            done = bool(jnp.logical_or(terminated, truncated))
             step += 1
         
         # Get computed metrics from logger

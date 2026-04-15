@@ -103,7 +103,10 @@ def main() -> None:
 
     wrapped_env = FlattenObservationWrapper(
         ObjectCentricWrapper(
-            AtariWrapper(base_env, frame_stack_size=frame_stack, frame_skip=1, episodic_life=False)
+            AtariWrapper(base_env, episodic_life=False),
+            frame_stack_size=frame_stack,
+            frame_skip=1,
+            clip_reward=False,
         )
     )
 
@@ -138,7 +141,7 @@ def main() -> None:
 
             action = policy_module.policy(obs_flat, params)
             action = int(jnp.clip(action, 0, wrapped_env.action_space().n - 1))
-            next_obs, next_state, reward, done_flag, _ = wrapped_env.step(state, action)
+            next_obs, next_state, reward, terminated, truncated, _ = wrapped_env.step(state, action)
 
             reward_float = float(reward)
             total_reward += reward_float
@@ -150,7 +153,7 @@ def main() -> None:
                 dtype=jnp.float32,
             )
             state = next_state
-            done = bool(done_flag)
+            done = bool(jnp.logical_or(terminated, truncated))
             steps += 1
 
         final_frame = np.asarray(base_env.render(unwrap_render_state(state)), dtype=np.uint8)

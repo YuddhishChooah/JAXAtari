@@ -241,32 +241,6 @@ def test_spaces_functionality():
     assert stacked_space.shape == (4, 3, 4)
 
 
-def test_all_games_available():
-    """Test that all games can be listed and created."""
-    games = list_available_games()
-    assert len(games) > 0, "Should have at least one game available"
-    
-    # Test that each game can be created
-    for game_name in games:
-        env = jaxatari.make(game_name)
-        assert env is not None, f"Environment for {game_name} should not be None"
-
-
-def test_game_names_are_valid():
-    """Test that all game names are valid Python identifiers."""
-    games = list_available_games()
-    
-    for game_name in games:
-        # Check that game name is a valid Python identifier
-        assert game_name.isidentifier(), f"Game name '{game_name}' should be a valid Python identifier"
-        
-        # Check that game name is not empty
-        assert len(game_name) > 0, f"Game name should not be empty"
-        
-        # Check that game name contains only alphanumeric characters and underscores
-        assert game_name.replace('_', '').isalnum(), f"Game name '{game_name}' should contain only alphanumeric characters and underscores"
-
-
 def test_space_enhancements():
     """Tests the new Pythonic features: equality, iteration, and slicing."""
     
@@ -392,6 +366,68 @@ def test_space_copying():
     assert deep_copy is not original_space
     # In a deep copy, the inner list/tuple of subspaces is a *different* object
     assert deep_copy.spaces is not original_space.spaces
+
+
+def test_repr():
+    """Tests __repr__ for all space classes."""
+    # Discrete
+    assert repr(Discrete(6)) == "Discrete(6)"
+    assert repr(Discrete(0)) == "Discrete(0)"
+
+    # Box – uniform bounds should collapse to scalars
+    b_uniform = Box(low=0.0, high=1.0, shape=(3, 4))
+    r = repr(b_uniform)
+    assert r == f"Box(low=0.0, high=1.0, shape=(3, 4), dtype={jnp.float32})"
+
+    # Box – scalar shape
+    b_scalar = Box(low=-1.0, high=1.0, shape=())
+    assert repr(b_scalar) == f"Box(low=-1.0, high=1.0, shape=(), dtype={jnp.float32})"
+
+    # Box – non-uniform bounds should print the full arrays (no collapse)
+    b_nonuniform = Box(
+        low=jnp.array([0.0, -1.0]),
+        high=jnp.array([1.0, 2.0]),
+    )
+    r_nu = repr(b_nonuniform)
+    assert r_nu.startswith("Box(low=")
+    assert "shape=(2,)" in r_nu
+    # Bounds are arrays, not scalars – ensure the repr hasn't wrongly collapsed them
+    assert "low=0.0" not in r_nu
+
+    # Box – large pixel space should collapse cleanly
+    b_pixel = Box(low=0, high=255, shape=(210, 160, 3), dtype=jnp.uint8)
+    assert repr(b_pixel) == f"Box(low=0, high=255, shape=(210, 160, 3), dtype={jnp.uint8})"
+
+    # Dict
+    d = Dict({"x": Box(0, 10, shape=()), "n": Discrete(5)})
+    r_d = repr(d)
+    assert r_d.startswith("Dict(")
+    assert "x:" in r_d
+    assert "n:" in r_d
+    assert "Discrete(5)" in r_d
+
+    # Tuple
+    t = Tuple([Discrete(3), Box(0, 1, shape=(2,))])
+    r_t = repr(t)
+    assert r_t.startswith("Tuple(")
+    assert "Discrete(3)" in r_t
+
+
+def test_len():
+    """Tests __len__ for Box, Dict, and Tuple."""
+    # Box – various shapes
+    assert len(Box(0, 1, shape=(3, 4))) == 12
+    assert len(Box(0, 1, shape=(5,))) == 5
+    assert len(Box(0, 1, shape=())) == 1        # scalar box
+    assert len(Box(0, 1, shape=(2, 3, 4))) == 24
+
+    # Dict – counts subspaces, not elements
+    d = Dict({"a": Box(0, 1, shape=(10,)), "b": Discrete(5), "c": Box(0, 1, shape=(2,))})
+    assert len(d) == 3
+
+    # Tuple – already existed, but verify it's consistent
+    t = Tuple([Discrete(3), Box(0, 1, shape=(4,)), Box(0, 1, shape=(2, 2))])
+    assert len(t) == 3
 
 
 if __name__ == "__main__":

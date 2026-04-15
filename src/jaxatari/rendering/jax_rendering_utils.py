@@ -13,6 +13,16 @@ def get_base_sprite_dir() -> str:
     return os.path.join(user_data_dir("jaxatari"), "sprites")
 
 
+def get_base_state_dir() -> str:
+    """Returns the base directory for JAXAtari game states: ~/.local/share/jaxatari/states"""
+    return os.path.join(user_data_dir("jaxatari"), "states")
+
+
+def get_game_state_dir(game_name: str) -> str:
+    """Returns the directory for a specific game's downloadable states."""
+    return os.path.join(get_base_state_dir(), game_name)
+
+
 def loadFrame(fileName, transpose=False):
     """Backward-compatible module-level sprite loader used by legacy games."""
     frame = jnp.load(fileName)

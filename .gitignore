@@ -13,4 +13,5 @@ scripts/llm_optimization/**/figures/
 scripts/llm_optimization/**/reports/
 .DS_Store
 docs/build/
+.python-version
 

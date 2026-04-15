@@ -3,20 +3,43 @@ from functools import partial
 from typing import Tuple, NamedTuple
 import jax
 import jax.numpy as jnp
+import numpy as np
 import chex
+from flax import struct
 
 import jaxatari.spaces as spaces
-from jaxatari.environment import JaxEnvironment, JAXAtariAction as Action
+from jaxatari.environment import JaxEnvironment, JAXAtariAction as Action, ObjectObservation
 from jaxatari.renderers import JAXGameRenderer
-import jaxatari.rendering.jax_rendering_utils as jr
+from jaxatari.rendering import jax_rendering_utils as render_utils
+from jaxatari.modification import AutoDerivedConstants
+
+def _get_default_asset_config() -> tuple:
+    """
+    Returns the default declarative asset manifest for Seaquest.
+    Kept immutable (tuple of dicts) to fit NamedTuple defaults.
+    """
+    return (
+        {'name': 'background', 'type': 'background', 'file': 'bg/1.npy'},
+        {'name': 'player_sub', 'type': 'group', 'files': ['player_sub/1.npy', 'player_sub/2.npy', 'player_sub/3.npy']},
+        {'name': 'diver', 'type': 'group', 'files': ['diver/1.npy', 'diver/2.npy']},
+        {'name': 'shark_base', 'type': 'group', 'files': ['shark/1.npy', 'shark/2.npy']},
+        {'name': 'enemy_sub', 'type': 'group', 'files': ['enemy_sub/1.npy', 'enemy_sub/2.npy', 'enemy_sub/3.npy']},
+        {'name': 'player_torp', 'type': 'single', 'file': 'player_torp/1.npy'},
+        {'name': 'enemy_torp', 'type': 'single', 'file': 'enemy_torp/1.npy'},
+        {'name': 'life_indicator', 'type': 'single', 'file': 'life_indicator/1.npy'},
+        {'name': 'diver_indicator', 'type': 'single', 'file': 'diver_indicator/1.npy'},
+        {'name': 'digits', 'type': 'digits', 'pattern': 'digits/{}.npy'},
+    )
 
 
-class SeaquestConstants(NamedTuple):
+class SeaquestConstants(AutoDerivedConstants):
+    SCREEN_WIDTH: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array(160))
+    SCREEN_HEIGHT: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array(210))
     # Colors
-    BACKGROUND_COLOR = (0, 0, 139)  # Dark blue for water
-    PLAYER_COLOR = (187, 187, 53)  # Yellow for player sub
-    DIVER_COLOR = (66, 72, 200)  # Pink for divers
-    SHARK_DIFFICULTY_COLORS = jnp.array(
+    BACKGROUND_COLOR: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array([0, 0, 139]))  # Dark blue for water
+    PLAYER_COLOR: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array([187, 187, 53]))  # Yellow for player sub
+    DIVER_COLOR: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array([66, 72, 200]))  # Pink for divers
+    SHARK_DIFFICULTY_COLORS: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array(
         [
             [92, 186, 92],  # Level 0: Base green
             [213, 130, 74],  # Level 1: Orange (adjusted from original ROM)
@@ -28,49 +51,71 @@ class SeaquestConstants(NamedTuple):
             [213, 92, 130],  # Level 3: Pink (adjusted from original ROM)
             [186, 92, 92],  # Level 4: Red (adjusted from original ROM)
         ]
-    )
-    ENEMY_SUB_COLOR = (170, 170, 170)  # Gray for enemy subs
-    OXYGEN_BAR_COLOR = (214, 214, 214, 255)  # White for oxygen
-    SCORE_COLOR = (210, 210, 64)  # Score color
-    OXYGEN_TEXT_COLOR = (0, 0, 0)  # Black for oxygen text
+    ))
+    ENEMY_SUB_COLOR: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array([170, 170, 170]))  # Gray for enemy subs
+    OXYGEN_BAR_COLOR: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array([214, 214, 214, 255]))  # White for oxygen
+    OXYGEN_BAR_BG_COLOR: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array([163, 57, 21, 255]))  # Reddish background
+    SCORE_COLOR: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array([210, 210, 64]))  # Score color
+    OXYGEN_TEXT_COLOR: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array([0, 0, 0]))  # Black for oxygen text
 
     # Object sizes and initial positions from RAM state
-    PLAYER_SIZE = (16, 11)  # Width, Height
-    DIVER_SIZE = (8, 11)
-    SHARK_SIZE = (8, 7)
-    ENEMY_SUB_SIZE = (8, 11)
-    MISSILE_SIZE = (8, 1)
+    PLAYER_SIZE: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array([16, 11]))  # Width, Height
+    DIVER_SIZE: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array([8, 11]))
+    SHARK_SIZE: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array([8, 7]))
+    ENEMY_SUB_SIZE: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array([8, 11]))
+    MISSILE_SIZE: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array([8, 1]))
 
-    PLAYER_START_X = 76
-    PLAYER_START_Y = 46
+    PLAYER_START_X: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array(76))
+    PLAYER_START_Y: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array(46))
 
-    X_BORDERS = (0, 160)
-    PLAYER_BOUNDS = (21, 134), (46, 141)
+    X_BORDERS: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array([0, 160]))
+    PLAYER_BOUNDS: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array([[21, 134], [46, 141]]))
 
     # Maximum number of objects (from MAX_NB_OBJECTS)
-    MAX_DIVERS = 4
-    MAX_SHARKS = 12
-    MAX_SUBS = 12
-    MAX_ENEMY_MISSILES = 4
-    MAX_PLAYER_TORPS = 1
-    MAX_SURFACE_SUBS = 1
-    MAX_COLLECTED_DIVERS = 6
+    MAX_DIVERS: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array(4))
+    MAX_SHARKS: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array(12))
+    MAX_SUBS: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array(12))
+    MAX_ENEMY_MISSILES: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array(4))
+    MAX_PLAYER_TORPS: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array(1))
+    MAX_SURFACE_SUBS: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array(1))
+    MAX_COLLECTED_DIVERS: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array(6))
 
     # define object orientations
-    FACE_LEFT = -1
-    FACE_RIGHT = 1
+    FACE_LEFT: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array(-1))
+    FACE_RIGHT: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array(1))
 
-    SPAWN_POSITIONS_Y = jnp.array([71, 95, 119, 139])  # submarines at y=69?
-    SUBMARINE_Y_OFFSET = 2
-    ENEMY_MISSILE_Y = jnp.array([73, 97, 121, 141])  # missile x = submarine.x + 4
-    DIVER_SPAWN_POSITIONS = jnp.array([69, 93, 117, 141])
+    SPAWN_POSITIONS_Y: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array([71, 95, 119, 139]))  # submarines at y=69?
+    SUBMARINE_Y_OFFSET: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array(2))
+    ENEMY_MISSILE_Y: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array([73, 97, 121, 141]))  # missile x = submarine.x + 4
+    DIVER_SPAWN_POSITIONS: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array([69, 93, 117, 141]))
 
-    MISSILE_SPAWN_POSITIONS = jnp.array([39, 126])  # Right, Left
+    MISSILE_SPAWN_POSITIONS: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array([39, 126]))  # Right, Left
 
     # First wave directions from original code
-    FIRST_WAVE_DIRS = jnp.array([False, False, False, True])
+    FIRST_WAVE_DIRS: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array([False, False, False, True]))
 
-class SpawnState(NamedTuple):
+    # --- SCORING CONSTANTS ---
+    # Enemy Scoring: Starts at 20, +10 per rescue, max 90
+    SCORE_ENEMY_BASE: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array(20))
+    SCORE_ENEMY_STEP: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array(10))
+    SCORE_ENEMY_MAX: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array(90))
+
+    # Diver Scoring: Starts at 50, +50 per rescue, max 1000
+    SCORE_DIVER_BASE: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array(50))
+    SCORE_DIVER_STEP: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array(50))
+    SCORE_DIVER_MAX: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array(1000))
+
+    # Oxygen Scoring: Same scaling as Enemies (per user request)
+    # Starts at 20 per unit, +10 per rescue, max 90 per unit
+    SCORE_OXYGEN_BASE: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array(20))
+    SCORE_OXYGEN_STEP: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array(10))
+    SCORE_OXYGEN_MAX: jnp.ndarray = struct.field(pytree_node=False, default_factory=lambda: jnp.array(90))
+
+    # Asset config baked into constants (immutable default) for asset overrides
+    ASSET_CONFIG: tuple = struct.field(pytree_node=False, default_factory=lambda: _get_default_asset_config())
+
+@struct.dataclass
+class SpawnState:
     difficulty: chex.Array  # Current difficulty level (0-7)
     lane_dependent_pattern: chex.Array  # Track waves independently per lane [4 lanes]
     to_be_spawned: (
@@ -91,7 +136,8 @@ class SpawnState(NamedTuple):
 
 
 # Game state container
-class SeaquestState(NamedTuple):
+@struct.dataclass
+class SeaquestState:
     player_x: chex.Array
     player_y: chex.Array
     player_direction: chex.Array  # 0 for right, 1 for left
@@ -123,43 +169,26 @@ class SeaquestState(NamedTuple):
     rng_key: chex.PRNGKey
 
 
-class PlayerEntity(NamedTuple):
-    x: jnp.ndarray
-    y: jnp.ndarray
-    o: jnp.ndarray
-    width: jnp.ndarray
-    height: jnp.ndarray
-    active: jnp.ndarray
-
-class EntityPosition(NamedTuple):
-    x: jnp.ndarray
-    y: jnp.ndarray
-    width: jnp.ndarray
-    height: jnp.ndarray
-    active: jnp.ndarray
-
-
-class SeaquestObservation(NamedTuple):
-    player: PlayerEntity
-    sharks: jnp.ndarray  # Shape (12, 5) - 12 sharks, each with x,y,w,h,active
-    submarines: jnp.ndarray  # Shape (12, 5)
-    divers: jnp.ndarray  # Shape (4, 5)
-    enemy_missiles: jnp.ndarray  # Shape (4, 5)
-    surface_submarine: EntityPosition
-    player_missile: EntityPosition
-    collected_divers: jnp.ndarray  # Number of divers collected (0-6)
+@struct.dataclass
+class SeaquestObservation:
+    player: ObjectObservation
+    divers: ObjectObservation # n=4
+    enemies: ObjectObservation  # n=25 (Sharks, Subs, Surface Sub)
+    projectiles: ObjectObservation # n=5 (Player & Enemy)
+    oxygen_level: jnp.ndarray
     player_score: jnp.ndarray
     lives: jnp.ndarray
-    oxygen_level: jnp.ndarray  # Oxygen level (0-255)
+    collected_divers: jnp.ndarray
 
-class SeaquestInfo(NamedTuple):
+@struct.dataclass
+class SeaquestInfo:
     difficulty: jnp.ndarray  # Current difficulty level
     successful_rescues: jnp.ndarray  # Number of successful rescues
     step_counter: jnp.ndarray  # Current step count
-    all_rewards: jnp.ndarray  # All rewards for the current step
 
 
-class CarryState(NamedTuple):
+@struct.dataclass
+class CarryState:
     missile_pos: chex.Array
     shark_pos: chex.Array
     sub_pos: chex.Array
@@ -167,200 +196,6 @@ class CarryState(NamedTuple):
 
 
 # RENDER CONSTANTS
-def load_sprites():
-    MODULE_DIR = os.path.dirname(os.path.abspath(__file__))
-    # Load sprites - no padding needed for background since it's already full size
-    bg1 = jr.loadFrame(os.path.join(MODULE_DIR, "sprites/seaquest/bg/1.npy"))
-    pl_sub1 = jr.loadFrame(os.path.join(MODULE_DIR, "sprites/seaquest/player_sub/1.npy"))
-    pl_sub2 = jr.loadFrame(os.path.join(MODULE_DIR, "sprites/seaquest/player_sub/2.npy"))
-    pl_sub3 = jr.loadFrame(os.path.join(MODULE_DIR, "sprites/seaquest/player_sub/3.npy"))
-    diver1 = jr.loadFrame(os.path.join(MODULE_DIR, "sprites/seaquest/diver/1.npy"))
-    diver2 = jr.loadFrame(os.path.join(MODULE_DIR, "sprites/seaquest/diver/2.npy"))
-    shark1 = jr.loadFrame(os.path.join(MODULE_DIR, "sprites/seaquest/shark/1.npy"))
-    shark2 = jr.loadFrame(os.path.join(MODULE_DIR, "sprites/seaquest/shark/2.npy"))
-    
-    enemy_sub1 = jr.loadFrame(os.path.join(MODULE_DIR, "sprites/seaquest/enemy_sub/1.npy"))
-    enemy_sub2 = jr.loadFrame(os.path.join(MODULE_DIR, "sprites/seaquest/enemy_sub/2.npy"))
-    enemy_sub3 = jr.loadFrame(os.path.join(MODULE_DIR, "sprites/seaquest/enemy_sub/3.npy"))
-    pl_torp = jr.loadFrame(os.path.join(MODULE_DIR, "sprites/seaquest/player_torp/1.npy"))
-    en_torp = jr.loadFrame(os.path.join(MODULE_DIR, "sprites/seaquest/enemy_torp/1.npy"))
-
-    # Pad player submarine sprites to match each other
-    pl_sub_sprites, pl_sub_offsets = jr.pad_to_match([pl_sub1, pl_sub2, pl_sub3])
-    pl_sub_offsets = jnp.array(pl_sub_offsets)
-    # Pad diver sprites to match each other
-    diver_sprites, diver_offsets = jr.pad_to_match([diver1, diver2])
-    diver_offsets = jnp.array(diver_offsets)
-
-    # Pad shark sprites to match each other
-    shark_sprites, shark_offsets = jr.pad_to_match([shark1, shark2])
-    shark_offsets = jnp.array(shark_offsets)
-    
-    # Create colored versions of the animated shark sprites
-    # Define colors: Green, Yellow, Pink, Orange
-    shark_colors = jnp.array([
-        [92, 186, 92],    # Green 
-        [160, 171, 79],    # Yellow  
-        [198, 89, 179],  # Pink
-        [198, 108, 58],   # Orange
-    ], dtype=jnp.uint8)
-    
-    # Recolor each shark animation frame
-    def recolor_shark_frame(frame, color):
-        """Recolor a shark frame to the specified color"""
-        # Instead of assuming (0,0,0) is transparent, let's use a more robust approach
-        # We'll look for any pixel that has some non-zero values and recolor those
-        
-        # Create a mask for pixels that have any non-zero RGB values
-        # This is more robust than assuming specific transparency values
-        mask = jnp.any(frame > 0, axis=-1, keepdims=True)
-        
-        # Start with the original frame
-        recolored = frame.copy()
-        
-        # Apply the new color to non-transparent pixels
-        # Use the mask to only change pixels that have content
-        recolored = recolored.at[:, :, 0].set(
-            jnp.where(mask[:, :, 0], color[0], frame[:, :, 0])
-        )
-        recolored = recolored.at[:, :, 1].set(
-            jnp.where(mask[:, :, 0], color[1], frame[:, :, 1])
-        )
-        recolored = recolored.at[:, :, 2].set(
-            jnp.where(mask[:, :, 0], color[2], frame[:, :, 2])
-        )
-        
-        # Ensure we return integer values
-        return recolored.astype(jnp.uint8)
-    
-    # Create colored versions of each shark animation frame
-    # For green sharks, use the original sprite (no recoloring needed)
-    shark_green_frames = jnp.array(shark_sprites).astype(jnp.uint8)
-    shark_yellow_frames = jnp.array([recolor_shark_frame(frame, shark_colors[1]) for frame in shark_sprites], dtype=jnp.uint8)
-    shark_pink_frames = jnp.array([recolor_shark_frame(frame, shark_colors[2]) for frame in shark_sprites], dtype=jnp.uint8)
-    shark_orange_frames = jnp.array([recolor_shark_frame(frame, shark_colors[3]) for frame in shark_sprites], dtype=jnp.uint8)
-
-    # Pad enemy submarine sprites to match each other
-    enemy_sub_sprites, enemy_sub_offsets = jr.pad_to_match([enemy_sub1, enemy_sub2, enemy_sub3])
-    enemy_sub_offsets = jnp.array(enemy_sub_offsets)
-
-    # Pad player torpedo sprites to match each other
-    pl_torp_sprites = [pl_torp]
-
-    # Pad enemy torpedo sprites to match each other
-    en_torp_sprites = [en_torp]
-
-    # Background sprite (no padding needed)
-    SPRITE_BG = jnp.expand_dims(bg1, axis=0)
-
-    # Player submarine sprites
-    SPRITE_PL_SUB = jnp.concatenate(
-        [
-            jnp.repeat(pl_sub_sprites[0][None], 4, axis=0),
-            jnp.repeat(pl_sub_sprites[1][None], 4, axis=0),
-            jnp.repeat(pl_sub_sprites[2][None], 4, axis=0),
-        ]
-    )
-
-    # Diver sprites
-    SPRITE_DIVER = jnp.concatenate(
-        [
-            jnp.repeat(diver_sprites[0][None], 16, axis=0),
-            jnp.repeat(diver_sprites[1][None], 4, axis=0),
-        ]
-    )
-
-    # Colored shark sprites - maintain the same animation frame structure
-    # Green sharks use the original sprite (no recoloring)
-    SPRITE_SHARK_GREEN = jnp.concatenate(
-        [
-            jnp.repeat(shark_green_frames[0][None], 16, axis=0),
-            jnp.repeat(shark_green_frames[1][None], 8, axis=0),
-        ]
-    ).astype(jnp.uint8)
-    
-    SPRITE_SHARK_YELLOW = jnp.concatenate(
-        [
-            jnp.repeat(shark_yellow_frames[0][None], 16, axis=0),
-            jnp.repeat(shark_yellow_frames[1][None], 8, axis=0),
-        ]
-    ).astype(jnp.uint8)
-    
-    SPRITE_SHARK_PINK = jnp.concatenate(
-        [
-            jnp.repeat(shark_pink_frames[0][None], 16, axis=0),
-            jnp.repeat(shark_pink_frames[1][None], 8, axis=0),
-        ]
-    ).astype(jnp.uint8)
-    
-    SPRITE_SHARK_ORANGE = jnp.concatenate(
-        [
-            jnp.repeat(shark_orange_frames[0][None], 16, axis=0),
-            jnp.repeat(shark_orange_frames[1][None], 8, axis=0),
-        ]
-    ).astype(jnp.uint8)
-
-    # Enemy submarine sprites
-    SPRITE_ENEMY_SUB = jnp.concatenate(
-        [
-            jnp.repeat(enemy_sub_sprites[0][None], 4, axis=0),
-            jnp.repeat(enemy_sub_sprites[1][None], 4, axis=0),
-            jnp.repeat(enemy_sub_sprites[2][None], 4, axis=0),
-        ]
-    )
-
-    DIGITS = jr.load_and_pad_digits(os.path.join(MODULE_DIR, "./sprites/seaquest/digits/{}.npy"))
-    LIFE_INDICATOR = jr.loadFrame(os.path.join(MODULE_DIR, "sprites/seaquest/life_indicator/1.npy"))
-    DIVER_INDICATOR = jr.loadFrame(os.path.join(MODULE_DIR, "./sprites/seaquest/diver_indicator/1.npy"))
-
-    # Player torpedo sprites
-    SPRITE_PL_TORP = jnp.repeat(pl_torp_sprites[0][None], 1, axis=0)
-
-    # Enemy torpedo sprites
-    SPRITE_EN_TORP = jnp.repeat(en_torp_sprites[0][None], 1, axis=0)
-    # Return all sprites and all offsets for future use
-    return (
-        SPRITE_BG,
-        SPRITE_PL_SUB,
-        SPRITE_DIVER,
-        SPRITE_SHARK_GREEN,
-        SPRITE_SHARK_YELLOW,
-        SPRITE_SHARK_PINK,
-        SPRITE_SHARK_ORANGE,
-        SPRITE_ENEMY_SUB,
-        SPRITE_PL_TORP,
-        SPRITE_EN_TORP,
-        DIGITS,
-        LIFE_INDICATOR,
-        DIVER_INDICATOR,
-        pl_sub_offsets,
-        diver_offsets,
-        shark_offsets,
-        enemy_sub_offsets,
-    )
-
-# Load sprites once at module level
-(
-    SPRITE_BG,
-    SPRITE_PL_SUB,
-    SPRITE_DIVER,
-    SPRITE_SHARK_GREEN,
-    SPRITE_SHARK_YELLOW,
-    SPRITE_SHARK_PINK,
-    SPRITE_SHARK_ORANGE,
-    SPRITE_ENEMY_SUB,
-    SPRITE_PL_TORP,
-    SPRITE_EN_TORP,
-    DIGITS,
-    LIFE_INDICATOR,
-    DIVER_INDICATOR,
-    PL_SUB_OFFSETS,
-    DIVER_OFFSETS,
-    SHARK_OFFSETS,
-    ENEMY_SUB_OFFSETS,
-) = load_sprites()
-
-
 def get_shark_color_index(difficulty: chex.Array) -> chex.Array:
     """
     Determine which shark color to use based on difficulty level.
@@ -377,40 +212,6 @@ def get_shark_color_index(difficulty: chex.Array) -> chex.Array:
     color_mapping = jnp.array([0, 1, 2, 3, 0, 1, 0, 3])  # 0=Green, 1=Yellow, 2=Pink, 3=Orange
     color_index = jnp.take(color_mapping, difficulty % 8)
     return color_index
-
-
-def get_shark_sprite_by_difficulty(difficulty: chex.Array, step_counter: chex.Array):
-    """
-    Get the appropriate shark sprite based on difficulty level.
-    
-    Args:
-        difficulty: Current difficulty level
-        step_counter: Current step counter for animation
-        
-    Returns:
-        Shark sprite frame for the current difficulty and animation frame
-    """
-    color_index = get_shark_color_index(difficulty)
-    
-    # Use jnp.where with conditions to select the correct sprite
-    # This approach works better with JAX's JIT compilation
-    shark_sprite = jnp.where(
-        color_index == 0,
-        SPRITE_SHARK_GREEN,
-        jnp.where(
-            color_index == 1,
-            SPRITE_SHARK_YELLOW,
-            jnp.where(
-                color_index == 2,
-                SPRITE_SHARK_PINK,
-                SPRITE_SHARK_ORANGE  # color_index == 3
-            )
-        )
-    )
-    
-    # Get the appropriate frame from the selected sprite
-    return jr.get_sprite_frame(shark_sprite, step_counter)
-
 
 class JaxSeaquest(JaxEnvironment[SeaquestState, SeaquestObservation, SeaquestInfo, SeaquestConstants]):
     def initialize_spawn_state(self) -> SpawnState:
@@ -437,7 +238,7 @@ class JaxSeaquest(JaxEnvironment[SeaquestState, SeaquestObservation, SeaquestInf
 
     def soft_reset_spawn_state(self, spawn_state: SpawnState) -> SpawnState:
         """Reset spawn_times"""
-        return spawn_state._replace(
+        return spawn_state.replace(
             spawn_timers=jnp.array([277, 277, 277, 277], dtype=jnp.int32)
         )
 
@@ -573,7 +374,7 @@ class JaxSeaquest(JaxEnvironment[SeaquestState, SeaquestObservation, SeaquestInf
             lane_had_collision_4, random_directions, spawn_state.lane_directions
         )
 
-        new_spawn_state = spawn_state._replace(
+        new_spawn_state = spawn_state.replace(
             survived=new_survived,
             spawn_timers=new_spawn_timers,
             lane_directions=new_lane_directions,
@@ -773,7 +574,7 @@ class JaxSeaquest(JaxEnvironment[SeaquestState, SeaquestObservation, SeaquestInf
             spawn_state.spawn_timers - 1,
             spawn_state.spawn_timers,
         )
-        new_state = spawn_state._replace(spawn_timers=new_spawn_timers)
+        new_state = spawn_state.replace(spawn_timers=new_spawn_timers)
 
         # --- START of new vectorized calculation ---
         # 1. Vectorized check for empty lanes across all 4 lanes
@@ -1302,7 +1103,7 @@ class JaxSeaquest(JaxEnvironment[SeaquestState, SeaquestObservation, SeaquestInf
         )
 
         # 5. Update state with merged results and split positions back into sharks and subs
-        new_spawn_state = spawn_state._replace(
+        new_spawn_state = spawn_state.replace(
             survived=new_survived,
             lane_directions=new_lane_directions,
             diver_array=new_diver_array,
@@ -1398,7 +1199,7 @@ class JaxSeaquest(JaxEnvironment[SeaquestState, SeaquestObservation, SeaquestInf
             spawn_state.diver_array
         )
 
-        return new_diver_positions, spawn_state._replace(diver_array=new_diver_array)
+        return new_diver_positions, spawn_state.replace(diver_array=new_diver_array)
 
     @partial(jax.jit, static_argnums=(0,))
     def step_diver_movement(
@@ -1742,7 +1543,7 @@ class JaxSeaquest(JaxEnvironment[SeaquestState, SeaquestObservation, SeaquestInf
         )
 
         # Create updated spawn state
-        updated_spawn_state = spawn_state._replace(diver_array=reset_array)
+        updated_spawn_state = spawn_state.replace(diver_array=reset_array)
 
         return final_positions, final_collected, updated_spawn_state, rng
 
@@ -2219,21 +2020,18 @@ class JaxSeaquest(JaxEnvironment[SeaquestState, SeaquestObservation, SeaquestInf
 
     @partial(jax.jit, static_argnums=(0,))
     def calculate_kill_points(self, successful_rescues: chex.Array) -> chex.Array:
-        """Calculate the points awarded for killing a shark or submarine. Sharks and submarines are worth 20 points.
-        The points are increased by 10 for each successful rescue with a maximum of 90."""
-        base_points = 20
-        max_points = 90
-        additional_points = 10 * successful_rescues
-        return jnp.minimum(base_points + additional_points, max_points)
+        """
+        Calculate the points awarded for killing a shark or submarine. 
+        Scales based on successful rescues using defined constants.
+        """
+        bonus = self.consts.SCORE_ENEMY_STEP * successful_rescues
+        points = self.consts.SCORE_ENEMY_BASE + bonus
+        return jnp.minimum(points, self.consts.SCORE_ENEMY_MAX)
 
 
-    def __init__(self, consts: SeaquestConstants = None, reward_funcs: list[callable] = None):
-        consts = consts or SeaquestConstants()
-        super().__init__(consts)
-        if reward_funcs is not None:
-            reward_funcs = tuple(reward_funcs)
-        self.reward_funcs = reward_funcs
-        self.action_set = [
+    # Minimal ALE action set for Seaquest (from scripts/action_space_helper.py)
+    ACTION_SET: jnp.ndarray = jnp.array(
+        [
             Action.NOOP,
             Action.FIRE,
             Action.UP,
@@ -2251,9 +2049,14 @@ class JaxSeaquest(JaxEnvironment[SeaquestState, SeaquestObservation, SeaquestInf
             Action.UPRIGHTFIRE,
             Action.UPLEFTFIRE,
             Action.DOWNRIGHTFIRE,
-            Action.DOWNLEFTFIRE
-        ]
-        self.frame_stack_size = 4
+            Action.DOWNLEFTFIRE,
+        ],
+        dtype=jnp.int32,
+    )
+
+    def __init__(self, consts: SeaquestConstants = None):
+        consts = consts or SeaquestConstants()
+        super().__init__(consts)
         self.obs_size = 6 + 12 * 5 + 12 * 5 + 4 * 5 + 4 * 5 + 5 + 5 + 4
         self.renderer = SeaquestRenderer(self.consts)
 
@@ -2262,93 +2065,30 @@ class JaxSeaquest(JaxEnvironment[SeaquestState, SeaquestObservation, SeaquestInf
         """Render the game state to a raster image."""
         return self.renderer.render(state)
 
-    def flatten_entity_position(self, entity: EntityPosition) -> jnp.ndarray:
-        return jnp.concatenate([
-            jnp.array([entity.x], dtype=jnp.int32),
-            jnp.array([entity.y], dtype=jnp.int32),
-            jnp.array([entity.width], dtype=jnp.int32),
-            jnp.array([entity.height], dtype=jnp.int32),
-            jnp.array([entity.active], dtype=jnp.int32)
-        ])
-
-    def flatten_player_entity(self, entity: PlayerEntity) -> jnp.ndarray:
-        return jnp.concatenate([
-            jnp.array([entity.x], dtype=jnp.int32),
-            jnp.array([entity.y], dtype=jnp.int32),
-            jnp.array([entity.o], dtype=jnp.int32),
-            jnp.array([entity.width], dtype=jnp.int32),
-            jnp.array([entity.height], dtype=jnp.int32),
-            jnp.array([entity.active], dtype=jnp.int32)
-        ])
-
-    @partial(jax.jit, static_argnums=(0,))
-    def obs_to_flat_array(self, obs: SeaquestObservation) -> jnp.ndarray:
-        return jnp.concatenate([
-            self.flatten_player_entity(obs.player),
-            obs.sharks.flatten().astype(jnp.int32),
-            obs.submarines.flatten().astype(jnp.int32),
-            obs.divers.flatten().astype(jnp.int32),
-            obs.enemy_missiles.flatten().astype(jnp.int32),
-            self.flatten_entity_position(obs.surface_submarine),
-            self.flatten_entity_position(obs.player_missile),
-            obs.collected_divers.flatten().astype(jnp.int32),
-            obs.player_score.flatten().astype(jnp.int32),
-            obs.lives.flatten().astype(jnp.int32),
-            obs.oxygen_level.flatten().astype(jnp.int32),
-        ])
-
-
     def action_space(self) -> spaces.Discrete:
-        return spaces.Discrete(len(self.action_set))
+        return spaces.Discrete(len(self.ACTION_SET))
 
     def observation_space(self) -> spaces.Dict:
-        """Returns the observation space for Seaquest.
-        The observation contains:
-        - player: PlayerEntity (x, y, o, width, height, active)
-        - sharks: array of shape (12, 5) with x,y,width,height,active for each shark
-        - submarines: array of shape (12, 5) with x,y,width,height,active for each submarine
-        - divers: array of shape (4, 5) with x,y,width,height,active for each diver
-        - enemy_missiles: array of shape (4, 5) with x,y,width,height,active for each missile
-        - surface_submarine: EntityPosition (x, y, width, height, active)
-        - player_missile: EntityPosition (x, y, width, height, active)
-        - collected_divers: int (0-6)
-        - player_score: int (0-999999)
-        - lives: int (0-3)
-        - oxygen_level: int (0-255)
-        """
+        h = int(self.consts.SCREEN_HEIGHT)
+        w = int(self.consts.SCREEN_WIDTH)
+        screen_size = (h, w)
+        
+        single_obj = spaces.get_object_space(n=None, screen_size=screen_size)
+        
         return spaces.Dict({
-            "player": spaces.Dict({
-                "x": spaces.Box(low=0, high=160, shape=(), dtype=jnp.int32),
-                "y": spaces.Box(low=0, high=210, shape=(), dtype=jnp.int32),
-                "o": spaces.Box(low=0, high=1, shape=(), dtype=jnp.int32),
-                "width": spaces.Box(low=0, high=160, shape=(), dtype=jnp.int32),
-                "height": spaces.Box(low=0, high=210, shape=(), dtype=jnp.int32),
-                "active": spaces.Box(low=0, high=1, shape=(), dtype=jnp.int32),
-            }),
-            "sharks": spaces.Box(low=0, high=160, shape=(12, 5), dtype=jnp.int32),
-            "submarines": spaces.Box(low=0, high=160, shape=(12, 5), dtype=jnp.int32),
-            "divers": spaces.Box(low=0, high=160, shape=(4, 5), dtype=jnp.int32),
-            "enemy_missiles": spaces.Box(low=0, high=160, shape=(4, 5), dtype=jnp.int32),
-            "surface_submarine": spaces.Dict({
-                "x": spaces.Box(low=0, high=160, shape=(), dtype=jnp.int32),
-                "y": spaces.Box(low=0, high=210, shape=(), dtype=jnp.int32),
-                "width": spaces.Box(low=0, high=160, shape=(), dtype=jnp.int32),
-                "height": spaces.Box(low=0, high=210, shape=(), dtype=jnp.int32),
-                "active": spaces.Box(low=0, high=1, shape=(), dtype=jnp.int32),
-            }),
-            "player_missile": spaces.Dict({
-                "x": spaces.Box(low=0, high=160, shape=(), dtype=jnp.int32),
-                "y": spaces.Box(low=0, high=210, shape=(), dtype=jnp.int32),
-                "width": spaces.Box(low=0, high=160, shape=(), dtype=jnp.int32),
-                "height": spaces.Box(low=0, high=210, shape=(), dtype=jnp.int32),
-                "active": spaces.Box(low=0, high=1, shape=(), dtype=jnp.int32),
-            }),
-            "collected_divers": spaces.Box(low=0, high=6, shape=(), dtype=jnp.int32),
-            "player_score": spaces.Box(low=0, high=999999, shape=(), dtype=jnp.int32),
-            "lives": spaces.Box(low=0, high=3, shape=(), dtype=jnp.int32),
+            "player": single_obj,
+            "divers": spaces.get_object_space(n=self.consts.MAX_DIVERS, screen_size=screen_size),
+            # Enemies: 12 Sharks + 12 Subs + 1 Surface Sub = 25
+            "enemies": spaces.get_object_space(n=25, screen_size=screen_size),
+            # Projectiles: 1 Player + 4 Enemy = 5
+            "projectiles": spaces.get_object_space(n=5, screen_size=screen_size),
+            
             "oxygen_level": spaces.Box(low=0, high=255, shape=(), dtype=jnp.int32),
+            "player_score": spaces.Box(low=0, high=999999, shape=(), dtype=jnp.int32),
+            "lives": spaces.Box(low=0, high=99, shape=(), dtype=jnp.int32),
+            "collected_divers": spaces.Box(low=0, high=6, shape=(), dtype=jnp.int32),
         })
-
+    
     def image_space(self) -> spaces.Box:
         """Returns the image space for Seaquest.
         The image is a RGB image with shape (210, 160, 3).
@@ -2360,104 +2100,125 @@ class JaxSeaquest(JaxEnvironment[SeaquestState, SeaquestObservation, SeaquestInf
             dtype=jnp.uint8
         )
 
-    @partial(jax.jit, static_argnums=(0, ))
+    @partial(jax.jit, static_argnums=(0,))
     def _get_observation(self, state: SeaquestState) -> SeaquestObservation:
-        # Create player (already scalar, no need for vectorization)
-        player = PlayerEntity(
-            x=state.player_x,
-            y=state.player_y,
-            o=state.player_direction,
-            width=jnp.array(self.consts.PLAYER_SIZE[0]),
-            height=jnp.array(self.consts.PLAYER_SIZE[1]),
-            active=jnp.array(1),  # Player is always active
+        c = self.consts
+        w, h = int(c.SCREEN_WIDTH), int(c.SCREEN_HEIGHT)
+        
+        # --- Helper for orientation ---
+        def get_orientation(direction):
+            # 1 -> 90.0 (Right), -1 -> 270.0 (Left), 0 -> 0.0 (Inactive/None)
+            return jnp.select(
+                [direction == 1, direction == -1],
+                [90.0, 270.0],
+                0.0
+            ).astype(jnp.float32)
+
+        # --- Player ---
+        player = ObjectObservation.create(
+            x=jnp.clip(jnp.array(state.player_x, dtype=jnp.int32), 0, w),
+            y=jnp.clip(jnp.array(state.player_y, dtype=jnp.int32), 0, h),
+            width=jnp.array(c.PLAYER_SIZE[0], dtype=jnp.int32),
+            height=jnp.array(c.PLAYER_SIZE[1], dtype=jnp.int32),
+            active=jnp.array(1, dtype=jnp.int32),
+            orientation=get_orientation(state.player_direction)
         )
 
-        # Define a function to convert enemy positions to entity format
-        def convert_to_entity(pos, size):
-            return jnp.array([
-                pos[0],  # x position
-                pos[1],  # y position
-                size[0],  # width
-                size[1],  # height
-                pos[2] != 0,  # active flag
-            ])
-
-        # Apply conversion to each type of entity using vmap
-
-        # Sharks
-        sharks = jax.vmap(lambda pos: convert_to_entity(pos, self.consts.SHARK_SIZE))(
-            state.shark_positions
+        # --- Divers ---
+        d_pos = state.diver_positions
+        d_active = (d_pos[:, 2] != 0).astype(jnp.int32)
+        divers = ObjectObservation.create(
+            x=jnp.clip(d_pos[:, 0].astype(jnp.int32), 0, w),
+            y=jnp.clip(d_pos[:, 1].astype(jnp.int32), 0, h),
+            width=jnp.full((4,), c.DIVER_SIZE[0], dtype=jnp.int32),
+            height=jnp.full((4,), c.DIVER_SIZE[1], dtype=jnp.int32),
+            active=d_active,
+            orientation=get_orientation(d_pos[:, 2])
         )
 
-        # Submarines
-        submarines = jax.vmap(lambda pos: convert_to_entity(pos, self.consts.ENEMY_SUB_SIZE))(
-            state.sub_positions
+        # --- Enemies (Grouped) ---
+        # 1. Sharks (12) - IDs 0-3 based on difficulty color
+        sharks_pos = state.shark_positions
+        shark_color_idx = get_shark_color_index(state.spawn_state.difficulty)
+        sharks_vid = jnp.full((12,), shark_color_idx, dtype=jnp.int32)
+        sharks_w = jnp.full((12,), c.SHARK_SIZE[0], dtype=jnp.int32)
+        sharks_h = jnp.full((12,), c.SHARK_SIZE[1], dtype=jnp.int32)
+        
+        # 2. Submarines (12) - ID 4
+        subs_pos = state.sub_positions
+        subs_vid = jnp.full((12,), 4, dtype=jnp.int32)
+        subs_w = jnp.full((12,), c.ENEMY_SUB_SIZE[0], dtype=jnp.int32)
+        subs_h = jnp.full((12,), c.ENEMY_SUB_SIZE[1], dtype=jnp.int32)
+        
+        # 3. Surface Submarine (1) - ID 5
+        surf_pos = state.surface_sub_position[None, :]
+        surf_vid = jnp.array([5], dtype=jnp.int32)
+        surf_w = jnp.array([c.ENEMY_SUB_SIZE[0]], dtype=jnp.int32)
+        surf_h = jnp.array([c.ENEMY_SUB_SIZE[1]], dtype=jnp.int32)
+        
+        # Concatenate all enemies
+        e_pos = jnp.concatenate([sharks_pos, subs_pos, surf_pos])
+        e_vid = jnp.concatenate([sharks_vid, subs_vid, surf_vid])
+        e_w = jnp.concatenate([sharks_w, subs_w, surf_w])
+        e_h = jnp.concatenate([sharks_h, subs_h, surf_h])
+        e_active = (e_pos[:, 2] != 0).astype(jnp.int32)
+        
+        enemies = ObjectObservation.create(
+            x=jnp.clip(e_pos[:, 0].astype(jnp.int32), 0, w),
+            y=jnp.clip(e_pos[:, 1].astype(jnp.int32), 0, h),
+            width=e_w,
+            height=e_h,
+            active=e_active,
+            visual_id=e_vid,
+            orientation=get_orientation(e_pos[:, 2])
         )
 
-        # Divers
-        divers = jax.vmap(lambda pos: convert_to_entity(pos, self.consts.DIVER_SIZE))(
-            state.diver_positions
+        # --- Projectiles (Grouped) ---
+        # 1. Player Missile (1) - ID 0
+        pm_pos = state.player_missile_position[None, :]
+        pm_vid = jnp.array([0], dtype=jnp.int32)
+        
+        # 2. Enemy Missiles (4) - ID 1
+        em_pos = state.enemy_missile_positions
+        em_vid = jnp.full((4,), 1, dtype=jnp.int32)
+        
+        # Concatenate projectiles
+        p_pos = jnp.concatenate([pm_pos, em_pos])
+        p_vid = jnp.concatenate([pm_vid, em_vid])
+        p_active = (p_pos[:, 2] != 0).astype(jnp.int32)
+        
+        projectiles = ObjectObservation.create(
+            x=jnp.clip(p_pos[:, 0].astype(jnp.int32), 0, w),
+            y=jnp.clip(p_pos[:, 1].astype(jnp.int32), 0, h),
+            width=jnp.full((5,), c.MISSILE_SIZE[0], dtype=jnp.int32),
+            height=jnp.full((5,), c.MISSILE_SIZE[1], dtype=jnp.int32),
+            active=p_active,
+            visual_id=p_vid,
+            orientation=get_orientation(p_pos[:, 2])
         )
 
-        # Enemy missiles
-        enemy_missiles = jax.vmap(lambda pos: convert_to_entity(pos, self.consts.MISSILE_SIZE))(
-            state.enemy_missile_positions
-        )
-
-        # Surface submarine (scalar)
-        surface_pos = state.surface_sub_position
-        surface_sub = EntityPosition(
-            x=surface_pos[0],  # First item of first dimension
-            y=surface_pos[1],  # First item of second dimension
-            width=jnp.array(self.consts.ENEMY_SUB_SIZE[0]),
-            height=jnp.array(self.consts.ENEMY_SUB_SIZE[1]),
-            active=jnp.array(surface_pos[2] != 0),
-        )
-
-        # Player missile (scalar)
-        missile_pos = state.player_missile_position
-        player_missile = EntityPosition(
-            x=missile_pos[0],
-            y=missile_pos[1],
-            width=jnp.array(self.consts.MISSILE_SIZE[0]),
-            height=jnp.array(self.consts.MISSILE_SIZE[1]),
-            active=jnp.array(missile_pos[2] != 0),
-        )
-
-        # Return observation
         return SeaquestObservation(
             player=player,
-            sharks=sharks,
-            submarines=submarines,
             divers=divers,
-            enemy_missiles=enemy_missiles,
-            surface_submarine=surface_sub,
-            player_missile=player_missile,
-            collected_divers=state.divers_collected,
-            player_score=state.score,
-            lives=state.lives,
-            oxygen_level=state.oxygen,
+            enemies=enemies,
+            projectiles=projectiles,
+            oxygen_level=state.oxygen.astype(jnp.int32),
+            player_score=state.score.astype(jnp.int32),
+            lives=state.lives.astype(jnp.int32),
+            collected_divers=state.divers_collected.astype(jnp.int32)
         )
 
     @partial(jax.jit, static_argnums=(0,))
-    def _get_info(self, state: SeaquestState, all_rewards: jnp.ndarray = None) -> SeaquestInfo:
+    def _get_info(self, state: SeaquestState) -> SeaquestInfo:
         return SeaquestInfo(
             successful_rescues=state.successful_rescues,
             difficulty=state.spawn_state.difficulty,
             step_counter=state.step_counter,
-            all_rewards=all_rewards,
         )
 
     @partial(jax.jit, static_argnums=(0,))
     def _get_reward(self, previous_state: SeaquestState, state: SeaquestState):
         return state.score - previous_state.score
-
-    @partial(jax.jit, static_argnums=(0,))
-    def _get_all_rewards(self, previous_state: SeaquestState, state: SeaquestState) -> jnp.ndarray:
-        if self.reward_funcs is None:
-            return jnp.zeros(1)
-        rewards = jnp.array([reward_func(previous_state, state) for reward_func in self.reward_funcs])
-        return rewards
 
     @partial(jax.jit, static_argnums=(0,))
     def _get_done(self, state: SeaquestState) -> bool:
@@ -2495,6 +2256,8 @@ class JaxSeaquest(JaxEnvironment[SeaquestState, SeaquestObservation, SeaquestInf
     def step(
         self, state: SeaquestState, action: chex.Array
     ) -> Tuple[SeaquestObservation, SeaquestState, float, bool, SeaquestInfo]:
+        # Translate compact agent action index to ALE console action
+        atari_action = jnp.take(self.ACTION_SET, action.astype(jnp.int32))
 
         previous_state = state
         _, reset_state = self.reset(state.rng_key)
@@ -2519,7 +2282,7 @@ class JaxSeaquest(JaxEnvironment[SeaquestState, SeaquestObservation, SeaquestInf
                     shark_y_positions[:, 1]
                 )
                 should_hide_player = state.death_counter <= 45
-                return state._replace(
+                return state.replace(
                     death_counter=state.death_counter - 1,
                     shark_positions=new_shark_positions,
                     sub_positions=state.sub_positions,
@@ -2538,7 +2301,7 @@ class JaxSeaquest(JaxEnvironment[SeaquestState, SeaquestObservation, SeaquestInf
                     # If this is the final life, return the TRUE final state of the game
                     # while setting lives to -1 to trigger done=True.
                     # This is what your snapshot test needs to see.
-                    return state._replace(
+                    return state.replace(
                         lives=state.lives - 1,
                         death_counter=0,
                     )
@@ -2546,7 +2309,7 @@ class JaxSeaquest(JaxEnvironment[SeaquestState, SeaquestObservation, SeaquestInf
                 def handle_stage_reset():
                     # If the player still has lives left, perform the original stage reset.
                     # This preserves the mechanic of resetting the level after losing a life.
-                    return reset_state._replace(
+                    return reset_state.replace(
                         lives=state.lives - 1,
                         score=state.score,
                         successful_rescues=state.successful_rescues,
@@ -2569,9 +2332,22 @@ class JaxSeaquest(JaxEnvironment[SeaquestState, SeaquestObservation, SeaquestInf
             )
 
         def handle_score_freeze():
-            # on scoring, the death counter will be set to -(oxygen * 2 + 16 * 6)
-            # thats when we get in here, so duplicate the death animation pattern, but decrease the oxygen until its 0
-            # Calculate new positions with frozen X coordinates
+            # Calculate points logic based on the rescues prior to the recent increment
+            rescues_for_calc = state.successful_rescues - 1
+            
+            diver_bonus_val = self.consts.SCORE_DIVER_STEP * rescues_for_calc
+            points_per_diver = jnp.minimum(
+                self.consts.SCORE_DIVER_BASE + diver_bonus_val,
+                self.consts.SCORE_DIVER_MAX,
+            )
+            
+            oxygen_bonus_val = self.consts.SCORE_OXYGEN_STEP * rescues_for_calc
+            points_per_oxygen_unit = jnp.minimum(
+                self.consts.SCORE_OXYGEN_BASE + oxygen_bonus_val,
+                self.consts.SCORE_OXYGEN_MAX
+            )
+
+            # Keep X positions from original state, only update Y for sharks
             shark_y_positions, _, _, _ = self.step_enemy_movement(
                 state.spawn_state,
                 state.shark_positions,
@@ -2579,35 +2355,56 @@ class JaxSeaquest(JaxEnvironment[SeaquestState, SeaquestObservation, SeaquestInf
                 state.step_counter,
                 state.rng_key,
             )
-
-            # Keep X positions from original state, only update Y
             new_shark_positions = state.shark_positions.at[:, 1].set(
                 shark_y_positions[:, 1]
             )
 
-            # calculate the new oxygen
-            new_ox = jnp.where(
-                state.death_counter % 2 == 0, state.oxygen - 1, state.oxygen
-            )
+            # Animation has two phases: Oxygen phase (< -96) and Diver phase (>= -96)
+            is_oxygen_phase = state.death_counter < -96
+            is_diver_phase = state.death_counter >= -96
 
-            new_ox = jnp.where(new_ox <= 0, jnp.array(0), state.oxygen)
+            # Phase 1: Drain oxygen (1 unit every 2 ticks)
+            drain_this_tick = jnp.logical_and(is_oxygen_phase, state.death_counter % 2 == 0)
+            has_oxygen = state.oxygen > 0
+            actually_drain = jnp.logical_and(drain_this_tick, has_oxygen)
+            
+            new_ox = jnp.where(
+                actually_drain,
+                state.oxygen - 1,
+                state.oxygen
+            )
+            oxygen_points = jnp.where(actually_drain, points_per_oxygen_unit, 0)
+
+            # Phase 2: Free divers (1 diver every 16 ticks)
+            free_diver_this_tick = jnp.logical_and(is_diver_phase, state.death_counter % 16 == 0)
+            has_divers = state.divers_collected > 0
+            actually_free = jnp.logical_and(free_diver_this_tick, has_divers)
+
+            new_divers_collected = jnp.where(
+                actually_free,
+                state.divers_collected - 1,
+                state.divers_collected
+            )
+            diver_points = jnp.where(actually_free, points_per_diver, 0)
+
+            new_score = state.score + oxygen_points + diver_points
 
             # Return either final reset or animation frame
             return jax.lax.cond(
                 state.death_counter >= -1,
-                lambda _: reset_state._replace(
+                lambda _: reset_state.replace(
                     player_x=state.player_x,
                     player_y=state.player_y,
                     player_direction=state.player_direction,
-                    score=state.score,
+                    score=new_score,
                     lives=state.lives,
                     successful_rescues=state.successful_rescues,
                     divers_collected=jnp.array(0),
                     spawn_state=self.soft_reset_spawn_state(state.spawn_state),
                     surface_sub_position=state.surface_sub_position,
-                    oxygen=jnp.array(0),
+                    oxygen=jnp.array(0),  # This triggers the oxygen refill mechanism
                 ),
-                lambda _: state._replace(
+                lambda _: state.replace(
                     death_counter=state.death_counter + 1,
                     shark_positions=new_shark_positions,
                     sub_positions=state.sub_positions,
@@ -2615,6 +2412,8 @@ class JaxSeaquest(JaxEnvironment[SeaquestState, SeaquestObservation, SeaquestInf
                     player_missile_position=jnp.zeros(3),
                     step_counter=state.step_counter + 1,
                     oxygen=new_ox,
+                    divers_collected=new_divers_collected,
+                    score=new_score,
                 ),
                 operand=None,
             )
@@ -2629,24 +2428,24 @@ class JaxSeaquest(JaxEnvironment[SeaquestState, SeaquestObservation, SeaquestInf
             # while player is frozen, keep resetting the spawn counter
             new_spawn_state = jax.lax.cond(
                 should_block,
-                lambda: state.spawn_state._replace(
+                lambda: state.spawn_state.replace(
                     spawn_timers=jnp.array([80, 80, 80, 120], dtype=jnp.int32)
                 ),
                 lambda: state.spawn_state,
             )
 
-            state_updated = state._replace(spawn_state=new_spawn_state)
+            state_updated = state.replace(spawn_state=new_spawn_state)
 
             # If blocked, force position and disable actions
             player_x = jnp.where(should_block, state.player_x, state.player_x)
             player_y = jnp.where(
                 should_block, jnp.array(46, dtype=jnp.int32), state.player_y
             )
-            action_mod = jnp.where(should_block, jnp.array(Action.NOOP), action)
+            action_mod = jnp.where(should_block, jnp.array(Action.NOOP), atari_action)
 
             # Now calculate movement using potentially modified positions and action
             next_x, next_y, player_direction = self.player_step(
-                state._replace(player_x=player_x, player_y=player_y), action_mod
+                state.replace(player_x=player_x, player_y=player_y), action_mod
             )
             player_missile_position = self.player_missile_step(
                 state, next_x, next_y, action_mod
@@ -2667,12 +2466,12 @@ class JaxSeaquest(JaxEnvironment[SeaquestState, SeaquestObservation, SeaquestInf
             ) = self.update_oxygen(state, next_x, next_y, player_missile_position)
 
             # Update divers collected count from oxygen mechanics
-            state_updated = state_updated._replace(
+            state_updated = state_updated.replace(
                 divers_collected=new_divers_collected
             )
 
             # update the spawn state with the new difficulty
-            new_spawn_state = state_updated.spawn_state._replace(
+            new_spawn_state = state_updated.spawn_state.replace(
                 difficulty=new_difficulty
             )
 
@@ -2725,7 +2524,7 @@ class JaxSeaquest(JaxEnvironment[SeaquestState, SeaquestObservation, SeaquestInf
 
             new_surface_sub_pos = self.surface_sub_step(state_updated)
 
-            state_updated._replace(surface_sub_position=new_surface_sub_pos)
+            state_updated.replace(surface_sub_position=new_surface_sub_pos)
 
             # update the enemy missile positions
             new_enemy_missile_positions = self.enemy_missiles_step(
@@ -2753,40 +2552,21 @@ class JaxSeaquest(JaxEnvironment[SeaquestState, SeaquestObservation, SeaquestInf
             )
 
             # Start death animation but keep divers intact during animation
-            death_animation_state = state_updated._replace(
+            death_animation_state = state_updated.replace(
                 score=state.score + collision_points,
                 death_counter=jnp.array(90),
                 spawn_state=self.soft_reset_spawn_state(state_updated.spawn_state),
             )
-
-            # Calculate points for rescuing divers. Each diver is worth 50 points.
-            # Each successful rescue adds 50 points with a maximum of 1000 points each.
-            base_points_per_diver = 50
-            max_points_per_diver = 1000
-            additional_points_per_rescue = 50 * state.successful_rescues
-            points_per_diver = jnp.minimum(
-                base_points_per_diver + additional_points_per_rescue,
-                max_points_per_diver,
-            )
-            total_diver_points = points_per_diver * state.divers_collected
-
-            # Calculate bonus points for remaining oxygen
-            oxygen_bonus = state.oxygen * 20
-
-            # Calculate total points for successful rescue
-            total_rescue_points = total_diver_points + oxygen_bonus
-
-            # TODO: somewhere the oxygen is depleted on surfacing, this currently blocks the slow draining of oxygen (which is not gameplay relevant -> low priority)
-            # scoring freeze, 16 ticks per diver i.e. 6 * 16 and also 2 ticks per remaining oxygen (which is drained!)
+            
             # Create the scoring state
-            scoring_state = state_updated._replace(
+            scoring_state = state_updated.replace(
                 player_x=player_x,
                 player_y=player_y,
                 player_direction=player_direction,
                 lives=state_updated.lives,
-                score=state_updated.score + total_rescue_points,
+                score=state_updated.score,
                 successful_rescues=state_updated.successful_rescues + 1,
-                spawn_state=self.soft_reset_spawn_state(state_updated.spawn_state)._replace(
+                spawn_state=self.soft_reset_spawn_state(state_updated.spawn_state).replace(
                     difficulty=state_updated.spawn_state.difficulty + 1,
                     survived=state_updated.spawn_state.survived.astype(jnp.int32)
                 ),
@@ -2809,7 +2589,7 @@ class JaxSeaquest(JaxEnvironment[SeaquestState, SeaquestObservation, SeaquestInf
                 divers_collected=new_divers_collected,
                 score=new_score,
                 lives=state_updated.lives,
-                spawn_state=new_spawn_state._replace(
+                spawn_state=new_spawn_state.replace(
                     survived=new_spawn_state.survived.astype(jnp.int32)
                 ),
                 diver_positions=new_diver_positions,
@@ -2846,7 +2626,7 @@ class JaxSeaquest(JaxEnvironment[SeaquestState, SeaquestObservation, SeaquestInf
             new_lives = jnp.minimum(final_state.lives + additional_lives, 6) # max 6 lives possible
 
             # Update the final state with new lives
-            final_state = final_state._replace(lives=new_lives)
+            final_state = final_state.replace(lives=new_lives)
 
             # Check if the game is over
             game_over = final_state.lives <= -1
@@ -2854,7 +2634,7 @@ class JaxSeaquest(JaxEnvironment[SeaquestState, SeaquestObservation, SeaquestInf
             # Handle game over state
             return jax.lax.cond(
                 game_over,
-                lambda _: state._replace(
+                lambda _: state.replace(
                     score=final_state.score,
                     lives=jnp.array(-1),
                     death_counter=jnp.array(0),
@@ -2880,189 +2660,197 @@ class JaxSeaquest(JaxEnvironment[SeaquestState, SeaquestObservation, SeaquestInf
 
         done = self._get_done(return_state)
         env_reward = self._get_reward(previous_state, return_state)
-        all_rewards = self._get_all_rewards(previous_state, return_state)
-        info = self._get_info(return_state, all_rewards)
+        info = self._get_info(return_state)
 
         # Choose between death animation and normal game step
         return observation, return_state, env_reward, done, info
 
 
 class SeaquestRenderer(JAXGameRenderer):
-    def __init__(self, consts: SeaquestConstants = None):
-        super().__init__()
-        self.offset_length = len(PL_SUB_OFFSETS)
-        self.diver_offset_length = len(DIVER_OFFSETS)
-        self.shark_offset_length = len(SHARK_OFFSETS)
-        self.enemy_sub_offset_length = len(ENEMY_SUB_OFFSETS)
+    def __init__(self, consts: SeaquestConstants = None, config: render_utils.RendererConfig = None):
         self.consts = consts or SeaquestConstants()
+        super().__init__(self.consts)
+        
+        # Use injected config if provided, else default
+        if config is None:
+            self.config = render_utils.RendererConfig(
+                game_dimensions=(210, 160),
+                channels=3,
+                downscale=None
+            )
+        else:
+            self.config = config
+        self.jr = render_utils.JaxRenderingUtils(self.config)
 
-    @partial(jax.jit, static_argnums=(0,))
-    def render(self, state):
-        raster = jr.create_initial_frame(width=160, height=210)
+        # 1. Start from (possibly modded) asset config provided via constants
+        final_asset_config = list(self.consts.ASSET_CONFIG)
+        
+        # 2. Create procedural assets using modded constants
+        procedural_sprites = self._create_procedural_sprites()
+        
+        # 3. Append procedural assets
+        for name, data in procedural_sprites.items():
+            final_asset_config.append({'name': name, 'type': 'procedural', 'data': data})
+        
+        sprite_path = os.path.join(render_utils.get_base_sprite_dir(), "seaquest")
 
-        # render background
-        frame_bg = jr.get_sprite_frame(SPRITE_BG, 0)
-        raster = jr.render_at(raster, 0, 0, frame_bg)
+        # 4. Load all assets, create palette, and generate ID masks
+        (
+            self.PALETTE,
+            self.SHAPE_MASKS,
+            self.BACKGROUND,
+            self.COLOR_TO_ID,
+            self.FLIP_OFFSETS
+        ) = self.jr.load_and_setup_assets(final_asset_config, sprite_path)
+        
+        # Pre-compute oxygen bar color ID (convert JAX array to numpy, then tuple for dict lookup)
+        oxygen_color_rgb = np.asarray(self.consts.OXYGEN_BAR_COLOR[:3])
+        self.OXYGEN_COLOR_ID = self.COLOR_TO_ID.get(tuple(oxygen_color_rgb), 0)
+        oxygen_bar_bg_color_rgb = np.asarray(self.consts.OXYGEN_BAR_BG_COLOR[:3])
+        self.OXYGEN_BAR_BG_COLOR_ID = self.COLOR_TO_ID.get(tuple(oxygen_bar_bg_color_rgb), 0)
 
-        # render player submarine
-        frame_pl_sub = jr.get_sprite_frame(SPRITE_PL_SUB, state.step_counter)
-        idx_pl_sub = state.step_counter % self.offset_length
-        pl_sub_offset = jnp.take(PL_SUB_OFFSETS, idx_pl_sub, axis=0)
-        raster = jr.render_at(
-            raster,
-            state.player_x,
-            state.player_y,
-            frame_pl_sub,
-            flip_horizontal=state.player_direction == self.consts.FACE_LEFT,
-            flip_offset=pl_sub_offset,
-        )
-        # Player torpedo
-        frame_pl_torp = jr.get_sprite_frame(SPRITE_PL_TORP, state.step_counter)
-        should_render = state.player_missile_position[0] > 0
-        raster = jax.lax.cond(
-            should_render,
-            lambda r: jr.render_at(
-                r,
-                state.player_missile_position[0],
-                state.player_missile_position[1],
-                frame_pl_torp,
-                flip_horizontal=state.player_missile_position[2] == self.consts.FACE_LEFT,
-            ),
+        self.SHARK_COLOR_MAP = self._precompute_shark_color_map()
+    def _create_procedural_sprites(self) -> dict:
+        """Creates 1x1 pixel sprites to ensure colors are in the palette."""
+        procedural_sprites = {}
+        for i, color in enumerate(self.consts.SHARK_DIFFICULTY_COLORS):
+            rgba = jnp.array(list(color) + [255], dtype=jnp.uint8).reshape(1, 1, 4)
+            procedural_sprites[f'shark_color_{i}'] = rgba
+        
+        rgba_oxy = jnp.array(list(self.consts.OXYGEN_BAR_COLOR[:3]) + [255], dtype=jnp.uint8).reshape(1, 1, 4)
+        procedural_sprites['oxygen_bar_color'] = rgba_oxy
+        rgba_oxy_bg = jnp.array(list(self.consts.OXYGEN_BAR_BG_COLOR[:3]) + [255], dtype=jnp.uint8).reshape(1, 1, 4)
+        procedural_sprites['oxygen_bar_bg_color'] = rgba_oxy_bg
+        return procedural_sprites
+
+    def _precompute_shark_color_map(self) -> jnp.ndarray:
+        """Creates a lookup table mapping difficulty (0-7) to a shark color ID."""
+        color_cycle_indices = jnp.array([0, 1, 2, 3, 0, 1, 0, 3])
+        cycle_rgb_colors = self.consts.SHARK_DIFFICULTY_COLORS[color_cycle_indices]
+        return jnp.array([self.COLOR_TO_ID[tuple(rgb)] for rgb in np.array(cycle_rgb_colors)])
+    
+    # --- Sequential Rendering for Batched Objects ---
+    def render_object_sequentially(self, current_raster, pos, shape_masks, flip_offsets, anim_idx):
+        """Helper to render a single object with a pre-calculated animation index."""
+        is_active = pos[2] != 0
+        
+        return jax.lax.cond(
+            is_active,
+            lambda r: self.jr.render_at_clipped(r, pos[0], pos[1], shape_masks[anim_idx],
+                                                flip_horizontal=pos[2] == self.consts.FACE_LEFT,
+                                                flip_offset=flip_offsets),
             lambda r: r,
-            raster,
+            current_raster
         )
-
-        # render divers
-        frame_diver = jr.get_sprite_frame(SPRITE_DIVER, state.step_counter)
-        diver_positions = state.diver_positions
-
-        def render_diver(i, raster_base):
-            should_render = diver_positions[i][0] > 0
-            idx_diver = i % self.diver_offset_length
-            diver_offset = jnp.take(DIVER_OFFSETS, idx_diver, axis=0)
-            return jax.lax.cond(
-                should_render,
-                lambda r: jr.render_at(
-                    r,
-                    diver_positions[i][0],
-                    diver_positions[i][1],
-                    frame_diver,
-                    flip_horizontal=(diver_positions[i][2] == self.consts.FACE_LEFT),
-                    flip_offset=diver_offset,
-                ),
-                lambda r: r,
-                raster_base,
-            )
-
-        raster = jax.lax.fori_loop(0, self.consts.MAX_DIVERS, render_diver, raster)
-
-        # render sharks
-        frame_shark = get_shark_sprite_by_difficulty(state.spawn_state.difficulty, state.step_counter)
-
-        def render_shark(i, raster_base):
-            should_render = state.shark_positions[i][0] > 0
-            idx_shark = i % self.shark_offset_length
-            shark_offset = jnp.take(SHARK_OFFSETS, idx_shark, axis=0)
-            return jax.lax.cond(
-                should_render,
-                lambda r: jr.render_at(
-                    r,
-                    state.shark_positions[i][0],
-                    state.shark_positions[i][1],
-                    frame_shark,
-                    flip_horizontal=(state.shark_positions[i][2] == self.consts.FACE_LEFT),
-                    flip_offset=shark_offset,
-                ),
-                lambda r: r,
-                raster_base,
-            )
-
-        # Use fori_loop to render all sharks
-        raster = jax.lax.fori_loop(0, self.consts.MAX_SHARKS, render_shark, raster)
-
-        # render enemy subs
-        frame_enemy_sub = jr.get_sprite_frame(SPRITE_ENEMY_SUB, state.step_counter)
-
-        def render_enemy_sub(i, raster_base):
-            should_render = state.sub_positions[i][0] > 0
-            idx_enemy_sub = i % self.enemy_sub_offset_length
-            enemy_sub_offset = jnp.take(ENEMY_SUB_OFFSETS, idx_enemy_sub, axis=0)
-            return jax.lax.cond(
-                should_render,
-                lambda r: jr.render_at(
-                    r,
-                    state.sub_positions[i][0],
-                    state.sub_positions[i][1],
-                    frame_enemy_sub,
-                    flip_horizontal=(state.sub_positions[i][2] == self.consts.FACE_LEFT),
-                    flip_offset=enemy_sub_offset,
-                ),
-                lambda r: r,
-                raster_base,
-            )
-
-        raster = jax.lax.fori_loop(0, self.consts.MAX_SUBS, render_enemy_sub, raster)
-
-        def render_enemy_surface_sub(i, raster_base):
-            should_render = state.surface_sub_position[0] > 0
-            idx_enemy_sub = i % self.enemy_sub_offset_length
-            enemy_sub_offset = jnp.take(ENEMY_SUB_OFFSETS, idx_enemy_sub, axis=0)
-            return jax.lax.cond(
-                should_render,
-                lambda r: jr.render_at(
-                    r,
-                    state.surface_sub_position[0],
-                    state.surface_sub_position[1],
-                    frame_enemy_sub,
-                    flip_horizontal=(state.surface_sub_position[2] == self.consts.FACE_LEFT),
-                    flip_offset=enemy_sub_offset,
-                ),
-                lambda r: r,
-                raster_base,
-            )
-
+    
+    # --- Render Divers ---
+    # Original cycle: Frame 0 for 16 steps, Frame 1 for 4 steps. Total = 20 steps.
+    def _draw_divers(self, raster, state):
+        diver_anim_idx = jax.lax.select((state.step_counter % 20) < 16, 0, 1)
         raster = jax.lax.fori_loop(
-            0, self.consts.MAX_SURFACE_SUBS, render_enemy_surface_sub, raster
+            0, state.diver_positions.shape[0],
+            lambda i, r: self.render_object_sequentially(r, state.diver_positions[i], self.SHAPE_MASKS['diver'], self.FLIP_OFFSETS['diver'], diver_anim_idx),
+            raster
         )
 
-        frame_enemy_torp = jr.get_sprite_frame(SPRITE_EN_TORP, state.step_counter)
-
-        def render_enemy_torp(i, raster_base):
-            should_render = state.enemy_missile_positions[i][0] > 0
-            return jax.lax.cond(
-                should_render,
-                lambda r: jr.render_at(
-                    r,
-                    state.enemy_missile_positions[i][0],
-                    state.enemy_missile_positions[i][1],
-                    frame_enemy_torp,
-                    flip_horizontal=(state.enemy_missile_positions[i][2] == self.consts.FACE_LEFT),
-                ),
-                lambda r: r,
-                raster_base,
-            )
-
-        raster = jax.lax.fori_loop(0, self.consts.MAX_ENEMY_MISSILES, render_enemy_torp, raster)
-
-        # show the scores
-        score_array = jr.int_to_digits(state.score, max_digits=8)
-        # convert the score to a list of digits
-        raster = jr.render_label(raster, 10, 10, score_array, DIGITS, spacing=7)
-        raster = jr.render_indicator(
-            raster, 10, 20, state.lives, LIFE_INDICATOR, spacing=10
+        # --- Render Enemy Subs ---
+        # Original cycle: 3 frames, each for 4 steps. Total = 12 steps.
+        enemy_sub_anim_idx = (state.step_counter % 12) // 4
+        all_subs = jnp.concatenate([state.sub_positions, state.surface_sub_position[None, :]])
+        raster = jax.lax.fori_loop(
+            0, all_subs.shape[0],
+            lambda i, r: self.render_object_sequentially(r, all_subs[i], self.SHAPE_MASKS['enemy_sub'], self.FLIP_OFFSETS['enemy_sub'], enemy_sub_anim_idx),
+            raster
         )
-        raster = jr.render_indicator(
-            raster, 49, 178, state.divers_collected, DIVER_INDICATOR, spacing=10
-        )
-
-        raster = jr.render_bar(
-            raster, 49, 170, state.oxygen, 64, 63, 5, self.consts.OXYGEN_BAR_COLOR, (0, 0, 0, 0)
-        )
-
-        # Force the first 8 columns (x=0 to x=7) to be black
-        bar_width = 8
-        # Assuming raster shape is (Height, Width, Channels)
-        # Select all rows (:), the first 'bar_width' columns (0:bar_width), and all channels (:)
-        raster = raster.at[:, :bar_width, :].set(0)
-
         return raster
+
+    @partial(jax.jit, static_argnames=['self'])
+    def render(self, state: SeaquestState) -> jnp.ndarray:
+        raster = self.BACKGROUND
+        
+        # Use the raw step_counter for precise animation control
+        step_counter = state.step_counter
+
+        # --- Player & Player Torpedo ---
+        # Original cycle: 3 frames, each shown for 4 steps. Total = 12 steps.
+        player_anim_idx = (step_counter % 12) // 4
+        raster = self.jr.render_at(
+            raster, state.player_x, state.player_y,
+            self.SHAPE_MASKS['player_sub'][player_anim_idx],
+            flip_horizontal=state.player_direction == self.consts.FACE_LEFT,
+            flip_offset=self.FLIP_OFFSETS['player_sub']
+        )
+        
+        torp = state.player_missile_position
+        raster = jax.lax.cond(
+            torp[2] != 0,
+            lambda r: self.jr.render_at_clipped(r, torp[0], torp[1], self.SHAPE_MASKS['player_torp'],
+                                        flip_horizontal=torp[2] == self.consts.FACE_LEFT),
+            lambda r: r,
+            raster
+        )
+
+        raster = self._draw_divers(raster, state)
+        
+        # --- Render Enemy Torpedoes ---
+        # No animation, so index is always 0
+        raster = jax.lax.fori_loop(
+            0, state.enemy_missile_positions.shape[0],
+            lambda i, r: self.render_object_sequentially(r, state.enemy_missile_positions[i], self.SHAPE_MASKS['enemy_torp'][None, ...], jnp.zeros(2, dtype=jnp.int32), 0),
+            raster
+        )
+
+        # --- Render Sharks ---
+        # Original cycle: Frame 0 for 16 steps, Frame 1 for 8 steps. Total = 24 steps.
+        shark_anim_idx = jax.lax.select((step_counter % 24) < 16, 0, 1)
+        difficulty_idx = state.spawn_state.difficulty % 8
+        shark_color_id = self.SHARK_COLOR_MAP[difficulty_idx]
+        
+        base_shark_masks = self.SHAPE_MASKS['shark_base']
+        recolored_shark_masks = jnp.where(base_shark_masks != self.jr.TRANSPARENT_ID, shark_color_id, base_shark_masks)
+        raster = jax.lax.fori_loop(
+            0, state.shark_positions.shape[0],
+            lambda i, r: self.render_object_sequentially(r, state.shark_positions[i], recolored_shark_masks, self.FLIP_OFFSETS['shark_base'], shark_anim_idx),
+            raster
+        )
+        
+        # --- UI Elements (Unchanged) ---
+        max_score_digits = 6
+        score_digits = self.jr.int_to_digits(state.score, max_digits=max_score_digits)
+        clamped_score = jnp.minimum(jnp.maximum(state.score, 0), 10**max_score_digits - 1)
+        score_digit_thresholds = jnp.array([1, 10, 100, 1000, 10000, 100000], dtype=clamped_score.dtype)
+        num_score_digits = jnp.maximum(1, jnp.sum(clamped_score >= score_digit_thresholds))
+        score_start_index = max_score_digits - num_score_digits
+        score_x = 59 + score_start_index * 8
+        raster = self.jr.render_label_selective(
+            raster,
+            score_x,
+            9,
+            score_digits,
+            self.SHAPE_MASKS['digits'],
+            score_start_index,
+            num_score_digits,
+            spacing=8,
+            max_digits_to_render=max_score_digits,
+        )
+        
+        raster = self.jr.render_indicator(raster, 58, 22, state.lives, self.SHAPE_MASKS['life_indicator'], spacing=8, max_value=3)
+        
+        # Collected divers blink when there are 6 of them
+        visible_divers = jax.lax.select(
+            jnp.logical_and(state.divers_collected == 6, (state.step_counter % 16) < 8),
+            0,
+            state.divers_collected
+        )
+        raster = self.jr.render_indicator(raster, 49, 178, visible_divers, self.SHAPE_MASKS['diver_indicator'], spacing=10, max_value=6)
+
+        raster = self.jr.render_bar(raster, 49, 170, state.oxygen, 64, 63, 5, self.OXYGEN_COLOR_ID, self.OXYGEN_BAR_BG_COLOR_ID)
+
+        raster = self.jr.draw_rects(
+            raster,
+            positions=jnp.array([[0, 0]]),
+            sizes=jnp.array([[8, self.config.game_dimensions[0]]]),
+            color_id=self.BACKGROUND[0, 0]
+        )
+        
+        return self.jr.render_from_palette(raster, self.PALETTE)

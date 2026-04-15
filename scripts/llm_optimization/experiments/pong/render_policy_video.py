@@ -63,6 +63,13 @@ def upscale_frame(frame: np.ndarray, scale: int) -> np.ndarray:
     return cv2.resize(frame, (width * scale, height * scale), interpolation=cv2.INTER_NEAREST)
 
 
+def unwrap_render_state(state):
+    current = state
+    while hasattr(current, "env_state"):
+        current = current.env_state
+    return current
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Render best Pong policy to MP4")
     parser.add_argument("--seed", type=int, default=0)
@@ -96,7 +103,10 @@ def main() -> None:
         base_env = RandomizedEnemyWrapper(base_env)
     wrapped_env = FlattenObservationWrapper(
         ObjectCentricWrapper(
-            AtariWrapper(base_env, frame_stack_size=frame_stack, frame_skip=1, episodic_life=True)
+            AtariWrapper(base_env, episodic_life=True),
+            frame_stack_size=frame_stack,
+            frame_skip=1,
+            clip_reward=False,
         )
     )
 
@@ -105,7 +115,7 @@ def main() -> None:
     obs_size = obs.shape[-1]
     obs_flat = jnp.asarray(obs[-obs_size:] if obs.shape[0] > obs_size else obs, dtype=jnp.float32)
 
-    initial_frame = np.asarray(base_env.render(state.env_state), dtype=np.uint8)
+    initial_frame = np.asarray(base_env.render(unwrap_render_state(state)), dtype=np.uint8)
     initial_frame = upscale_frame(initial_frame, args.scale)
     height, width = initial_frame.shape[:2]
 
@@ -122,13 +132,13 @@ def main() -> None:
 
     try:
         while steps < args.max_steps and not done:
-            frame = np.asarray(base_env.render(state.env_state), dtype=np.uint8)
+            frame = np.asarray(base_env.render(unwrap_render_state(state)), dtype=np.uint8)
             frame = upscale_frame(frame, args.scale)
             writer.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
 
             action = policy_module.policy(obs_flat, params)
             action = int(jnp.clip(action, 0, 12))
-            next_obs, next_state, reward, done_flag, _ = wrapped_env.step(state, action)
+            next_obs, next_state, reward, terminated, truncated, _ = wrapped_env.step(state, action)
 
             reward_float = float(reward)
             total_reward += reward_float
@@ -142,11 +152,11 @@ def main() -> None:
                 dtype=jnp.float32,
             )
             state = next_state
-            done = bool(done_flag)
+            done = bool(jnp.logical_or(terminated, truncated))
             steps += 1
 
         # Write final frame a few times for pause at end.
-        final_frame = np.asarray(base_env.render(state.env_state), dtype=np.uint8)
+        final_frame = np.asarray(base_env.render(unwrap_render_state(state)), dtype=np.uint8)
         final_frame = upscale_frame(final_frame, args.scale)
         final_bgr = cv2.cvtColor(final_frame, cv2.COLOR_RGB2BGR)
         for _ in range(args.fps):
