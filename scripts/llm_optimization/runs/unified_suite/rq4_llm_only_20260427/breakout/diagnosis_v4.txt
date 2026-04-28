@@ -1,0 +1,34 @@
+# Diagnosis
+
+## 1. Root cause
+The policy tracks the **ball's current x position** rather than predicting where the ball will **arrive at paddle height**. The "lead" term is proportional to horizontal distance between ball and paddle, which is not a physical lead — it has no relation to ball velocity or descent time. Without velocity estimation (or a proxy for it), the paddle is reactive, not predictive, so it misses balls with steep horizontal trajectories and after wall bounces.
+
+## 2. Evidence from metrics
+- `block_clear_percentage = 0.75` with `blocks_remaining = 27`: the agent stalls in late-episode brick configurations where ball angles get steeper/faster.
+- `max_ball_tracking_error = 71` pixels: catastrophic mis-positioning occurs at least once per episode — consistent with failing to anticipate fast lateral motion.
+- `avg_ball_tracking_error = 2.67` is fine on average, meaning the controller is *accurate when ball is slow/near*, but fails on hard cases.
+- `lives_lost = 0.33` (low) but episodes end with bricks remaining → the agent isn't dying often, it's running out of time/clearing inefficiently, suggesting missed deflections rather than missed catches.
+- `avg_paddle_movement = 1.9` per frame is high — indicates jitter/over-correction, consistent with chasing instantaneous ball x rather than a stable predicted intercept.
+
+## 3. Policy logic causing it
+- `lead = lead_coeff * (ball_x - paddle_cx)` is geometrically meaningless: it pulls the target *further* in the direction the ball already is, amplifying overshoot when ball is far, and doing nothing useful when ball is near.
+- `urgency = ball_y / 180` blends anchor and ball position, but the anchor pull is active *exactly when ball is high* — i.e., when the policy has the most time to pre-position to the true intercept. Anchoring to x=80 wastes that planning window.
+- No velocity term: stateless policy cannot infer ball direction from a single frame, but the existing parameters don't exploit any available proxy (e.g., ball_x relative to last-known target, or ball orientation field at index 15 which may encode direction).
+- Dead zone of 2.0 combined with no hysteresis still allows oscillation when err sits near threshold; explains high paddle movement.
+
+## 4. What to preserve
+- Compact 4–6 parameter structure (CMA-ES friendly).
+- FIRE-on-inactive-ball gate.
+- Dead-zone gating for the move decision.
+- Paddle-center computation via `player.x + w/2`.
+- Best-known values for `dead_zone≈2`, `anchor_pull≈0.05` as reasonable priors.
+
+## 5. What to change next
+- **Use `ball.orientation` (obs[15])** as a sign/direction proxy for horizontal velocity, and possibly `ball.state` (obs[14]). Combine with ball_y to form a predicted intercept: `target = ball_x + k_dir * orientation_signed * (paddle_y - ball_y)`. This gives a true lead that grows with vertical distance.
+- **Invert the urgency logic for anchoring**: anchor only when ball is moving *upward* or far above, and commit fully to predicted intercept when descending. Currently it half-anchors during the most plannable phase.
+- **Replace `lead * (ball_x - paddle_cx)`** with a velocity/direction-based lead (using orientation field or sign of (ball_x - anchor)), so lead has correct units (pixels of vertical travel × slope).
+- **Add slight hysteresis** by widening dead zone when |err| was small last decision — but since policy is stateless, instead use an asymmetric dead zone that scales with urgency (small dead zone when descending, larger when high) to cut jitter.
+- **Tune anchor_x lower (~76)** to match true playfield center for the 16-px paddle, and expose paddle-target offset (aim slightly off-center to impart angle on ball, breaking late-game stalemates that leave 27 bricks).
+- Keep parameter count at 5–7: e.g., `dead_zone, lead_per_dy, dir_gain, anchor_x, anchor_pull, descend_threshold`.
+
+</br>

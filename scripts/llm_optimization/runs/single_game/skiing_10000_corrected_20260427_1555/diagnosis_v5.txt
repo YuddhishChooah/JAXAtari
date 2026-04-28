@@ -1,0 +1,34 @@
+## 1. Root cause
+The policy already passes all 20 gates with zero collisions, so further negative return is dominated by **episode length / low downhill speed**, not by missed gates. The current control law biases heavily toward NOOP (92.7%) and only tucks 4% of the time, so the skier coasts at a moderate average heading instead of spending most frames in DOWN at a near-straight heading.
+
+## 2. Evidence from metrics
+- `gates_passed = 20`, `missed_gates = 0`, `collision_count = 0`: terminal penalties are essentially eliminated.
+- `reward_total = -13541` with `average_steps = 2126`: cost is almost entirely the per-frame time penalty.
+- `average_speed_y = 1.18`: well below what a 337.5°/22.5° heading with sustained DOWN should give.
+- `down_action_rate = 0.04` vs `noop_rate = 0.93`: tuck is rarely engaged even though alignment is usually good.
+- `average_gate_center_error = 8.77` ≈ `dead_zone (7.14)` and `tuck_thresh (3.62)`: the skier is "close enough" to glide but not "aligned enough" to tuck, so it sits in NOOP.
+- `turn_rate = 0.032`: steering is already smooth; not the bottleneck.
+
+## 3. Policy logic causing it
+- Action priority is `RIGHT/LEFT → DOWN(if aligned) → NOOP`. Because `tuck_thresh (3.6 px)` is much tighter than typical `dx ≈ 8–9 px`, the "aligned" branch rarely fires and the default fallback is NOOP instead of DOWN.
+- `desired_idx` is clipped to `[2.0, 5.0]`, i.e. never allowed into the fastest straight-down notches (3.5 is the boundary between idx 3 = 337.5° and idx 4 = 22.5°). With `steer_gain=0.079`, even small dx pushes `desired_idx` to ~4.2–4.5, a moderate-right heading that is slower than 337.5/22.5.
+- DOWN is gated on lateral alignment only; it is not used while waiting for gates to descend or while heading is already near-straight.
+- The "ori_dead" check uses idx_err but DOWN/NOOP choice ignores whether the current heading is already straight — so a perfectly-straight skier with small residual dx still NOOPs.
+
+## 4. What to preserve
+- Gate selection logic (active + below skier, nearest by y).
+- Tree-threat override with sign-based lateral push.
+- Heading-index abstraction and `idx_err` deadband for steering decisions.
+- Conservative clipping that keeps the skier away from extreme 270°/90° headings.
+- The six-parameter shape; the search space is well-calibrated.
+
+## 5. What to change next
+- **Make DOWN the default** when no steering correction is needed, instead of NOOP. NOOP should be reserved for "heading is drifting back on its own" cases, if any.
+- **Decouple the tuck condition from lateral alignment**: tuck whenever `|idx_err| < ori_dead` (heading is acceptable), regardless of `dx`. This will lift `down_action_rate` dramatically and cut step count.
+- **Widen the steering dead zone in dx-space** (use `dead_zone`, currently unused in the action decision) so small dx does not perturb `desired_idx` away from straight; only steer when `|dx| > dead_zone`.
+- **Bias `desired_idx` toward the two straightest notches (3 and 4)**: snap to 3.5 inside the dead zone, and only step one notch off-straight for moderate dx. Tighten the clip to roughly `[2.5, 4.5]` to forbid the slow 45°/315° notches except under tree threat.
+- **Add a "gate far away" shortcut**: if the active gate's `fy - sy` is large, force DOWN regardless of dx, since steering early wastes time and the gate will drift laterally in screen coords anyway.
+- **Allow temporary extreme headings only for tree avoidance**, where the existing 30 px synthetic dx already justifies a wider clip.
+- Consider adding one parameter `straight_snap` (dx threshold below which desired_idx is forced to 3.5) so the optimizer can directly trade alignment precision against speed.
+
+Net effect expected: `down_action_rate` rises from 0.04 toward 0.6–0.8, `average_speed_y` increases, `average_steps` falls, and reward becomes substantially less negative without reintroducing missed gates or collisions.

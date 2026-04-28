@@ -1,0 +1,9 @@
+{
+    "run_id":  "skiing_10000_corrected_20260427_1555",
+    "output_dir":  "C:\\Users\\yuddh\\OneDrive\\Desktop\\Msc AI and ML\\SoSe 2025\\Practical Lab 2\\JAXAtari\\scripts\\llm_optimization\\runs\\single_game\\skiing_10000_corrected_20260427_1555",
+    "pid":  33380,
+    "command":  "python -u scripts/llm_optimization/llm_optimization_loop.py --game skiing --provider anthropic --model claude-opus-4-7 --max-iters 5 --target-score 0 --num-envs 8 --num-episodes 16 --max-steps 10000 --search-max-steps 10000 --param-samples 16 --cma-generations 5 --seed 20260427 --output-dir \"scripts\\llm_optimization\\runs\\single_game\\skiing_10000_corrected_20260427_1555\" --no-stop-on-strong-best",
+    "stdout":  "C:\\Users\\yuddh\\OneDrive\\Desktop\\Msc AI and ML\\SoSe 2025\\Practical Lab 2\\JAXAtari\\scripts\\llm_optimization\\runs\\single_game\\skiing_10000_corrected_20260427_1555\\outerloop.out.log",
+    "stderr":  "C:\\Users\\yuddh\\OneDrive\\Desktop\\Msc AI and ML\\SoSe 2025\\Practical Lab 2\\JAXAtari\\scripts\\llm_optimization\\runs\\single_game\\skiing_10000_corrected_20260427_1555\\outerloop.err.log",
+    "objective_note":  "Skiing uses corrected optimizer-facing terminal penalty for missed gates; JAXAtari game source is unchanged."
+}

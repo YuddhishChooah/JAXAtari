@@ -2,9 +2,7 @@
 """
 Render the best Asterix policy rollout to MP4.
 
-Defaults to the current unified Asterix run:
-- best policy path from optimization_results.json
-- best_params from optimization_results.json
+Defaults to the canonical 10000-step best Asterix policy.
 """
 
 from __future__ import annotations
@@ -38,8 +36,15 @@ def load_policy_module(policy_path: Path):
 
 
 def load_run_artifacts(policy_dir: Path) -> tuple[Path, dict[str, float], int]:
+    canonical_path = policy_dir / "best_policy.json"
+    if canonical_path.exists():
+        data = json.loads(canonical_path.read_text(encoding="utf-8-sig"))
+        best_policy_path = PROJECT_ROOT / Path(data.get("canonical_policy_path", policy_dir / "policy.py"))
+        params = {k: float(v) for k, v in data["best_params"].items()}
+        return best_policy_path, params, int(data.get("frame_stack_size", 2) or 2)
+
     results_path = policy_dir / "optimization_results.json"
-    data = json.loads(results_path.read_text(encoding="utf-8"))
+    data = json.loads(results_path.read_text(encoding="utf-8-sig"))
     best_policy_rel = data.get("best_policy_path")
     if best_policy_rel:
         best_policy_path = PROJECT_ROOT / Path(best_policy_rel)
@@ -59,6 +64,8 @@ def upscale_frame(frame: np.ndarray, scale: int) -> np.ndarray:
 
 def unwrap_render_state(state):
     current = state
+    while hasattr(current, "atari_state"):
+        current = current.atari_state
     while hasattr(current, "env_state"):
         current = current.env_state
     return current
@@ -71,9 +78,21 @@ def main() -> None:
     parser.add_argument("--fps", type=int, default=30)
     parser.add_argument("--scale", type=int, default=4)
     parser.add_argument("--output", type=str, default=None)
+    parser.add_argument(
+        "--policy-dir",
+        type=str,
+        default=None,
+        help="Directory containing optimization_results.json and policy files.",
+    )
     args = parser.parse_args()
 
-    policy_dir = PROJECT_ROOT / "scripts" / "llm_optimization" / "unified_prompt_main" / "asterix"
+    policy_dir = (
+        Path(args.policy_dir)
+        if args.policy_dir
+        else PROJECT_ROOT / "scripts" / "llm_optimization" / "runs" / "best_10000_steps" / "asterix"
+    )
+    if not policy_dir.is_absolute():
+        policy_dir = PROJECT_ROOT / policy_dir
     policy_path, params, frame_stack = load_run_artifacts(policy_dir)
     policy_module = load_policy_module(policy_path)
     params = {k: jnp.float32(v) for k, v in params.items()}

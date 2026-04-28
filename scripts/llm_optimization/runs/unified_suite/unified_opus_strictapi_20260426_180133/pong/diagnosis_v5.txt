@@ -1,0 +1,35 @@
+# Diagnosis
+
+## 1. Root cause
+The policy is winning every point it plays but only completing ~11 points in 4000 frames. The bottleneck is **rally throughput**, not correctness: rallies are extremely long (avg 342, max 453 frames) because the paddle tracks the ball loosely and over-corrects, keeping the ball in play instead of finishing rallies. The intercept prediction is also being distorted by a multiplicative `predict_gain` and a too-aggressive spike offset that pushes the paddle off the true intercept.
+
+## 2. Evidence from metrics
+- `avg_ball_tracking_error = 30.6`, `max = 146` — paddle center is on average ~30px off the ball, far larger than paddle half-height (8). This is consistent with mis-prediction, not just dead-zone slack.
+- `interception_rate = 0.035` — paddle is rarely actually in front of the ball.
+- `avg_rally_length = 342`, `max_rally = 453` — rallies drag on; few decisive returns.
+- `paddle_jitter_count = 130` per episode and `total_paddle_movement = 7137` — heavy oscillation despite `dead_zone≈3.4`.
+- `points_won = 11, points_lost = 0` in 4000 frames → ~360 frames/point. Win rate is perfect, so the upside is purely scoring faster.
+- Best `predict_gain ≈ 2.07` — the optimizer pushed gain >1 to compensate for systematic under-prediction, suggesting the prediction model itself is off (no wall reflection during travel, applied as a scalar on dy*t).
+
+## 3. Policy logic causing it
+- `_predict_y` multiplies `ball_dy * t * gain`. `predict_gain` should not scale the time-of-flight term; it conflates "how far in the future" with the physical projection. With gain≈2, the predicted y is biased and then corrected by reflection, producing systematic offset.
+- `_reflect_y` reflects only the final raw_y; it does not model multiple wall bounces cleanly when `gain≠1`, amplifying error far from the paddle.
+- `aim_spike = 4.88` is added to `target_y` whenever the ball approaches, even when the paddle is already far from intercept. This shifts the target away from the true ball-y, increasing tracking error and lowering interception rate.
+- `fallback_target` while ball moves away uses `pred_enemy` then linearly interpolates — this drags the paddle toward mid-court rather than parking it at a defensive home (e.g., screen center or last known intercept), wasting movement.
+- `dead_zone ≈ 3.4` combined with continuous target jitter (spike sign flips with `ball_dy` sign) causes direction reversals → 130 jitters/episode.
+- FIRE gating uses `(PLAYER_X - ball_x) < fire_window` without checking `ball_dx > 0`, so FIRE can trigger on receding balls when ball_x is near PLAYER_X.
+
+## 4. What to preserve
+- Overall structure: prev/curr split, ball_dx/dy from frames, predicted intercept on player side, dead-zone, FIRE-combo near contact, serve→FIRE.
+- Parameter set is small and reasonable; keep `dead_zone`, `aim_spike`, `fire_window`, plus a prediction-related parameter.
+- The conservative defensive behavior when ball moves away (it explains 0 points lost).
+- Compact 5-parameter footprint and the action mapping.
+
+## 5. What to change next
+- **Fix the predictor**: do a proper iterative wall-reflection of `ball_y + ball_dy * t` with `gain` removed (or make `predict_gain` an additive bias / time offset, not a multiplier on dy). This should drop tracking error sharply.
+- **Decouple spike from tracking**: only apply `aim_spike` when `|error|` is already small (paddle near intercept) AND ball is close in x. Otherwise track the true intercept. This will raise interception_rate and shorten rallies.
+- **Sign the spike for offense**: choose spike direction to hit ball with the edge opposite to enemy paddle's y, not just `sign(ball_dy)`. This produces steeper returns and faster points.
+- **Defensive home position**: when ball moves away, target a fixed y (screen mid ~109) or hold last intercept, instead of an enemy-prediction interpolation. Reduces paddle movement and jitter.
+- **Asymmetric dead zone / hysteresis**: widen dead_zone slightly (≈4–6) when ball is far, narrow it when ball is close. Will cut jitter from 130 toward <40 without hurting close-range accuracy.
+- **Tighten FIRE gating**: require `ball_dx > 0` AND `(PLAYER_X - ball_x) ∈ [0, fire_window]` AND `|error| < paddle_h*0.5`. Avoids wasted FIRE on receding balls.
+- **Add one parameter** like `home_y` or `spike_engage_dist` rather than re-scaling existing ones; keeps the search space small and avoids the previous broad rewrite that regressed to 6.94.

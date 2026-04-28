@@ -1,0 +1,35 @@
+## 1. Root cause
+The policy only attempts an intercept when the ball is moving toward the player (`ball_dx > 0.1`). When the ball is moving away, it abandons tracking and drifts to a hardcoded `center_y=110`, leaving the paddle out of position so badly that it cannot recover when the ball reverses. Combined with a hard PLAYER_X intercept (no offset for paddle face) and a sign-flipped aim bias, this yields very low interception and huge tracking error.
+
+## 2. Evidence from metrics
+- `avg_ball_tracking_error = 47.06` and `max = 156.99`: paddle is on the wrong half of the field for long stretches → consistent with "drift to center while ball moves away."
+- `interception_rate = 0.31`: only ~1/3 of approaches are reachable.
+- `avg_reaction_time = 15.58 frames`: late engagement, consistent with re-acquiring the ball only after `ball_dx` flips positive.
+- `paddle_jitter_count = 416` with `avg_paddle_movement = 0.78`: lots of direction reversals from the `aim_offset` flipping each frame as `ball_dy` sign changes near the target.
+- `points_won = points_lost = 0.33`: episode is essentially a stalemate, not a winning policy.
+
+## 3. Policy logic causing it
+- `moving_toward = ball_dx > 0.1` gates intercept; the "idle" branch uses `center_y + lead*ball_dy`, which is essentially fixed near 110 and ignores actual ball Y. The paddle wastes the entire away-phase doing nothing useful.
+- `target_idle` does not track the ball — `lead` multiplies a small `ball_dy`, not ball position.
+- `target_x = PLAYER_X` (140) ignores paddle width; intercept should be at the paddle face (~138) and the prediction should account for ball width.
+- `aim_bias` uses sign of `ball_dy` at the current frame, which oscillates as the ball travels, producing jitter inside the dead zone boundary.
+- `dead_zone = 3.0` is small relative to per-frame paddle speed, contributing to reversals.
+- FIRE gating via `fire_threshold` is orthogonal to scoring; doesn't hurt much but adds no tracking benefit.
+- Inactive-ball branch forces `center_y`, fine, but the active-but-receding branch should mirror the ball, not idle.
+
+## 4. What to preserve
+- The 52-feature layout parsing and `ball_dx/ball_dy` computation.
+- The wall-reflection intercept predictor (`predict_intercept`) — it's correct and valuable.
+- Compact parameter dict and the error→action mapping (UP for negative error, DOWN for positive, with FIRE-combo variants).
+- Clamping target to playfield.
+- Overall structure: target computation → error → discrete action.
+
+## 5. What to change next
+- Always track, never idle: when ball moves away, predict the enemy intercept at `ENEMY_X`, then predict the return trajectory, OR simply mirror `curr_ball_y` so the paddle stays aligned with the ball. Eliminate the fixed `center_y` fallback except when ball is truly inactive.
+- Use paddle face as intercept x (e.g., `PLAYER_X - BALL_WIDTH` ≈ 138) instead of 140, so the paddle arrives in time.
+- Stabilize `aim_offset`: derive it from the predicted intercept's vertical velocity sign at impact time, not the instantaneous `ball_dy`; or zero it out until the ball is close (e.g., `ball_x > 100`). This will sharply reduce jitter.
+- Increase `dead_zone` (try 4–6) and add a separate, larger "aim dead zone" only when the ball is far, smaller when close.
+- Add a `approach_x_threshold` parameter: when `curr_ball_x > threshold`, commit to the intercept target; otherwise track ball Y directly with a small lead. This gives two clean regimes instead of an idle/attack split.
+- Consider a `speed_gain` so movement urgency scales with `abs(error)` and remaining time-to-impact; currently the policy issues identical MOVE_UP regardless of urgency.
+- Drop or simplify FIRE logic — make `4/5` the default movement actions since FIRE-augmented was reported to outperform; this also removes one parameter and a branch.
+- Re-examine `aim_offset` sign convention: to produce "spiky" returns, you want to hit with the paddle edge opposite to the ball's incoming dy, not aligned with it; verify on paper before tuning.

@@ -1,0 +1,33 @@
+# Diagnosis
+
+## 1. Root cause
+The horizontal velocity proxy is unreliable. `ball.orientation` in JAXAtari is not a signed velocity but a small categorical/state code, so `tanh(orient)` produces a near-constant biased signal rather than true ball vx. The "predictive" lead term therefore mostly injects a constant offset proportional to `time_to_impact`, which the agent has compensated for by shrinking `lead` to 0.21 and `center_pull` to 0.11 — i.e., CMA-ES is partly disabling the prediction because it is harmful. The controller is effectively a pure proportional tracker with a dead zone, which caps performance well below what predictive interception could achieve.
+
+## 2. Evidence from metrics
+- `avg_ball_tracking_error = 11.63` and `max = 76.33`: large lateral lag; paddle is reactive, not predictive.
+- `avg_hit_streak = 21.3` with only `0.67` lives lost: agent survives but cannot sustain rallies → it tracks reasonably but misses angled returns.
+- `block_clear_rate = 7.7 / 1000 frames` and `block_clear_percentage = 19.7%`: episodes end before deep clearing — consistent with weak angle control rather than survival failure.
+- Best `lead = 0.21` (well below 1.0 needed for true linear extrapolation) and `descend_gain = 1.36` ≈ default: optimizer is leaning on urgency, not prediction. This signals the prediction signal is noisy/biased.
+- `avg_paddle_movement = 1.50/frame`: not oscillating excessively, so dead zone is fine; the bottleneck is target accuracy, not jitter.
+
+## 3. Policy logic causing it
+- `_vx_from_orient(orient)` treats a discrete orientation/state field as a continuous signed velocity. Likely values produce a fixed-sign tanh saturating near ±1 regardless of actual ball motion, so `target_x` is biased rather than predictive.
+- `time_to_impact = SCREEN_BOTTOM - ball_y` is applied symmetrically when ball is rising too, so the "lead" pushes the paddle wrongly during ascent — forcing CMA-ES to keep `lead` tiny.
+- Urgency multiplies the *error*, not the dead zone or gain selection — this only changes when the dead zone is crossed, but does not improve targeting precision.
+- No finite-difference state of ball position is available (stateless API), so vx must be inferred — currently it isn't.
+- `center_pull` during inactive phase competes with `fire_bias`; with `near_center` threshold tied to `dead_zone`, launches may be delayed or off-center.
+
+## 4. What to preserve
+- Stateless `policy(obs_flat, params)` signature and small parameter count.
+- Dead-zone-based 3-way action selector (prevents jitter; `avg_paddle_movement` is healthy).
+- Asymmetric descent urgency concept (`descend_y`, `descend_gain`) — it is doing useful work.
+- Inactive-ball handling: center + FIRE logic (100% win rate, low life loss).
+- Current scalar values as a warm start for CMA-ES.
+
+## 5. What to change next
+- **Drop the orientation-based vx proxy.** Replace the predictive `lead * vx * time_to_impact` term with either (a) pure ball_x tracking, or (b) a lead derived from the *sign of (ball_x − paddle_center)* combined with ball_y — i.e., bias the target slightly in the direction the ball already is relative to the paddle. This removes the unreliable signal CMA-ES has been suppressing.
+- **Gate prediction/urgency on descent only.** Apply any lead term exclusively when `ball_y > descend_y`; while ascending, track `ball_x` directly. This frees `lead` to grow without harming ascent-phase behavior.
+- **Replace error-scaling urgency with dead-zone shrinkage** when descending (smaller dead zone → more responsive near impact). This improves precision rather than just amplifying an already-correct sign.
+- **Add a small offset parameter** to bias the paddle slightly off-center of the ball (e.g., paddle edge interception) to generate steeper return angles — this directly addresses low `block_clear_percentage` despite high survival.
+- **Tighten the inactive/FIRE branch**: make `near_center` threshold an independent small parameter, and always FIRE if ball inactive and roughly centered, to avoid wasted frames.
+- Keep total tunables in the 5–7 range; reuse current best values as initial means.

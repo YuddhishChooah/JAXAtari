@@ -1,0 +1,161 @@
+
+============================================================
+Game: ASTERIX
+Optimizer: none
+Search Horizon: 10000 steps
+Evaluation Horizon: 10000 steps
+Output: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\asterix
+============================================================
+
+Logger initialized for asterix
+============================================================
+LLM Policy Optimization Loop for JAXAtari ASTERIX
+============================================================
+
+============================================================
+Outer-loop step 1/5 (policy v1)
+============================================================
+Requesting initial policy from LLM...
+Saved policy to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\asterix\policy_v1.py
+Successfully loaded policy module
+
+Evaluating LLM-chosen parameters directly (no inner optimizer)...
+  No-search ablation: evaluated LLM init_params directly return=1393.75, win_rate=100.00%
+
+Results for iteration 1:
+  Search Return (10000 steps): 1393.75
+  Average Return: 1178.12
+  Player Score: 1178.12
+  Enemy Score: 0.00
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 24 metrics
+    final_score: 983.333
+    lives_remaining: 0.000
+    hits_taken: 3.000
+    terminal_game_over: 1.000
+    item_pickups: 19.667
+  >>> New best overall!
+Checkpoint saved to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\asterix\optimization_checkpoint.json
+
+============================================================
+Outer-loop step 2/5 (policy v2)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\asterix\diagnosis_v2.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\asterix\policy_v2.py
+Successfully loaded policy module
+
+Evaluating LLM-chosen parameters directly (no inner optimizer)...
+  No-search ablation: evaluated LLM init_params directly return=1206.25, win_rate=100.00%
+
+Results for iteration 2:
+  Search Return (10000 steps): 1206.25
+  Average Return: 1703.12
+  Player Score: 1703.12
+  Enemy Score: 0.00
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 24 metrics
+    final_score: 1433.333
+    lives_remaining: 0.000
+    hits_taken: 3.000
+    terminal_game_over: 1.000
+    item_pickups: 28.667
+  >>> New best overall!
+Checkpoint saved to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\asterix\optimization_checkpoint.json
+
+============================================================
+Outer-loop step 3/5 (policy v3)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\asterix\diagnosis_v3.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\asterix\policy_v3.py
+Successfully loaded policy module
+
+Evaluating LLM-chosen parameters directly (no inner optimizer)...
+  No-search ablation: evaluated LLM init_params directly return=2193.75, win_rate=100.00%
+
+Results for iteration 3:
+  Search Return (10000 steps): 2193.75
+  Average Return: 1990.62
+  Player Score: 1990.62
+  Enemy Score: 0.00
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 24 metrics
+    final_score: 1600.000
+    lives_remaining: 0.000
+    hits_taken: 3.000
+    terminal_game_over: 1.000
+    item_pickups: 30.667
+  >>> New best overall!
+Checkpoint saved to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\asterix\optimization_checkpoint.json
+
+============================================================
+Outer-loop step 4/5 (policy v4)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\asterix\diagnosis_v4.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\asterix\policy_v4.py
+Successfully loaded policy module
+
+Evaluating LLM-chosen parameters directly (no inner optimizer)...
+  No-search ablation: evaluated LLM init_params directly return=1543.75, win_rate=100.00%
+
+Results for iteration 4:
+  Search Return (10000 steps): 1543.75
+  Average Return: 1328.12
+  Player Score: 1328.12
+  Enemy Score: 0.00
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 24 metrics
+    final_score: 1533.333
+    lives_remaining: 0.000
+    hits_taken: 3.000
+    terminal_game_over: 1.000
+    item_pickups: 30.667
+Checkpoint saved to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\asterix\optimization_checkpoint.json
+
+============================================================
+Outer-loop step 5/5 (policy v5)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\asterix\diagnosis_v5.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\asterix\policy_v5.py
+Successfully loaded policy module
+
+Evaluating LLM-chosen parameters directly (no inner optimizer)...
+  No-search ablation: evaluated LLM init_params directly return=1693.75, win_rate=100.00%
+
+Results for iteration 5:
+  Search Return (10000 steps): 1693.75
+  Average Return: 1568.75
+  Player Score: 1568.75
+  Enemy Score: 0.00
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 24 metrics
+    final_score: 1800.000
+    lives_remaining: 0.000
+    hits_taken: 3.000
+    terminal_game_over: 1.000
+    item_pickups: 36.000
+Checkpoint saved to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\asterix\optimization_checkpoint.json
+
+============================================================
+Optimization Complete!
+============================================================
+Best Score Achieved: 1990.62
+Total Iterations: 5
+Results saved to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\asterix\optimization_results.json

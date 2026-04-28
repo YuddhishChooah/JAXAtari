@@ -1,0 +1,18 @@
+
+=== Running pong (1/4) ===
+Output: C:\Users\yuddh\OneDrive\Desktop\Msc AI and ML\SoSe 2025\Practical Lab 2\JAXAtari\scripts\llm_optimization\runs\unified_suite\unified_opus_strictapi_20260426_180133\pong
+pong: completed, best_score=11.0, elapsed=9.8 min
+
+=== Running freeway (2/4) ===
+Output: C:\Users\yuddh\OneDrive\Desktop\Msc AI and ML\SoSe 2025\Practical Lab 2\JAXAtari\scripts\llm_optimization\runs\unified_suite\unified_opus_strictapi_20260426_180133\freeway
+freeway: completed, best_score=12.0, elapsed=15.6 min
+
+=== Running asterix (3/4) ===
+Output: C:\Users\yuddh\OneDrive\Desktop\Msc AI and ML\SoSe 2025\Practical Lab 2\JAXAtari\scripts\llm_optimization\runs\unified_suite\unified_opus_strictapi_20260426_180133\asterix
+asterix: completed, best_score=2159.375, elapsed=36.4 min
+
+=== Running breakout (4/4) ===
+Output: C:\Users\yuddh\OneDrive\Desktop\Msc AI and ML\SoSe 2025\Practical Lab 2\JAXAtari\scripts\llm_optimization\runs\unified_suite\unified_opus_strictapi_20260426_180133\breakout
+breakout: completed, best_score=71.6875, elapsed=12.8 min
+
+Suite complete: C:\Users\yuddh\OneDrive\Desktop\Msc AI and ML\SoSe 2025\Practical Lab 2\JAXAtari\scripts\llm_optimization\runs\unified_suite\unified_opus_strictapi_20260426_180133

@@ -2,82 +2,171 @@
   "project_scope": {
     "method_name": "LeGPS",
     "method_expansion": "Language Guided Policy Search",
-    "method_summary": "Use the LLM for high-level policy structure and the optimizer for low-level numeric control."
+    "method_summary": "Use an LLM for interpretable high-level policy code and a derivative-free optimizer for low-level numeric control.",
+    "primary_claim_to_test": "Readable code policies can be generated and tuned to reach competitive Atari performance across multiple object-centric environments."
   },
   "active_thesis_direction": {
-    "note": "These research questions can still evolve, but this is the current agreed framing and the current milestone logic.",
-    "primary_goal": "Keep the work aligned with the thesis questions rather than treating each game as an isolated experiment."
+    "primary_goal": "Build a reproducible method, not a collection of hand-tuned one-off prompts.",
+    "interpretability_target": "The final agent for each game should be inspectable Python/JAX policy code with a small parameter dictionary.",
+    "performance_target": "Push each policy as close as possible to neural baselines while preserving interpretability and reproducibility.",
+    "scientific_target": "Track when LeGPS succeeds, when it fails, whether failures come from the LLM, metrics, objectives, wrappers, or optimizer budget."
+  },
+  "milestone_log": {
+    "index": "scripts/llm_optimization/thesis_milestones/index.json",
+    "latest_milestone": "scripts/llm_optimization/thesis_milestones/2026-04-27_project_status_after_rq4_first_pass.json",
+    "rule": "When the thesis state changes meaningfully, add a new dated JSON milestone instead of overwriting previous snapshots."
+  },
+  "method_protocol": {
+    "new_game_onboarding": [
+      "Add structured game context: objective, action mapping, object-centric observation layout, reward semantics, and known mechanics.",
+      "Run a single-game outer loop to find whether the unified method can produce a viable policy.",
+      "If performance is poor, diagnose the failure category before changing prompts or code.",
+      "Only fix infrastructure, context, metrics, or objective bugs when they are supported by evidence from code, metrics, or videos.",
+      "Promote the best policy to the canonical best-policy folder only after standardized reevaluation."
+    ],
+    "unified_regression_suite": [
+      "After meaningful prompt or pipeline changes, rerun all covered games with the unified runner.",
+      "Compare the revised unified prompt against existing canonical best policies.",
+      "Treat regressions as method evidence, not as hidden failures.",
+      "Keep canonical artifacts separate from exploratory single-game runs."
+    ],
+    "reproducibility_requirements": [
+      "Save policy code, parameters, seed, model name, provider, evaluation horizon, number of episodes, and runtime metadata.",
+      "Redact API keys in all saved artifacts.",
+      "Keep a single command path for rerunning canonical policy evaluation.",
+      "Use multiple seeded reruns before making strong claims about robustness."
+    ]
   },
   "research_questions": [
     {
       "id": "RQ1",
       "question": "Can LeGPS produce successful RL agents?",
-      "purpose": "Establish that the method can produce working agents on the training tasks.",
+      "purpose": "Establish that the method can produce working interpretable agents on original training tasks.",
       "evidence_needed": [
-        "Produce policies that work on the original training tasks.",
-        "Do this across many games, not only one or two.",
-        "Use the current training-task experiments as the main evidence base."
+        "Strong policies on the base games.",
+        "Coverage across multiple environments, not only one or two.",
+        "Standardized evaluation budget and seeds.",
+        "Comparison against verified random, human, and neural baselines when available."
       ],
-      "current_interpretation": "This corresponds to getting strong policies on the original versions of Pong, Freeway, Asterix, and later more games."
+      "current_evidence": [
+        "Canonical 10000-step best policies exist for Pong, Freeway, Asterix, Breakout, and Skiing.",
+        "Current results include multiple human-normalized scores above or near human level.",
+        "Breakout remains meaningfully below DQN and is an important improvement target."
+      ]
     },
     {
       "id": "RQ2",
-      "question": "Are these RL agents correctly aligned?",
-      "purpose": "Check whether the agents behave according to the intended task rather than exploiting unintended shortcuts.",
+      "question": "Do LeGPS policies solve the intended task, or do they rely on brittle shortcuts?",
+      "purpose": "Check whether interpretable policies are genuinely aligned with the game objective instead of exploiting accidental simplifications or wrapper artifacts.",
       "evidence_needed": [
-        "Test the agents on task simplifications.",
-        "See whether behavior remains sensible under simpler variants of the same task.",
-        "Use these tests to study shortcut behavior and alignment."
+        "Task simplification tests.",
+        "Video and metric audits showing whether behavior matches the intended task.",
+        "Shortcut probes such as lazy opponents, altered obstacle layouts, or removed distractors.",
+        "Explicit failure classification when metrics and visual behavior disagree."
       ],
-      "current_interpretation": "This is the alignment / shortcut-learning question."
+      "current_evidence": [
+        "Pong and Freeway have prior video/mod inspection.",
+        "Asterix and Skiing exposed why metric/objective validation is necessary.",
+        "A formal RQ2 test suite is not implemented yet."
+      ]
     },
     {
       "id": "RQ3",
-      "question": "Can these RL agents easily be adapted to task variations?",
-      "purpose": "Measure whether the method can quickly adapt policies when the task structure or goal changes.",
+      "question": "Can LeGPS policies be adapted efficiently to task variations?",
+      "purpose": "Measure whether existing symbolic policies can be modified for new goals or environment variants with less effort than starting from scratch.",
       "evidence_needed": [
-        "Use task modifications that alter the task structure or goal.",
-        "Ask whether the LLM can quickly adapt the policy under the new variation.",
-        "Evaluate adaptation quality and speed."
+        "Task variants that change structure, goals, or constraints.",
+        "Adaptation runs initialized from current policy context.",
+        "Comparison of adaptation speed and final score against clean-from-scratch runs."
       ],
-      "current_interpretation": "This is the task-variation / transfer question."
+      "current_evidence": [
+        "The mod infrastructure exists for several games.",
+        "The adaptation protocol is not implemented yet."
+      ]
     },
     {
       "id": "RQ4",
-      "question": "How important is the optimizer? (LLM without CMA-ES)",
-      "purpose": "Ablate the numeric optimizer to determine how much of the performance comes from search rather than code generation alone.",
+      "question": "How much performance comes from CMA-ES numeric optimization?",
+      "purpose": "Ablate the inner-loop optimizer to quantify whether LeGPS needs search or whether the LLM can set useful constants alone.",
       "evidence_needed": [
-        "Modify the prompt to remove CMA-ES from the process.",
-        "Let the LLM generate a policy without tunable parameters, or with parameters that it sets itself.",
-        "Compare the resulting performance against the full LeGPS method."
+        "Run the same outer loop with optimizer=none.",
+        "Prompt the LLM to choose final constants itself.",
+        "Compare LLM-only policies against full LeGPS with CMA-ES under the same evaluation budget."
       ],
-      "current_interpretation": "This is the optimizer ablation question."
+      "current_evidence": [
+        "An optimizer=none path is available for LLM-only ablation runs.",
+        "A first optimizer=none suite has been run on Pong, Freeway, Asterix, Breakout, and Skiing with 5 outer-loop iterations and 10000-step evaluations.",
+        "The first RQ4 result shows CMA-ES is especially important for Asterix and Breakout, moderately useful for Pong and Freeway, and nearly neutral on the current Skiing policy."
+      ]
+    }
+  ],
+  "current_games": {
+    "covered": [
+      "pong",
+      "freeway",
+      "asterix",
+      "breakout",
+      "skiing"
+    ],
+    "candidate_next_games": [
+      "seaquest",
+      "kangaroo"
+    ],
+    "deferred_or_uncertain": [
+      "breakout is already covered despite being temporarily deprioritized earlier",
+      "seaquest may require richer context due oxygen, divers, enemies, and projectiles"
+    ]
+  },
+  "known_methodological_risks": [
+    {
+      "risk": "Game-specific prompt engineering can weaken the unified-method claim.",
+      "mitigation": "Frame the method as one shared prompt scaffold plus structured game context; log all context changes."
+    },
+    {
+      "risk": "Metrics or reward semantics can be wrong or misleading.",
+      "mitigation": "Audit each game objective, logger metrics, and video behavior before interpreting scores."
+    },
+    {
+      "risk": "Single-seed success can overstate robustness.",
+      "mitigation": "Run seeded reruns for the canonical games before final claims."
+    },
+    {
+      "risk": "Manual debugging can turn the method into hidden hand engineering.",
+      "mitigation": "Separate infrastructure/context fixes from final policy search, and document why each fix was necessary."
     }
   ],
   "next_milestones": [
     {
-      "milestone": "RQ1 evidence expansion",
-      "description": "Continue producing working policies on the original training tasks for more games."
+      "milestone": "Canonical reproducibility pass",
+      "description": "Re-evaluate all saved best policies from the canonical folder and compare against stored scores."
     },
     {
-      "milestone": "RQ2 evaluation design",
-      "description": "Define and test task simplifications to probe alignment and shortcut behavior."
+      "milestone": "RQ4 ablation suite",
+      "description": "Run optimizer=none for all current games and compare against full LeGPS.",
+      "status": "first_pass_completed",
+      "artifact": "scripts/llm_optimization/analysis/evaluations/rq4_optimizer_ablation_summary.json"
     },
     {
-      "milestone": "RQ3 adaptation design",
-      "description": "Create task modifications that change structure or goal and evaluate how quickly the method adapts."
+      "milestone": "Seeded RQ1 reruns",
+      "description": "Run multiple seeds per current game to estimate variance in policy generation and optimization."
     },
     {
-      "milestone": "RQ4 ablation implementation",
-      "description": "Create an LLM-only version without CMA-ES and compare it against the full LeGPS method."
+      "milestone": "RQ2 shortcut probes",
+      "description": "Define task simplifications and shortcut tests for the current games."
+    },
+    {
+      "milestone": "Next game onboarding",
+      "description": "Add Seaquest or Kangaroo through the single-game onboarding protocol, then rerun the unified regression suite."
     }
   ],
   "working_reminder": {
-    "instruction": "When planning next experiments, prioritize alignment with RQ1-RQ4 and treat them as the thesis backbone.",
-    "current_games_explored": [
-      "pong",
-      "freeway",
-      "asterix"
+    "instruction": "Prioritize thesis-valid evidence over isolated score chasing. Every new result should map to RQ1, RQ2, RQ3, or RQ4.",
+    "do_not_hide": [
+      "objective fixes",
+      "metric bugs",
+      "prompt/context changes",
+      "failed policies",
+      "performance regressions"
     ]
   }
 }

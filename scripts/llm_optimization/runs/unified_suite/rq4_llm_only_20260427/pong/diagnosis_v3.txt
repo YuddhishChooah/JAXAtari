@@ -1,0 +1,35 @@
+# Diagnosis
+
+## 1. Root cause
+The policy is solid (100% win rate, 16.88 avg score) but leaves ~4 points on the table per match due to (a) excessive paddle jitter near the target, (b) a brittle "return intercept" prediction when the ball moves away, and (c) an aim-offset scheme that biases the paddle away from the intercept even when alignment is marginal, causing occasional misses on fast balls.
+
+## 2. Evidence from metrics
+- **paddle_jitter_count = 830** per episode with `dead_zone=2.0` — paddle reverses direction ~once every 12 frames. Indicates dead zone is too tight relative to per-frame travel.
+- **avg_paddle_movement = 1.77 px/frame**, but **total = 17,731 px** over 10,000 frames — lots of wasted oscillation.
+- **avg_ball_tracking_error = 18.6 px** (larger than paddle half-height of 8) and **max = 128.8** — the paddle is often far from the ball, suggesting the "return_intercept" / track_lead branch positions poorly while ball is on enemy side.
+- **interception_rate = 0.637** — ~36% of frames the paddle isn't aligned; consistent with mis-prediction during away-phase.
+- **avg_reaction_time = 15 frames** — slow to commit when ball reverses direction, again pointing to the away-phase tracking being off.
+- **points_lost = 0** but **points_won = 17.67 < 21** — losses are timeouts/long rallies (avg rally 550 frames, max 1229), not defensive failures. The agent isn't finishing matches; episode_length cap of 10,000 is being hit.
+
+## 3. Policy logic causing it
+- **Dead zone (2.0) < per-frame paddle step**: paddle overshoots target each frame, then reverses → jitter. With FIRE_UP/FIRE_DOWN always firing, there's no "stop" action used while in dead zone except idle NOOP, which is correct, but the threshold is too small.
+- **`return_intercept` uses `jnp.abs(ball_dx)`** as the post-bounce dx. This assumes the enemy returns the ball at the same horizontal speed and never alters dy — usually wrong. Worse, it then runs `predict_intercept` from `ENEMY_X` to `INTERCEPT_X` with a `dy` that hasn't been reflected off any wall the ball would actually hit during its enemy-bound leg. So during the away phase the predicted target is essentially noise, dragging the paddle off-center.
+- **`track_lead * ball_dy`** branch is never used (gated by `moving_toward=False & ...` then overwritten by `return_intercept` path). The `jnp.where` chain effectively makes track_track unreachable when ball is away — only return_intercept is used.
+- **Aim offset always applied when close & approaching**: shifts target by ±5 px even when paddle is barely aligned, sometimes causing the ball to clip the paddle edge or miss entirely on steep balls. No gating on alignment quality.
+- **Rallies too long (550 avg)**: aim_offset of 5 is small; not generating enough "spiky" returns to end points quickly, so episodes time out before reaching 21.
+
+## 4. What to preserve
+- 52-feature indexing and `prev`/`curr` split.
+- `predict_intercept` with wall reflection via `reflect_y` for the forward (toward player) case — this is the core strength.
+- FIRE-combo movement actions (4/5) and NOOP-in-dead-zone idle.
+- Clamping target to legal paddle range.
+- Inactive-ball center hold.
+- The 4-parameter structure (dead_zone, aim_offset, approach_x, track_lead).
+
+## 5. What to change next
+- **Increase `dead_zone`** to ~4–6 px (≥ paddle per-frame travel) to cut jitter roughly in half.
+- **Simplify away-phase tracking**: drop the speculative `return_intercept`. When `ball_dx <= 0`, just move toward `curr_ball_y` (or a slightly center-biased anchor like `0.7*ball_y + 0.3*center`). This is what `track_lead` was meant for; actually wire it in.
+- **Gate aim_offset by alignment**: only apply the offset when `abs(error) < small_threshold` (paddle already aligned). Otherwise target the raw intercept so you don't miss while trying to be fancy.
+- **Increase `aim_offset`** (try 6–9) to produce steeper returns and shorten rallies — this directly addresses the timeout-induced score ceiling.
+- **Consider a second parameter for away-phase target** (e.g., `idle_bias` toward center) so paddle pre-positions defensively instead of chasing a bad return prediction.
+- Keep policy stateless and ≤5 scalar params.

@@ -1,0 +1,34 @@
+## 1. Root cause
+The policy aims the paddle center directly at the ball's current x with a tiny, ill-conditioned "lead" term, and never terminates episodes via life loss limit (5 lives, only 0.33 lost on average). The agent stalls because it tracks the ball too literally and stops clearing efficiently after the easy front-row bricks — it doesn't position to control rebound angle, and FIRE is only emitted when the ball is inactive, so re-launches after life loss may be slow but that's not the bottleneck. The dominant issue is that 74/108 blocks remain despite 4.67 lives left: episodes end by timeout / inability to progress, not by dying.
+
+## 2. Evidence from metrics
+- lives_lost = 0.33, lives_remaining = 4.67 → the paddle isn't dying; it's failing to break upper rows.
+- block_clear_percentage = 31% with episode_length = 3757 frames → very slow clearing, low block_clear_rate (8.95/1000).
+- avg_ball_tracking_error = 2.67 ≈ dead_zone (2.56) → paddle is centered "well enough" but tuned to the ball's current position, not its future intercept.
+- max_ball_tracking_error = 81 → occasional large desync, likely when ball changes direction sharply or tunnels above bricks.
+- avg_hit_streak == blocks_broken (33.7) → one continuous rally per episode; the agent never loses then resumes — confirming episodes terminate by external cap, not life loss.
+- lead = 0.0946 and urgency_y = 139.78 → effective lead contribution is tiny; target_x ≈ ball_x almost always.
+
+## 3. Policy logic causing it
+- `target_x = ball_x + lead*(ball_x - paddle_center)*urgency` is a self-referential lead (depends on paddle position, not ball velocity). With no velocity estimate, this just amplifies current error slightly; it does not predict where the ball will land.
+- No use of ball horizontal velocity or direction → cannot intercept; cannot deliberately offset the hit point on the paddle to vary rebound angle, which is the key mechanic for clearing upper rows / creating tunnels.
+- Dead zone (~2.5 px) combined with paddle half-width 8 means the paddle parks the ball near its center every hit → near-vertical rebounds, no angle variation, no progress into upper rows.
+- FIRE only fires when `ball_active < fire_bias`; with a stateless policy and no velocity, this is fine but cannot help when the engine wants FIRE at other moments (e.g., stuck states).
+- Urgency scales lead by ball_y, but lead itself is tiny and mis-formulated, so urgency does nothing useful.
+
+## 4. What to preserve
+- Compact 3–8 scalar parameter surface for CMA-ES.
+- Dead-zone hysteresis to prevent left/right oscillation (avg_paddle_movement 1.67 is healthy).
+- FIRE-on-inactive fallback for launches.
+- Simple `jnp.where`-based action selection.
+
+## 5. What to change next
+- **Estimate ball velocity statelessly via finite differences is not possible without state**, but you can approximate "lead" using ball_y as a time-to-impact proxy: target = ball_x + vx_proxy * (paddle_y - ball_y). Since vx isn't observable, instead use **ball orientation** (obs index 15) if it encodes direction; otherwise drop "lead" and replace it with an **angle-shaping offset**.
+- **Add an aim-offset parameter** that deliberately biases the intercept point off-center on the paddle (e.g., target = ball_x − aim_offset) so rebounds go sideways and reach upper rows / dig tunnels. This is the single biggest lever for Breakout score.
+- **Make the offset sign depend on which side of the screen has more remaining bricks** — but that needs the block array; a simpler proxy is to flip the offset based on ball_x relative to screen center (parameterized).
+- **Reduce dead_zone** when urgency is high (ball descending and near paddle) and **increase it** when ball is high, to cut needless motion and improve precision on contact.
+- **Re-parameterize urgency** as a gating term on a *positional offset*, not on a degenerate self-referential lead.
+- Consider a **second FIRE trigger** when paddle is centered and ball has been inactive-like for a while (still stateless: trigger when ball_y is at launch row).
+- Suggested 5–6 params: `dead_zone`, `aim_offset`, `offset_side_gain` (multiplies sign(ball_x − screen_center)), `urgency_y`, `fire_bias`, optional `descend_dead_zone`.
+
+Expected effect: angle diversity → upper-row penetration → block_clear_percentage rises well above 31% without sacrificing the near-zero death rate.

@@ -1,0 +1,33 @@
+# Diagnosis
+
+## 1. Root cause
+The policy aims the paddle *center* at the ball's *current* x with a tiny, miscalibrated "lead" term. It has no notion of ball velocity or descent direction, so it cannot intercept early, cannot bias hits toward unbroken regions, and cannot exploit paddle-edge angling. Episodes terminate by timeout/stagnation rather than by life loss, capping score around the easy front-row bricks.
+
+## 2. Evidence from metrics
+- `lives_lost = 0.33` with `lives_remaining = 4.67`: the paddle rarely dies, so survival is not the bottleneck.
+- `blocks_broken = 33.7` out of 108 (~31%) and `episode_length = 3757` frames: episodes are long but unproductive — the ball is bouncing in cleared corridors without clearing upper rows.
+- `block_clear_rate = 8.95 / 1000 frames`: very low throughput, consistent with repeatedly returning the ball straight up.
+- `avg_ball_tracking_error = 2.67` ≈ `dead_zone = 2.56`: the paddle sits exactly at the dead-zone boundary, meaning it centers the ball perfectly → flat returns → predictable vertical bounces.
+- `max_hit_streak == blocks_broken`: a single life clears everything it can; the agent isn't dying, it's running out of reachable bricks given its return angle.
+- `lead = 0.095`, `urgency_y = 139.8`: lead is nearly zero; urgency divisor is so large that `urgency` rarely exceeds ~0.7, further killing any predictive effect.
+
+## 3. Policy logic causing it
+- `target_x = ball_x + lead*(ball_x - paddle_center)*urgency` is a *self-referential* lead (uses paddle position as a proxy for velocity). It collapses to ≈ `ball_x` whenever the paddle is already aligned, which is most of the time. There is no real velocity estimate available without state, but the structural form prevents any consistent offset.
+- No vy/descent gating: the paddle tracks during ascent too, wasting movement and arriving perfectly centered when the ball returns.
+- Symmetric dead zone around center → ball is hit with the flat middle of the paddle → near-vertical returns → ball oscillates in already-cleared columns.
+- `need_fire = ball_active < fire_bias` with `fire_bias=0.86` fires whenever `ball_active` is 0 or below threshold; fine for launches, but no behavior differs after launch.
+- No use of the `blocks` array to bias aim toward dense/unbroken columns.
+
+## 4. What to preserve
+- The 4-parameter compact structure and `jnp.where` branching.
+- Fire-on-inactive-ball launch logic.
+- The dead-zone idea (prevents jitter; `avg_paddle_movement = 1.67` is healthy).
+- Tracking the ball center directly (low tracking error proves the controller works).
+
+## 5. What to change next
+- **Introduce an intentional aim offset, not a lead.** Replace the paddle-relative lead with a fixed signed offset parameter so the ball is struck off-center, producing angled returns that reach side columns and upper rows. One or two params (e.g., `aim_offset`, possibly sign-flipped per side of screen) suffice.
+- **Asymmetric/edge-seeking target.** Bias the aim point toward the screen side that still has bricks by using a coarse summary of the `blocks` slice (e.g., compare sum of left half vs right half of the 108-block array — still parameter-free, just structural). This tackles the "can't finish the level" failure shown by 31% clear rate.
+- **Descent gating instead of urgency-as-divisor.** Use ball y crossing a threshold (one param) to switch between a relaxed dead zone (ascending) and a tight dead zone with offset (descending). This gives meaningful use of `ball_y` rather than a near-constant scaling.
+- **Recompute dead zone semantics.** Since current `dead_zone ≈ tracking_error`, shrinking it during descent and widening during ascent will both reduce useless movement and improve interception precision.
+- **Keep parameter count ≤ 6** so CMA-ES can still calibrate: e.g., `aim_offset`, `descent_y`, `dead_zone_descent`, `dead_zone_ascent`, `fire_bias`, plus optionally a `side_bias_gain` for the block-asymmetry term.
+- Avoid the prior failed direction (broad rewrite that probably re-tuned the same lead formulation); the structural fix is *off-center striking + descent gating*, not better lead estimation.

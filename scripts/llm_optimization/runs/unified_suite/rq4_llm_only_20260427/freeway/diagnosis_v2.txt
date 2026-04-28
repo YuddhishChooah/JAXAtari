@@ -1,0 +1,38 @@
+## 1. Root cause
+The danger function is too inclusive, marking lanes as unsafe far more often than warranted. This causes excessive NOOP waiting and slow crossings. In particular, an "approaching" flag with a 30-pixel radius treats almost any car in the lane as dangerous, regardless of whether it will actually overlap the chicken within the lookahead horizon.
+
+## 2. Evidence from metrics
+- `hesitation_rate = 0.54` and `up_action_rate = 0.44`: the policy waits more than it advances, the opposite of a strong UP-dominant Freeway controller.
+- `time_efficiency = 1.96` crossings/1000f vs DQN-level ~3+; `avg_crossing_time = 491` frames is very slow.
+- `near_miss_count = 1787` per episode is huge — the agent sits in lanes adjacent to traffic instead of moving through.
+- `collision_rate = 0.60` per crossing despite heavy waiting → waits are mistimed, not protective.
+- `avg_upward_progress = 0.015` is far below the ~0.02–0.03 a good UP/NOOP policy achieves.
+- DOWN rate 1.3% is fine; the problem is UP vs NOOP balance, not DOWN.
+
+## 3. Policy logic causing it
+- `_lane_danger` ORs three conditions: current overlap, projected overlap, and a coarse "approaching within 30px". The approaching term ignores time-to-arrival and dx magnitude, so slow far cars block UP indefinitely.
+- `lane_band = 10` combined with `next_lane_dy = 14` means the "next lane" probe overlaps the current lane band, so `next_danger` partly re-measures the current lane and inflates waiting.
+- `lookahead = 6` frames is short, but the approaching-OR pathway compensates by being permanently pessimistic — net effect is over-conservative.
+- Single-shot future check at exactly t=lookahead misses cars that pass through the chicken column between now and then (tunneling), which explains high near-miss/collision rates despite high hesitation.
+- `x_margin = 10` plus chicken width gives a ~26px guarded band; combined with approaching flag, almost every active lane looks dangerous.
+- Emergency DOWN requires both `cur_danger > 0.9` and `next_danger > danger_thresh`; with binary danger outputs (0/1), thresholds 0.5/0.9 collapse to the same condition, so DOWN logic is effectively redundant rather than a real escape.
+- Near-top override forces UP regardless of danger, but the rest of the time the controller is stuck in NOOP.
+
+## 4. What to preserve
+- Overall UP-default, NOOP-wait, rare-DOWN structure.
+- Two-frame dx estimation from prev/curr.
+- Checking current lane and immediate next lane only (not multi-lane lookahead).
+- Compact parameter set and the near-top forced-UP shortcut.
+- Frame layout indexing (already correct for the 176-feature wrapper).
+
+## 5. What to change next
+- Remove the "approaching within 30px" OR term; it is the dominant source of false danger. Rely on projected overlap only.
+- Replace single-time projection with a swept overlap: check whether the car's x-interval crosses the chicken column anywhere in [0, lookahead]. Equivalent to a closed-form interval test using dx sign and current gap; keeps it scalar and differentiable-in-spirit.
+- Separate parameters for current-lane vs next-lane safety (e.g., shorter horizon and tighter margin for current lane, slightly longer horizon for next lane). Current lane danger should rarely fire because the chicken occupies it.
+- Tighten `lane_band` (e.g., ~6–8) and increase `next_lane_dy` to ~16 so the two probes don't overlap.
+- Reduce `x_margin` (chicken is 6px wide; margin ~3–6 is plenty) so safe gaps are recognized.
+- Make danger continuous (e.g., minimum time-to-overlap across cars) so `danger_thresh` and `emergency_thresh` actually separate regimes; this makes the DOWN escape meaningful.
+- Add a small NOOP→UP bias: if next-lane danger is marginal but current lane is also marginal, prefer UP (waiting in a marginal lane is worse than entering a marginal one).
+- Consider gating DOWN on a true signal that a car will hit within a few frames (low TTC), not on a duplicated boolean.
+
+Expected effect: UP rate rises toward ~0.65–0.75, hesitation drops below 0.35, near-miss count falls, and crossings/1000f moves toward DQN range.

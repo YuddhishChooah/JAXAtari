@@ -1,0 +1,159 @@
+
+============================================================
+Game: BREAKOUT
+Optimizer: none
+Search Horizon: 10000 steps
+Evaluation Horizon: 10000 steps
+Output: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\breakout
+============================================================
+
+Logger initialized for breakout
+============================================================
+LLM Policy Optimization Loop for JAXAtari BREAKOUT
+============================================================
+
+============================================================
+Outer-loop step 1/5 (policy v1)
+============================================================
+Requesting initial policy from LLM...
+Saved policy to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\breakout\policy_v1.py
+Successfully loaded policy module
+
+Evaluating LLM-chosen parameters directly (no inner optimizer)...
+  No-search ablation: evaluated LLM init_params directly return=139.50, win_rate=100.00%
+
+Results for iteration 1:
+  Search Return (10000 steps): 139.50
+  Average Return: 166.00
+  Player Score: 166.00
+  Enemy Score: 0.00
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 14 metrics
+    blocks_broken: 81.000
+    blocks_remaining: 27.000
+    block_clear_percentage: 0.750
+    avg_ball_tracking_error: 2.669
+    max_ball_tracking_error: 71.000
+  >>> New best overall!
+Checkpoint saved to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\breakout\optimization_checkpoint.json
+
+============================================================
+Outer-loop step 2/5 (policy v2)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\breakout\diagnosis_v2.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\breakout\policy_v2.py
+Successfully loaded policy module
+
+Evaluating LLM-chosen parameters directly (no inner optimizer)...
+  No-search ablation: evaluated LLM init_params directly return=25.38, win_rate=100.00%
+
+Results for iteration 2:
+  Search Return (10000 steps): 25.38
+  Average Return: 54.38
+  Player Score: 54.38
+  Enemy Score: 0.00
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 14 metrics
+    blocks_broken: 20.667
+    blocks_remaining: 87.333
+    block_clear_percentage: 0.191
+    avg_ball_tracking_error: 24.599
+    max_ball_tracking_error: 73.333
+Checkpoint saved to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\breakout\optimization_checkpoint.json
+
+============================================================
+Outer-loop step 3/5 (policy v3)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\breakout\diagnosis_v3.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\breakout\policy_v3.py
+Successfully loaded policy module
+
+Evaluating LLM-chosen parameters directly (no inner optimizer)...
+  No-search ablation: evaluated LLM init_params directly return=39.62, win_rate=100.00%
+
+Results for iteration 3:
+  Search Return (10000 steps): 39.62
+  Average Return: 56.19
+  Player Score: 56.19
+  Enemy Score: 0.00
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 14 metrics
+    blocks_broken: 52.667
+    blocks_remaining: 55.333
+    block_clear_percentage: 0.488
+    avg_ball_tracking_error: 26.203
+    max_ball_tracking_error: 74.333
+Checkpoint saved to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\breakout\optimization_checkpoint.json
+
+============================================================
+Outer-loop step 4/5 (policy v4)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\breakout\diagnosis_v4.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\breakout\policy_v4.py
+Successfully loaded policy module
+
+Evaluating LLM-chosen parameters directly (no inner optimizer)...
+  No-search ablation: evaluated LLM init_params directly return=47.75, win_rate=100.00%
+
+Results for iteration 4:
+  Search Return (10000 steps): 47.75
+  Average Return: 92.12
+  Player Score: 92.12
+  Enemy Score: 0.00
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 14 metrics
+    blocks_broken: 22.667
+    blocks_remaining: 85.333
+    block_clear_percentage: 0.210
+    avg_ball_tracking_error: 14.448
+    max_ball_tracking_error: 76.333
+Checkpoint saved to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\breakout\optimization_checkpoint.json
+
+============================================================
+Outer-loop step 5/5 (policy v5)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\breakout\diagnosis_v5.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\breakout\policy_v5.py
+Successfully loaded policy module
+
+Evaluating LLM-chosen parameters directly (no inner optimizer)...
+  No-search ablation: evaluated LLM init_params directly return=173.62, win_rate=100.00%
+
+Results for iteration 5:
+  Search Return (10000 steps): 173.62
+  Average Return: 118.50
+  Player Score: 118.50
+  Enemy Score: 0.00
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 14 metrics
+    blocks_broken: 59.000
+    blocks_remaining: 49.000
+    block_clear_percentage: 0.546
+    avg_ball_tracking_error: 10.212
+    max_ball_tracking_error: 69.000
+Checkpoint saved to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\breakout\optimization_checkpoint.json
+
+============================================================
+Optimization Complete!
+============================================================
+Best Score Achieved: 166.00
+Total Iterations: 5
+Results saved to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\breakout\optimization_results.json

@@ -1,0 +1,35 @@
+## 1. Root cause
+The policy already passes all 20 gates with zero collisions, so the remaining loss is pure time penalty. Average downhill speed (1.18) is far below what a well-tucked straight heading produces. The skier spends too many frames at non-straight orientations and uses DOWN only ~59% of the time, while sitting at NOOP ~37%. Reward is dominated by episode length (2129 steps), not by missed gates or hits.
+
+## 2. Evidence from metrics
+- gates_passed = 20, gate_pass_rate = 1.0, all collision counters = 0 → no scoring penalty left to recover from gates or hazards.
+- average_gate_center_error = 6.66 px → already inside a half-gate; precision is fine.
+- average_speed_y = 1.18 → low; the maximum downhill speed comes only at orientations 337.5° / 22.5° (notches ±1).
+- down_action_rate = 0.59, noop_rate = 0.37 → 37% of frames are wasted as NOOP instead of DOWN.
+- turn_rate = 0.039, left/right ≈ 0.02 each → steering is already sparse; the bottleneck is not over-steering, it is under-tucking.
+- average_steps = 2129 with reward_total ≈ -13547 → ≈ -6.4 per step, consistent with time penalty dominating.
+
+## 3. Policy logic causing it
+- `do_tuck` requires BOTH `|target_dx| < tuck_dx (=3)` AND `|ori_n| < 1.1`. The dead zone for steering is 6 px, so there is a band 3 < |dx| < 6 where the policy neither steers nor tucks → emits NOOP. That alone explains a large part of the 37% NOOP rate.
+- `tuck_dx (3.0) < dead_zone (6.0)` is structurally inverted: tuck should be permitted whenever steering is not, i.e. tuck_dx ≥ dead_zone.
+- The heading-OK gate `|ori_n| < 1.1` is fine, but combined with the alignment gate it makes DOWN rare during normal cruising.
+- `select_gate` uses `fy >= skier_y - 4`, which can keep targeting a gate that has already been passed, biasing dx and producing micro-steering that further reduces speed.
+- `lookahead_y` parameter is defined but never used; there is no early target hand-off to the next gate, so the skier cannot pre-align while still tucked.
+- Tree avoidance override sets `avoid_dx = ±30`, which forces a strong steer even when no tree exists in the chosen 4-tree slice; harmless here (0 collisions) but it competes with tucking when a tree is barely "near".
+- Recovery branches only trigger when not wanting to turn; they don't prefer DOWN once heading is straight again.
+
+## 4. What to preserve
+- The overall structure: gate selection → dx target → orientation-gated steering → tuck.
+- The orientation-feedback release mechanic (`ori_release`) — this is why turn_rate is low and collisions are zero.
+- The signed-orientation conversion in notches.
+- The current dead_zone / ori_release magnitudes (gate_center_error of 6.6 with dead_zone 6 is well-tuned).
+- Tree avoidance scaffolding even though unused, since perturbations may need it.
+
+## 5. What to change next
+- Decouple DOWN from alignment: tuck whenever no LEFT/RIGHT is being issued AND `|ori_n| < ori_release`. Make NOOP a rare fallback. This alone should lift down_action_rate from 0.59 toward ~0.95 and raise average_speed_y.
+- Ensure `tuck_dx ≥ dead_zone` (or simply remove `tuck_dx` and tuck whenever steering is not selected). Eliminate the 3<|dx|<6 NOOP band.
+- Fix gate selection so passed gates are dropped: require `fy > skier_y + small_margin` instead of `>= skier_y - 4`, preventing residual micro-corrections that slow descent.
+- Use the unused `lookahead_y`: when the nearest active gate is far ahead (`fy - skier_y > lookahead_y`), command DOWN unconditionally regardless of dx — there is time to align later, and tucking now compounds.
+- Tighten the tree-avoidance trigger to require both x and y proximity AND that the tree lies between skier and gate, so it does not preempt tucking.
+- Consider asymmetric `ori_release` for steering vs tuck: allow tuck up to ~1.5 notches (still good downhill speed at 315°/45°), so the policy doesn't waste frames waiting for perfect heading.
+- Do not broaden the rewrite (the v4 attempt at -9004 suggests structural overhauls regress); keep the same 6 parameters, just re-wire the action selection so DOWN is the default whenever steering is not actively required.

@@ -1,0 +1,107 @@
+{
+  "purpose": "Single entry point for resuming the LeGPS thesis work from a fresh chat or after a context reset.",
+  "last_updated": "2026-04-28",
+  "method": {
+    "name": "LeGPS",
+    "expansion": "Language Guided Policy Search",
+    "summary": "An LLM generates interpretable Python/JAX policy code and CMA-ES optimizes the policy's numeric parameters."
+  },
+  "start_here": [
+    {
+      "step": 1,
+      "path": "scripts/llm_optimization/thesis_goals.json",
+      "reason": "Defines the thesis goal, method protocol, research questions, current games, risks, and next milestones."
+    },
+    {
+      "step": 2,
+      "path": "scripts/llm_optimization/thesis_milestones/index.json",
+      "reason": "Points to the latest dated thesis-state snapshot."
+    },
+    {
+      "step": 3,
+      "path": "scripts/llm_optimization/thesis_milestones/2026-04-27_project_status_after_rq4_first_pass.json",
+      "reason": "Latest milestone at the time of this state file. It explains where the project stands and what is still missing."
+    },
+    {
+      "step": 4,
+      "path": "scripts/llm_optimization/runs/best_10000_steps",
+      "reason": "Canonical best-policy folder for the currently covered games."
+    },
+    {
+      "step": 5,
+      "path": "scripts/llm_optimization/analysis/evaluations/canonical_reproducibility/latest_canonical_evaluation.json",
+      "reason": "Verifies that the canonical 10000-step policies reproduce their stored scores exactly under the saved protocol."
+    },
+    {
+      "step": 6,
+      "path": "scripts/llm_optimization/analysis/evaluations/rq4_optimizer_ablation_summary.json",
+      "reason": "First optimizer-ablation result comparing full LeGPS against LLM-only constants."
+    }
+  ],
+  "current_scope": {
+    "covered_games": [
+      "pong",
+      "freeway",
+      "asterix",
+      "breakout",
+      "skiing"
+    ],
+    "candidate_next_games": [
+      "seaquest",
+      "kangaroo"
+    ],
+    "main_goal": "Produce interpretable code agents that are as competitive as possible with neural baselines while keeping a reproducible, unified method."
+  },
+  "current_status": {
+    "short_answer": "The project has strong infrastructure and promising evidence, but is not thesis-complete yet.",
+    "what_is_done": [
+      "Canonical 10000-step policies exist for five games.",
+      "Canonical policy reevaluation reproduces stored scores exactly.",
+      "The unified suite runner exists.",
+      "The optimizer=none RQ4 ablation path exists and has a first completed run.",
+      "The thesis goal tracker and milestone log exist."
+    ],
+    "what_is_missing": [
+      "Multiple seeded reruns for RQ1 stability.",
+      "Systematic RQ2 shortcut and robustness probes.",
+      "RQ3 task-variation adaptation experiments.",
+      "Broader environment coverage beyond the current five games.",
+      "Cleaner evidence that improvements come from the unified method rather than hidden per-game hand tuning."
+    ]
+  },
+  "recommended_next_steps": [
+    {
+      "priority": 1,
+      "task": "Run seeded RQ1 reruns on the current five games.",
+      "reason": "Needed to estimate variance and avoid single-seed claims."
+    },
+    {
+      "priority": 2,
+      "task": "Implement RQ2 shortcut/robustness probes.",
+      "reason": "Needed to test whether policies solve the intended task or exploit brittle artifacts."
+    },
+    {
+      "priority": 3,
+      "task": "Onboard the next game using the documented single-game protocol.",
+      "reason": "Needed to increase environment coverage without weakening the unified-method claim."
+    },
+    {
+      "priority": 4,
+      "task": "Create a new dated milestone after each meaningful evidence change.",
+      "reason": "Keeps a chronological record of thesis state, risks, and decisions."
+    }
+  ],
+  "important_rules": [
+    "Do not store API keys or credentials in repository artifacts.",
+    "Do not hide objective fixes, metric bugs, action-mapping bugs, prompt changes, failed policies, or regressions.",
+    "Every new result should map explicitly to RQ1, RQ2, RQ3, or RQ4.",
+    "Use the canonical evaluation path before promoting a policy to best_10000_steps.",
+    "Keep exploratory runs separate from canonical best policies.",
+    "Do not modify .github/workflows unless explicitly requested."
+  ],
+  "common_commands": {
+    "canonical_reproducibility": "python scripts/llm_optimization/evaluate_canonical_policies.py --num-episodes 32 --max-steps 10000 --use-manifest-seeds",
+    "generate_rq4_figures": "python -m scripts.llm_optimization.analysis.generate_rq4_ablation_figures",
+    "run_unified_suite_example": "python scripts/llm_optimization/run_unified_suite.py --games pong freeway asterix breakout skiing --max-iters 5 --num-episodes 16 --max-steps 10000"
+  }
+}

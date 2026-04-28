@@ -1,0 +1,34 @@
+# Diagnosis
+
+## 1. Root cause
+The policy tracks the ball's *current* horizontal position rather than its *predicted intercept* point. The "lead" term is proportional to (ball_x − paddle_cx), which is a paddle-relative offset, not a velocity-based prediction. Without ball velocity (no temporal memory) and no vertical-time-to-impact projection, the paddle is always reactive and arrives late on fast diagonal trajectories. The remaining 27 unbroken blocks are almost certainly the hard-to-reach edge/corner bricks that require precise angled returns, which a pure follower cannot generate.
+
+## 2. Evidence from metrics
+- `avg_ball_tracking_error = 2.67` with `max = 71`: tracking is usually fine but has large spikes — consistent with missing fast diagonal descents or post-bounce direction flips.
+- `block_clear_percentage = 0.75` with `lives_lost = 0.33`: the agent rarely dies but stalls at 75% clear → cannot finish corner bricks (a centering/angle-control problem, not a survival problem).
+- `avg_paddle_movement = 1.91` per frame is high → paddle oscillates / overshoots, indicating reactive chasing rather than predictive positioning.
+- `avg_hit_streak = 81 = blocks_broken`: agent essentially never loses a life mid-clear, so the bottleneck is *coverage*, not *defense*.
+- `urgency = ball_y/180` is near 1 most of the time (ball spends most frames in lower half), so the `anchor_x` / `anchor_pull` blending barely activates — those two parameters are nearly inert.
+
+## 3. Policy logic causing it
+- `lead = lead_coef * (ball_x − paddle_cx)` is mathematically equivalent to scaling the error; it does *not* anticipate where the ball will be. It collapses into a simple proportional controller with gain `(1+lead)`.
+- No use of ball velocity (no previous-frame state allowed, but ball `orientation` / `state` fields are unused and may encode direction).
+- Urgency uses ball_y absolutely, but ball_y is large whenever the ball is in the lower half regardless of whether it's ascending or descending → urgency fires symmetrically on up- and down-trajectories.
+- Dead zone of 2 px combined with target oscillation between "anchored" and "ball_x" causes jitter when ball is high.
+- Paddle hit location determines exit angle in Breakout; the policy always tries to center the paddle on the ball, producing predictable straight returns that never carve into corner columns.
+
+## 4. What to preserve
+- The compact 3–8 parameter structure and CMA-ES friendliness.
+- FIRE-on-inactive-ball gating.
+- Dead-zone gating to suppress single-frame flips.
+- Paddle-center computation via `player.x + player.w/2`.
+- Treating descending phase as more urgent than ascending.
+
+## 5. What to change next
+- **Replace lead with a vertical-time projection**: estimate time-to-paddle from `(paddle_y − ball_y)` and combine with a *direction sign* derived from ball `orientation` or `state` (indices 14/15) instead of paddle-relative offset. Even a sign-only velocity proxy is a large gain.
+- **Use ball orientation/state fields** (currently ignored) as a cheap velocity surrogate so prediction is possible without recurrent state.
+- **Asymmetric urgency**: only boost gain when the ball is descending; when ascending, hold position or drift toward an offset anchor to set up angled returns.
+- **Add a paddle-offset parameter** so the agent can deliberately hit the ball off-center to reach corner bricks (e.g., bias target by ±k pixels when many blocks remain on one side). A single `corner_bias` parameter conditioned on `sign(ball_x − 80)` could unlock the last 25% of bricks.
+- **Widen the dead zone slightly during ascending phase** to cut the 1.91 px/frame oscillation and reduce wasted travel.
+- **Drop or repurpose `anchor_pull`/`anchor_x`**: metrics show they barely engage; reallocate that parameter budget to velocity-sign gain and corner bias.
+- Keep total parameters at ~5–6: e.g., `dead_zone`, `descend_gain`, `ascend_gain`, `vy_proxy_scale`, `corner_bias`, `fire_guard`.

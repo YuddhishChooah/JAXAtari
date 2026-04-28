@@ -1,0 +1,271 @@
+{
+  "best_score": 71.6875,
+  "seed": 9603,
+  "config": {
+    "llm_provider": "anthropic",
+    "llm_model": "claude-opus-4-7",
+    "api_key": "<redacted>",
+    "max_tokens": 8192,
+    "temperature": 0.7,
+    "num_parallel_envs": 8,
+    "max_steps_per_episode": 4000,
+    "num_eval_episodes": 16,
+    "frame_stack_size": 0,
+    "search_max_steps": 2000,
+    "optimizer": "cma-es",
+    "num_param_samples": 16,
+    "param_perturbation_scale": 0.3,
+    "cma_es_generations": 4,
+    "max_iterations": 5,
+    "target_score": 1000000000.0,
+    "diagnostic_refinement": true,
+    "resume_from_results": false,
+    "resume_best_params_for_cma": true,
+    "refresh_resume_metrics": true,
+    "stop_on_strong_best": false,
+    "output_dir": "scripts\\llm_optimization\\runs\\unified_suite\\unified_opus_strictapi_20260426_180133\\breakout",
+    "verbose": true,
+    "save_intermediate": true,
+    "seed": 9603
+  },
+  "runtime": {
+    "timestamp": "2026-04-26 19:15:39",
+    "python_version": "3.12.8 (tags/v3.12.8:2dc476b, Dec  3 2024, 19:30:04) [MSC v.1942 64 bit (AMD64)]",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "numpy_version": "1.26.4",
+    "jax_version": "0.6.0",
+    "git_commit": "0e949a9cca8e23eacac343f1c2272d333138b19f"
+  },
+  "best_params": {
+    "center_pull": 0.11196231842041016,
+    "dead_zone": 5.0217366218566895,
+    "descend_gain": 1.360070824623108,
+    "descend_y": 99.9720230102539,
+    "fire_bias": 0.5660092830657959,
+    "lead": 0.21358904242515564
+  },
+  "best_metrics": {
+    "avg_return": 71.6875,
+    "avg_player_score": 71.6875,
+    "avg_enemy_score": 0.0,
+    "win_rate": 1.0,
+    "total_rewards": [
+      116.0,
+      72.0,
+      108.0,
+      57.0,
+      68.0,
+      65.0,
+      54.0,
+      53.0,
+      74.0,
+      78.0,
+      87.0,
+      54.0,
+      62.0,
+      28.0,
+      82.0,
+      89.0
+    ],
+    "player_scores": [
+      116.0,
+      72.0,
+      108.0,
+      57.0,
+      68.0,
+      65.0,
+      54.0,
+      53.0,
+      74.0,
+      78.0,
+      87.0,
+      54.0,
+      62.0,
+      28.0,
+      82.0,
+      89.0
+    ],
+    "enemy_scores": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "search_avg_return": 26.5,
+    "search_avg_player_score": 26.5,
+    "search_avg_enemy_score": 0.0,
+    "search_win_rate": 1.0,
+    "logger_metrics": {
+      "blocks_broken": 21.333333333333332,
+      "blocks_remaining": 86.66666666666667,
+      "block_clear_percentage": 0.19753086419753085,
+      "avg_ball_tracking_error": 11.634259012881964,
+      "max_ball_tracking_error": 76.33333333333333,
+      "total_paddle_movement": 4122.0,
+      "avg_paddle_movement": 1.5048007566002222,
+      "lives_remaining": 4.333333333333333,
+      "lives_lost": 0.6666666666666666,
+      "final_score": 37.333333333333336,
+      "block_clear_rate": 7.70423292103273,
+      "max_hit_streak": 21.333333333333332,
+      "avg_hit_streak": 21.333333333333332,
+      "episode_length": 2676.0
+    }
+  },
+  "history": [
+    {
+      "iteration": 1,
+      "metrics": {
+        "avg_return": 47.0625,
+        "avg_player_score": 47.0625,
+        "avg_enemy_score": 0.0,
+        "win_rate": 1.0,
+        "search_avg_return": 19.0,
+        "search_avg_player_score": 19.0,
+        "search_avg_enemy_score": 0.0,
+        "search_win_rate": 1.0,
+        "logger_metrics": {
+          "blocks_broken": 30.333333333333332,
+          "blocks_remaining": 77.66666666666667,
+          "block_clear_percentage": 0.28086419753086417,
+          "avg_ball_tracking_error": 2.4089282752902155,
+          "max_ball_tracking_error": 78.0,
+          "total_paddle_movement": 5936.0,
+          "avg_paddle_movement": 1.7526275545989536,
+          "lives_remaining": 4.666666666666667,
+          "lives_lost": 0.3333333333333333,
+          "final_score": 45.333333333333336,
+          "block_clear_rate": 8.903399668325042,
+          "max_hit_streak": 30.333333333333332,
+          "avg_hit_streak": 30.333333333333332,
+          "episode_length": 3336.6666666666665
+        }
+      },
+      "best_params": {
+        "dead_zone": 3.1594364643096924,
+        "fire_bias": 0.9330546855926514,
+        "lead": 0.166611909866333,
+        "urgency_gain": 0.6018394231796265,
+        "urgency_y": 139.73812866210938
+      },
+      "filepath": "scripts\\llm_optimization\\runs\\unified_suite\\unified_opus_strictapi_20260426_180133\\breakout\\policy_v1.py"
+    },
+    {
+      "iteration": 2,
+      "metrics": {
+        "avg_return": 71.6875,
+        "avg_player_score": 71.6875,
+        "avg_enemy_score": 0.0,
+        "win_rate": 1.0,
+        "search_avg_return": 26.5,
+        "search_avg_player_score": 26.5,
+        "search_avg_enemy_score": 0.0,
+        "search_win_rate": 1.0,
+        "logger_metrics": {
+          "blocks_broken": 21.333333333333332,
+          "blocks_remaining": 86.66666666666667,
+          "block_clear_percentage": 0.19753086419753085,
+          "avg_ball_tracking_error": 11.634259012881964,
+          "max_ball_tracking_error": 76.33333333333333,
+          "total_paddle_movement": 4122.0,
+          "avg_paddle_movement": 1.5048007566002222,
+          "lives_remaining": 4.333333333333333,
+          "lives_lost": 0.6666666666666666,
+          "final_score": 37.333333333333336,
+          "block_clear_rate": 7.70423292103273,
+          "max_hit_streak": 21.333333333333332,
+          "avg_hit_streak": 21.333333333333332,
+          "episode_length": 2676.0
+        }
+      },
+      "best_params": {
+        "center_pull": 0.11196231842041016,
+        "dead_zone": 5.0217366218566895,
+        "descend_gain": 1.360070824623108,
+        "descend_y": 99.9720230102539,
+        "fire_bias": 0.5660092830657959,
+        "lead": 0.21358904242515564
+      },
+      "filepath": "scripts\\llm_optimization\\runs\\unified_suite\\unified_opus_strictapi_20260426_180133\\breakout\\policy_v2.py"
+    },
+    {
+      "iteration": 3,
+      "metrics": {
+        "avg_return": 25.0,
+        "avg_player_score": 25.0,
+        "avg_enemy_score": 0.0,
+        "win_rate": 1.0,
+        "search_avg_return": 17.125,
+        "search_avg_player_score": 17.125,
+        "search_avg_enemy_score": 0.0,
+        "search_win_rate": 1.0
+      },
+      "best_params": {
+        "center_pull": -0.07214264571666718,
+        "dead_zone_air": 4.624188423156738,
+        "dead_zone_descend": 2.556508779525757,
+        "descend_y": 99.82100677490234,
+        "launch_tol": 6.304519176483154,
+        "lead_offset": 3.136881113052368
+      },
+      "filepath": "scripts\\llm_optimization\\runs\\unified_suite\\unified_opus_strictapi_20260426_180133\\breakout\\policy_v3.py"
+    },
+    {
+      "iteration": 4,
+      "metrics": {
+        "avg_return": 52.4375,
+        "avg_player_score": 52.4375,
+        "avg_enemy_score": 0.0,
+        "win_rate": 1.0,
+        "search_avg_return": 18.5,
+        "search_avg_player_score": 18.5,
+        "search_avg_enemy_score": 0.0,
+        "search_win_rate": 1.0
+      },
+      "best_params": {
+        "aim_offset": 3.075895309448242,
+        "descend_shrink": 0.6217527985572815,
+        "descend_y": 109.55467224121094,
+        "dz_engage": 2.0678131580352783,
+        "dz_release": 5.917210102081299,
+        "high_y": 70.40703582763672
+      },
+      "filepath": "scripts\\llm_optimization\\runs\\unified_suite\\unified_opus_strictapi_20260426_180133\\breakout\\policy_v4.py"
+    },
+    {
+      "iteration": 5,
+      "metrics": {
+        "avg_return": 55.625,
+        "avg_player_score": 55.625,
+        "avg_enemy_score": 0.0,
+        "win_rate": 1.0,
+        "search_avg_return": 20.125,
+        "search_avg_player_score": 20.125,
+        "search_avg_enemy_score": 0.0,
+        "search_win_rate": 1.0
+      },
+      "best_params": {
+        "ascend_relax": 0.8984741568565369,
+        "center_offset": -0.3106572926044464,
+        "dead_zone": 2.9501802921295166,
+        "descend_weight": 1.733222484588623,
+        "launch_offset": 6.265810489654541,
+        "track_gain": 0.2693493366241455
+      },
+      "filepath": "scripts\\llm_optimization\\runs\\unified_suite\\unified_opus_strictapi_20260426_180133\\breakout\\policy_v5.py"
+    }
+  ],
+  "best_policy_path": "scripts\\llm_optimization\\runs\\unified_suite\\unified_opus_strictapi_20260426_180133\\breakout\\policy_v2.py"
+}

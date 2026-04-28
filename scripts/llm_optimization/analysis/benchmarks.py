@@ -31,6 +31,16 @@ BENCHMARK_SCORES = {
         'random': 210.0,
         'dqn': 6012.0,
     },
+    'breakout': {
+        'human': 31.8,
+        'random': 1.7,
+        'dqn': 401.2,
+    },
+    'skiing': {
+        'human': -4336.9,
+        'random': -17098.1,
+        'dqn': -13062.3,
+    },
 }
 
 BENCHMARK_REFERENCES = {
@@ -57,6 +67,16 @@ SCORE_NOTES = {
     Asterix scoring: points come from collecting items while surviving enemy traffic across lanes.
     Verified benchmark row used here is Random = 210, Human = 8503, DQN = 6012
     from Mnih et al. 2015 Extended Data Table 2.
+    """,
+    'breakout': """
+    Breakout scoring: points come from breaking bricks while keeping the ball in play.
+    Verified benchmark row used here is Random = 1.7, Human = 31.8, DQN = 401.2
+    from Mnih et al. 2015 Extended Data Table 2.
+    """,
+    'skiing': """
+    Skiing scoring: negative ALE-style score; less negative is better.
+    Verified benchmark row used here is Random = -17098.1, Human = -4336.9,
+    DQN = -13062.3 from Atari benchmark tables citing Mnih et al. 2015.
     """,
 }
 

@@ -1,0 +1,34 @@
+## 1. Root cause
+The danger model misuses the per-lane car array: it checks every car against the chicken's projected y-row using a uniform `lane_band`, but cars in non-adjacent lanes still gate the UP decision because lane spacing (~16) is close to `lane_band` (~10) and the projected horizontal sweep `[car_x, car_x+dx*look]` is widened asymmetrically. As a result, "up_safe" rarely fires cleanly, the chicken defaults to NOOP, and when it does step UP it does so without true synchronization to the specific next lane's car, producing the very high collision and near-miss counts.
+
+## 2. Evidence from metrics
+- `collision_rate = 0.76` per crossing — avoidance is essentially failing; UP is taken at unsafe moments.
+- `near_miss_count = 583` and `avg_crossing_time = 382` frames vs a feasible ~200 (`min_crossing_time = 202`) — the agent stalls then dashes.
+- `hesitation_rate = 0.085` plus `avg_y ≈ 122` (still in lower half) — chicken spends most time in the bottom lanes hesitating.
+- `lane_transitions = 10.3 = crossings` — chicken almost never steps DOWN or re-routes; the DOWN branch is dead.
+- `up_action_rate = 0`, `down_action_rate = 0` — logger sees JAX action ids 2/5; this is just a logging mismatch, not a behavioral bug, but it confirms the policy mostly emits the wrapper's NOOP/UP path.
+- `avg_upward_progress = 0.0038` — extremely low; UP gating is too conservative most frames yet still unsafe when it triggers.
+
+## 3. Policy logic causing it
+- `_next_lane_danger` aggregates risk over **all 10 cars** rather than the single target lane. Adjacent-lane cars with `dy < lane_band` falsely block UP.
+- The horizontal "swept box" `car_left = min(car_x, fx)`, `car_right = max(car_x+w, fx+w)` produces a long corridor; combined with `safe_gap=11.7` the clear condition is rarely true → `risk_up` is large → UP suppressed.
+- `up_safe = risk_up < up_bias + 0.5` thresholds a *count*, not a calibrated risk — once any single lane car looks risky, UP is blocked indefinitely; there is no notion of "wait N frames until the car passes".
+- No use of `LANE_DIRECTION` or signed `dx` to compute time-to-collision; the policy can't distinguish "car just passed" from "car arriving".
+- `finish_y` forced-UP is fine, but `stay_dangerous` requires `risk_stay > down_thresh≈4`, which essentially never triggers, so DOWN is dead (matches `lane_transitions = crossings`).
+- Lookahead is a single horizon; no multi-step projection to find the earliest safe UP window.
+
+## 4. What to preserve
+- Two-frame dx estimation from prev/curr.
+- Compact parameter set with `safe_gap`, `lookahead`, `lane_band`, `up_bias`, `finish_y`.
+- Forced-UP near top (`finish_y`).
+- The structural `_next_lane_danger`-style projection (just refocused).
+
+## 5. What to change next
+- **Target only the next lane**: map `cy → current lane index`, then evaluate UP risk using only the car in lane `i-1` (and DOWN risk using lane `i+1`). Use `LANE_Y` distances rather than a global `lane_band`.
+- **Time-to-arrival, not box overlap**: compute signed `dx` per lane; predict when the car's horizontal extent will overlap `[CHICKEN_X, CHICKEN_X+CHICKEN_WIDTH]`. Make UP safe iff the time-to-overlap is either > `t_cross_lane` or already passed (car moving away).
+- **Replace count-based threshold** with a continuous safety margin: `up_safe = (ttc_next_lane > safe_time) | (car_behind_and_receding)`. `up_bias` becomes `safe_time` in frames.
+- **Add a wait-and-go regime**: if next lane unsafe but will be safe within K frames, emit NOOP; otherwise consider DOWN only if current lane risk is genuinely high (use TTC on current lane car).
+- **Two-step lookahead**: also score the lane *after* next so the policy doesn't step into a pocket that immediately becomes unsafe.
+- **Calibrate `lane_band` ≈ 6** (less than half lane spacing 16) so adjacent lanes don't bleed in; or remove it entirely once lane-indexing is used.
+- **Re-enable DOWN** by switching its trigger from `risk_stay > down_thresh` to "current lane TTC < small" with a clear safer lane below; otherwise drop DOWN to simplify.
+- Keep parameter count small: `safe_time`, `lane_clear_px`, `finish_y`, `wait_horizon`, plus optional `down_ttc`.

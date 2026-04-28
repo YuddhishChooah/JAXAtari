@@ -2,9 +2,7 @@
 """
 Render the best Freeway policy rollout to MP4.
 
-Defaults to the current unified Freeway run:
-- best policy path from optimization_results.json
-- best_params from optimization_results.json
+Defaults to the canonical 10000-step best Freeway policy.
 """
 
 from __future__ import annotations
@@ -39,6 +37,13 @@ def load_policy_module(policy_path: Path):
 
 
 def load_run_artifacts(policy_dir: Path) -> tuple[Path, dict[str, float], int]:
+    canonical_path = policy_dir / "best_policy.json"
+    if canonical_path.exists():
+        data = json.loads(canonical_path.read_text(encoding="utf-8-sig"))
+        best_policy_path = PROJECT_ROOT / Path(data.get("canonical_policy_path", policy_dir / "policy.py"))
+        params = {k: float(v) for k, v in data["best_params"].items()}
+        return best_policy_path, params, int(data.get("frame_stack_size", 2) or 2)
+
     results_path = policy_dir / "optimization_results.json"
     data = json.loads(results_path.read_text(encoding="utf-8"))
     best_policy_rel = data.get("best_policy_path")
@@ -80,7 +85,7 @@ def main() -> None:
     parser.add_argument("--output", type=str, default=None)
     args = parser.parse_args()
 
-    policy_dir = PROJECT_ROOT / "scripts" / "llm_optimization" / "unified_prompt_main" / "freeway"
+    policy_dir = PROJECT_ROOT / "scripts" / "llm_optimization" / "runs" / "best_10000_steps" / "freeway"
     policy_path, params, frame_stack = load_run_artifacts(policy_dir)
     policy_module = load_policy_module(policy_path)
     params = {k: jnp.float32(v) for k, v in params.items()}

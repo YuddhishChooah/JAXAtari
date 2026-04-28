@@ -1,0 +1,32 @@
+# Diagnosis
+
+## 1. Root cause
+The policy is too passive in the longitudinal axis. It successfully navigates all 20 gates with zero collisions, but spends ~2126 steps doing so because DOWN (tuck) is almost never issued. The heavy negative return is dominated by per-frame time penalty, not missed gates or crashes.
+
+## 2. Evidence from metrics
+- gates_passed = 20, missed_gates = 0, all collision counters = 0 → safety/aim is solved.
+- gate_pass_rate = 1.0, average_gate_center_error = 8.77 px (well within the 16 px gate half-width).
+- noop_rate = 0.927, down_action_rate = 0.040, turn_rate = 0.032 → policy idles instead of tucking.
+- average_speed_y = 1.18 (low); average_steps = 2126 (very long episode).
+- reward_total = −13541 in the detailed log vs −3538 best: time accumulation, not penalty events, is the cost.
+
+## 3. Policy logic causing it
+- The DOWN branch only fires when `|dx| < tuck_thresh` (≈3.6 px). Because `desired_idx` is clipped to [2,5] and `ori_dead = 0.57`, the controller frequently sits in the NOOP branch (idx_err small but dx not within tuck_thresh, or heading already adequate). NOOP does not accelerate.
+- `steer_gain = 0.079` combined with clip [2,5] caps desired heading at notches 2/5 (moderate angles). This is fine for safety but means the skier rarely commits to the straight/fast notches 3 or 4 explicitly; when it does, the action chosen is NOOP, not DOWN.
+- Tree avoidance pushes `dx` to ±30 with sign flips, but threat rate is effectively zero in this run, so it isn't the bottleneck.
+- `_select_gate` uses raw `fy` as the score, which is fine, but there is no notion of "gate is far away → just tuck straight." When no near gate exists, the policy still steers toward distant gate center instead of defaulting to DOWN at heading 3/4.
+
+## 4. What to preserve
+- Gate selection logic and aim point `flag_x + 16`.
+- Orientation-index feedback controller (desired_idx vs ori_idx with dead zone).
+- Heading clip preventing extreme angles (notches 0,1,6,7).
+- Tree-threat override structure (currently dormant but cheap insurance).
+- Compact parameter dict; current parameter values for steering/avoidance are clearly working.
+
+## 5. What to change next
+- Make DOWN the default whenever steering is not required. Replace the final `jnp.where(aligned, DOWN, NOOP)` so that the "no steering needed" branch returns DOWN, and use NOOP only as a brief settle action (e.g., when heading is already at a fast notch 3/4 and a turn was just issued — but even then DOWN is preferable in vanilla Skiing).
+- Tighten the steering trigger so DOWN is favored: widen `dead_zone` or gate the steering decision on `|dx| > dead_zone` AND `|idx_err| > ori_dead`. If either condition fails, tuck.
+- Add a "far gate" shortcut: if `flag_y - skier_y` is large (gate not yet close), force DOWN with heading 3 or 4 regardless of dx, since lateral correction can wait.
+- Consider biasing `desired_idx` slightly toward 3.5 with a stronger pull-to-center term so the skier returns to fast notches quickly after a correction (reduce average residence at notches 2 and 5).
+- Add a small parameter for "min steps between turns" via heading hysteresis: only issue LEFT/RIGHT when `|idx_err| > ori_dead` AND skier is not already at a fast notch with small dx. This reduces the 3.2% turn rate further only if needed; primary gain is from DOWN replacing NOOP.
+- Expected effect: average_speed_y rises, average_steps drops substantially, gates_passed stays at 20, return becomes markedly less negative without risking the regression seen in policy_v2.

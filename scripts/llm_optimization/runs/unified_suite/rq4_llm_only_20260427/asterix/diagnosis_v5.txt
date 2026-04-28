@@ -1,0 +1,41 @@
+# Diagnosis
+
+## 1. Root cause
+The policy dies from unsafe lane transitions. Its danger model under-protects diagonal entries: the transit-gap check uses only 3 sample points along a linearly interpolated player path with a fixed `danger_threshold≈18` plus a tiny `1.5*lane_dist` buffer, while enemies move multiple pixels per frame and arrival takes 6–24 frames. Combined with a lane-entry that immediately commits to the projected collectible x, the agent enters lanes that become unsafe mid-transition.
+
+## 2. Evidence from metrics
+- `hits_taken=3`, `terminal_game_over=1`, `lives_remaining=0`: episodes end by exhausting lives, not timeout.
+- `hit_diagonal_fraction=1.0`, `hit_horizontal_fraction=0`: every life loss occurs during a diagonal lane change — exactly the transit window the danger model approximates loosely.
+- `avg_hit_enemy_gap=9.33`: collisions happen with enemies whose x is well inside the nominal `danger_threshold=18`, meaning the safety gate did fire but the transition still completed, or the gate was reset by horizontal escape logic.
+- `score_rate_per_1000=483` with `item_pickup_rate_per_1000=9.4` and `avg_collectibles_visible=0.45`: harvesting works when alive; the bottleneck is episode length / survival, not target selection.
+- `respawn_rate=10%`: significant dead time after each hit further depresses score density.
+- `avg_stage_index=3.1`, `topmost_stage_index=0`, `bottommost=7`: full lane coverage, so the issue is not reachability or upper-lane bias.
+
+## 3. Policy logic causing it
+- `_arrival_steps = 3 + 3*d` underestimates true diagonal traversal cost; transit_gap is sampled at only 3 fractional points using *linear* player x interpolation, missing the worst-case mid-transit gap when enemy_dx is opposite to player motion.
+- `safe_buffer + 1.5*lane_dist` grows too slowly; for `d=3` lanes the buffer is only ~22 px, less than enemy travel during transit.
+- `danger_weight*danger*50` competes with `value*time_discount` (e.g. 300 pts) — a 300-value lane can outscore a moderately dangerous one because `danger` is normalized to [0,1] and capped.
+- Hard gate `safe_lane` uses only `transit_gap`, but `_soft_danger` and `safe_lane` are computed against the *same* `transit_gap`, so the soft penalty adds nothing once the gate passes — there is effectively a binary safe/unsafe with no gradient inside the safe set.
+- `in_danger` escape uses only a 2-frame projection of the current-lane enemy and `danger_threshold=18`, which is too short for fast enemies; escape can route into an adjacent lane whose `up_gap`/`dn_gap` is computed assuming the player stays at current x — inconsistent with the actual diagonal action chosen.
+- The "stay_bonus=6" plus `lane_dist_penalty=8` makes 1-lane moves nearly neutral, so the agent oscillates and crosses lane boundaries frequently, increasing diagonal exposure.
+- Once a target lane is locked, `target_x = item_x` immediately, so the player heads laterally toward an x that may be exactly where an enemy is heading.
+
+## 4. What to preserve
+- Two-frame dx estimation for both enemies and collectibles.
+- Lane-aligned indexing of object arrays.
+- Value-weighted collectible selection via `VALUE_TABLE`.
+- Reachability/time-discount and `lane_dist_penalty` structure.
+- Compact param dict (danger_radius, danger_threshold, danger_weight, lane_dist_penalty, value_weight, x_intercept_penalty).
+- Diagonal action mapping and the absence of pure UP.
+
+## 5. What to change next
+- **Stronger transit safety**: sample transit gap at more points (e.g. 5–6 along k=1..k_arrival) and also include one or two post-arrival frames; require the *minimum* gap across the whole window to exceed a buffer that scales with `lane_dist` more aggressively (e.g. `threshold + 3*lane_dist`) and with `|enemy_dx|` (closing-speed term).
+- **Closing-speed-aware danger**: compute relative velocity `enemy_dx - player_dx_sign` and inflate danger when enemy moves toward the player's projected x.
+- **Soft, unbounded danger penalty**: replace the clipped `danger ∈ [0,1] * 50` with an exponential / inverse-gap penalty that can dominate even a 300-value item when gap is small; keep it on the same scale as value so `danger_weight` is meaningful.
+- **Commit-and-abort logic**: if a lane was chosen but its transit_gap deteriorates next frame, allow reverting to current lane instead of pushing through. A small parameter like `abort_margin` suffices; no recurrent state needed since recomputation each frame already gives this if hysteresis is reduced.
+- **Reduce stay_bonus / increase per-step lane-change cost**: discourages thrash that creates diagonal exposure; current `stay_bonus=6` vs `lane_dist_penalty=8` is too close.
+- **Anti-interception target_x**: when heading to a collectible, set `target_x` to intercept ahead of the item *away from the nearest enemy in that lane*, not exactly at item_x. A small lateral offset proportional to enemy proximity prevents converging onto the enemy path.
+- **Escape-direction consistency**: the `in_danger` branch should evaluate adjacent-lane gaps using the player's *post-diagonal* x (px ± a few pixels), not current px, so the chosen escape lane is actually safe given the diagonal action.
+- **Empty-lane preference for retreat**: when escaping, strongly prefer adjacent lanes with `enemy_active=0` over lanes that merely pass the threshold.
+- **Wider danger_radius / threshold**: current 26 / 18 are small relative to enemy speeds; expanding these (e.g. radius~36, threshold~24) and re-tuning should reduce hit_rate without collapsing pickups, given current pickup margin.
+- **Do not** add a blanket upper-lane bias or rewrite the controller structure (matches the negative-evidence v4 direction).

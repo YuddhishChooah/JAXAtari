@@ -1,0 +1,33 @@
+# Diagnosis
+
+## 1. Root cause
+The horizontal velocity proxy derived from `ball.orientation` via `tanh(orient)` is almost certainly not a reliable signed velocity signal. As a result, the "predictive interception" term is essentially noise scaled by `lead * time_to_impact`, and the policy is effectively a pure reactive tracker of `ball_x` with an urgency multiplier. This caps performance at "follow the ball" level rather than "intercept where it's going."
+
+## 2. Evidence from metrics
+- `avg_ball_tracking_error = 11.6` and `max = 76.3`: paddle is consistently lagging — symptomatic of reactive (non-predictive) control.
+- Optimizer collapsed `lead` to 0.21 and `center_pull` to 0.11 — CMA-ES is shrinking parameters whose effect is unhelpful/noisy, suggesting the lead term has no consistent sign correlation with success.
+- `block_clear_percentage = 0.198` with `lives_lost = 0.67`: episodes end by timeout/level-stall, not by dying. The paddle survives but cannot finish a board, consistent with poor angle control (no real prediction → boring straight-up bounces, ball gets stuck in patterns).
+- `avg_paddle_movement = 1.5/frame` and `total = 4122`: heavy movement, reactive chasing.
+- `avg_hit_streak = 21.3` equals `blocks_broken` exactly → only one productive life per episode; subsequent lives don't sustain rallies, again pointing to launch/initial-condition dependence rather than skill.
+
+## 3. Policy logic causing it
+- `_vx_from_orient(orient) = tanh(orient)`: the orientation field's semantics are unknown; this likely yields a near-constant or wrongly-signed value. The "lead" branch then biases the target in a direction uncorrelated with true ball motion.
+- Urgency is a step at `descend_y`, not a smooth gradient — produces abrupt error scaling that interacts badly with `dead_zone`.
+- `dead_zone ≈ 5` is applied *after* multiplying error by urgency (up to 2.36×), so the effective dead zone shrinks when descending — fine — but the same dead zone is reused for centering during inactive frames, where it's too small and causes jitter near center vs FIRE.
+- The inactive-state logic FIREs only when near center; if `fire_bias` is interpreted as a gate (>0), it never modulates *when* to fire, wasting that parameter.
+- No use of ball y-velocity sign: paddle reacts identically when ball is ascending (safe) vs descending, except for the urgency step. Energy is spent tracking ascending balls.
+
+## 4. What to preserve
+- Object-centric indexing and the paddle-center + 8 convention.
+- Dead-zone + three-way action selector (prevents per-frame oscillation).
+- Inactive-ball handling with FIRE when centered.
+- The 6-parameter budget — within CMA-ES's comfort zone.
+- Current best params as warm start.
+
+## 5. What to change next
+- **Replace the orientation-based vx proxy with a finite-difference velocity** computed from successive ball positions. Since the API forbids state, encode it by using *two* observation fields if available, or — simpler and within the API — derive a directional bias from `ball_x - paddle_center` sign combined with `ball_y` progression. Alternatively, drop the lead term entirely and reinvest those parameters.
+- **Add a smooth descending weight** (e.g., normalized `(ball_y - y0)/range` clipped to [0,1]) instead of a hard step at `descend_y`, so urgency ramps continuously and CMA-ES has a smoother landscape.
+- **Gate tracking by vertical motion**: only chase aggressively when ball is in the lower half; relax (or center) when ascending. This reduces wasted movement (currently 4122 px) and lets the paddle pre-position.
+- **Differentiate dead zones**: a tighter dead zone for in-play tracking and a wider one for centering during inactive frames, or make `dead_zone` shrink with urgency.
+- **Make FIRE more opportunistic**: fire whenever ball is inactive (don't require near-center), since centering+firing alternation may be wasting frames; let `fire_bias` instead control a small horizontal offset at launch to vary brick attack angles — this directly addresses the level-stall symptom (`block_clear_percentage` low despite surviving).
+- **Avoid** another broad rewrite that adds many new parameters or removes the dead-zone three-way selector — the prior v4 attempt at 52.44 suggests structural overhauls regress.

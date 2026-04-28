@@ -1,0 +1,222 @@
+{
+  "best_score": 11.0625,
+  "seed": 9300,
+  "config": {
+    "llm_provider": "anthropic",
+    "llm_model": "claude-opus-4-7",
+    "api_key": "<redacted>",
+    "max_tokens": 8192,
+    "temperature": 0.7,
+    "num_parallel_envs": 8,
+    "max_steps_per_episode": 4000,
+    "num_eval_episodes": 16,
+    "frame_stack_size": 0,
+    "search_max_steps": 2000,
+    "optimizer": "cma-es",
+    "num_param_samples": 16,
+    "param_perturbation_scale": 0.3,
+    "cma_es_generations": 4,
+    "max_iterations": 5,
+    "target_score": 1000000000.0,
+    "diagnostic_refinement": true,
+    "resume_from_results": false,
+    "resume_best_params_for_cma": true,
+    "refresh_resume_metrics": true,
+    "stop_on_strong_best": false,
+    "output_dir": "scripts\\llm_optimization\\runs\\unified_suite\\unified_opus_fixedpong_20260426_162534\\pong",
+    "verbose": true,
+    "save_intermediate": true,
+    "seed": 9300
+  },
+  "runtime": {
+    "timestamp": "2026-04-26 16:31:08",
+    "python_version": "3.12.8 (tags/v3.12.8:2dc476b, Dec  3 2024, 19:30:04) [MSC v.1942 64 bit (AMD64)]",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "numpy_version": "1.26.4",
+    "jax_version": "0.6.0",
+    "git_commit": "0e949a9cca8e23eacac343f1c2272d333138b19f"
+  },
+  "best_params": {
+    "aim_spike": 4.568622589111328,
+    "dead_zone": 3.4150524139404297,
+    "fire_dist": 40.14634704589844,
+    "idle_track": 1.3169747591018677,
+    "time_gain": 0.376800000667572
+  },
+  "best_metrics": {
+    "avg_return": 11.0625,
+    "avg_player_score": 11.125,
+    "avg_enemy_score": 0.0625,
+    "win_rate": 1.0,
+    "total_rewards": [
+      10.0,
+      12.0,
+      11.0,
+      12.0,
+      12.0,
+      11.0,
+      11.0,
+      11.0,
+      9.0,
+      12.0,
+      13.0,
+      12.0,
+      12.0,
+      11.0,
+      10.0,
+      8.0
+    ],
+    "player_scores": [
+      10,
+      12,
+      11,
+      12,
+      12,
+      11,
+      11,
+      11,
+      9,
+      12,
+      13,
+      12,
+      12,
+      11,
+      10,
+      9
+    ],
+    "enemy_scores": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    "search_avg_return": 5.625,
+    "search_avg_player_score": 5.625,
+    "search_avg_enemy_score": 0.0,
+    "search_win_rate": 1.0,
+    "logger_metrics": {
+      "win_rate": 0.9722222222222222,
+      "points_won": 10.666666666666666,
+      "points_lost": 0.3333333333333333,
+      "avg_ball_tracking_error": 15.737778501669567,
+      "max_ball_tracking_error": 81.28351783752441,
+      "total_paddle_movement": 6401.157878875732,
+      "avg_paddle_movement": 1.6006896421294654,
+      "paddle_jitter_count": 148.66666666666666,
+      "avg_rally_length": 343.2075757575758,
+      "max_rally_length": 526.6666666666666,
+      "avg_reaction_time": 15.06110633032871,
+      "interception_rate": 0.9815764613429642,
+      "episode_length": 4000.0
+    }
+  },
+  "history": [
+    {
+      "iteration": 1,
+      "metrics": {
+        "avg_return": 6.9375,
+        "avg_player_score": 7.0,
+        "avg_enemy_score": 0.0625,
+        "win_rate": 1.0,
+        "search_avg_return": 3.375,
+        "search_avg_player_score": 3.375,
+        "search_avg_enemy_score": 0.0,
+        "search_win_rate": 1.0,
+        "logger_metrics": {
+          "win_rate": 1.0,
+          "points_won": 7.0,
+          "points_lost": 0.0,
+          "avg_ball_tracking_error": 28.87201774978638,
+          "max_ball_tracking_error": 103.7695083618164,
+          "total_paddle_movement": 5178.265252431233,
+          "avg_paddle_movement": 1.2948900356167126,
+          "paddle_jitter_count": 183.33333333333334,
+          "avg_rally_length": 530.5714285714286,
+          "max_rally_length": 533.0,
+          "avg_reaction_time": 15.545470444311944,
+          "interception_rate": 0.847953216374269,
+          "episode_length": 4000.0
+        }
+      },
+      "best_params": {
+        "aim_offset": -0.542823076248169,
+        "dead_zone": 2.943190813064575,
+        "fallback_y": 105.1059341430664,
+        "fire_bias": 0.43413883447647095,
+        "predict_gain": 0.46244505047798157
+      },
+      "filepath": "scripts\\llm_optimization\\runs\\unified_suite\\unified_opus_fixedpong_20260426_162534\\pong\\policy_v1.py"
+    },
+    {
+      "iteration": 2,
+      "metrics": {
+        "avg_return": 11.0625,
+        "avg_player_score": 11.125,
+        "avg_enemy_score": 0.0625,
+        "win_rate": 1.0,
+        "search_avg_return": 5.625,
+        "search_avg_player_score": 5.625,
+        "search_avg_enemy_score": 0.0,
+        "search_win_rate": 1.0,
+        "logger_metrics": {
+          "win_rate": 0.9722222222222222,
+          "points_won": 10.666666666666666,
+          "points_lost": 0.3333333333333333,
+          "avg_ball_tracking_error": 15.737778501669567,
+          "max_ball_tracking_error": 81.28351783752441,
+          "total_paddle_movement": 6401.157878875732,
+          "avg_paddle_movement": 1.6006896421294654,
+          "paddle_jitter_count": 148.66666666666666,
+          "avg_rally_length": 343.2075757575758,
+          "max_rally_length": 526.6666666666666,
+          "avg_reaction_time": 15.06110633032871,
+          "interception_rate": 0.9815764613429642,
+          "episode_length": 4000.0
+        }
+      },
+      "best_params": {
+        "aim_spike": 4.568622589111328,
+        "dead_zone": 3.4150524139404297,
+        "fire_dist": 40.14634704589844,
+        "idle_track": 1.3169747591018677,
+        "time_gain": 0.376800000667572
+      },
+      "filepath": "scripts\\llm_optimization\\runs\\unified_suite\\unified_opus_fixedpong_20260426_162534\\pong\\policy_v2.py"
+    },
+    {
+      "iteration": 3,
+      "metrics": {
+        "avg_return": 6.9375,
+        "avg_player_score": 7.0,
+        "avg_enemy_score": 0.0625,
+        "win_rate": 1.0,
+        "search_avg_return": 3.25,
+        "search_avg_player_score": 3.25,
+        "search_avg_enemy_score": 0.0,
+        "search_win_rate": 1.0
+      },
+      "best_params": {
+        "aim_margin": 19.968429565429688,
+        "aim_spike": 6.491672039031982,
+        "dead_zone": 4.582000732421875,
+        "fire_dist": 35.26163864135742,
+        "idle_track": 0.7638288736343384,
+        "lead_bias": -0.6257240176200867
+      },
+      "filepath": "scripts\\llm_optimization\\runs\\unified_suite\\unified_opus_fixedpong_20260426_162534\\pong\\policy_v3.py"
+    }
+  ],
+  "best_policy_path": "scripts\\llm_optimization\\runs\\unified_suite\\unified_opus_fixedpong_20260426_162534\\pong\\policy_v2.py"
+}

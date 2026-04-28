@@ -1,0 +1,40 @@
+# Diagnosis
+
+## 1. Root cause
+The policy mixes a too-loose danger model with an idle-prone normal branch, so it (a) enters lanes that are not actually safe during the multi-frame vertical transition, and (b) sits still in lanes when no item is currently active. Survival collapses (3 deaths, all near-contact), and score density stays low because most frames are NOOP instead of lateral interception.
+
+## 2. Evidence from metrics
+- `hits_taken=3`, `terminal_game_over=1`, `hit_rate_per_1000=1.39` — dying ends episodes.
+- `avg_hit_enemy_gap=12.1` with `danger_threshold=18` and `danger_radius=28` — hits occur inside the nominal danger zone, meaning danger is detected but not acted on early enough, or only checked on the *current* lane.
+- `hit_diagonal_fraction=0.89` — almost all deaths happen during diagonal lane changes; destination-lane safety is not validated before committing.
+- `noop_rate=0.7177` — overwhelming idleness; horizontal interception is barely used (`horizontal_rate=0.11`).
+- `item_pickup_rate_per_1000≈9` while `avg_collectibles_visible=0.47` — items are sparse, so missing any is costly; idling wastes them.
+- `avg_stage_index≈3`, `topmost_stage_index=0`, `bottommost=7` — full lane reach exists; routing, not reachability, is the issue.
+
+## 3. Policy logic causing it
+- **Danger only checks `cur_lane`'s enemy** via `enemy_active[cur_lane]`. The destination lane during a diagonal transition is not screened; this matches the 89% diagonal-hit rate.
+- **Danger uses only player x**, not the projected x at arrival time, and only a 3-frame projection — fast enemies close the gap during the transition.
+- **`danger_threshold` is compared to raw pixel distance**, while `danger` (used in scoring) is a normalized 0–1 quantity multiplied by 100 and then by `danger_weight=2.5`. The two scales are inconsistent (rule 16 violation) — danger weight on scoring is effectively saturated and uninformative for ranking.
+- **NOOP fallback**: in `normal_action`, when not `need_up/down/right/left`, action becomes NOOP unless `target_has_item`. With sparse collectibles (0.47 visible), this triggers constantly.
+- **`-500*(1-coll_active)` makes inactive lanes essentially equal**, but the active-lane scoring is still dominated by `lane_dist_penalty=35` per lane, so a 50-point item three lanes away is rejected (penalty 105 > value 50). Combined with `value_weight=1`, the agent often finds *no* attractive lane and falls back to staying put.
+- **No lateral patrol when idle** — the only "patrol" is `RIGHT` when aligned with a target, never when no target exists.
+- **No abort/back-off** if a planned diagonal becomes unsafe mid-move; once `target_lane` is chosen, transitions commit blindly.
+
+## 4. What to preserve
+- Two-frame dx estimation for enemies and collectibles.
+- Lane-indexed object arrays, lane-distance penalty structure, value table from `visual_id`.
+- Per-lane scoring with separate value, danger, x-intercept, lane-distance terms.
+- Compact parameter dictionary and pure-JAX control flow (`jnp.where`).
+- Diagonal upward movement via UPRIGHT/UPLEFT.
+
+## 5. What to change next
+- **Screen the destination lane and all lanes traversed**: when evaluating `target_lane`, require enemy projected gap in that lane (using arrival-time projection ~6–10 frames) to exceed a buffer larger than `avg_hit_enemy_gap` (e.g., 20–25 px).
+- **Unify danger scale**: either compare `danger_threshold` against the same normalized danger used in scoring, or convert both to pixel space. Remove the implicit ×100 magic constant.
+- **Use arrival-time projection**: project enemy x by `k*dx` where k depends on lane distance to destination, not a fixed 3 frames. Add a wider collision buffer (≥ player half-width + enemy half-width + slack).
+- **Eliminate NOOP**: replace the `else NOOP` branch with a default lateral patrol (alternate LEFT/RIGHT based on px relative to screen center, or toward the nearest *future* expected collectible lane). NOOP should only occur if every move is unsafe.
+- **Lower `lane_dist_penalty` or scale by value**: 35/lane forbids chasing 50-point items beyond 1 lane. Make the penalty multiplicative on value, or drop it to ~10–15, so 200/300-point items 3–4 lanes away remain attractive.
+- **Boost `value_weight`** so 100/200/300-point differentiation actually drives lane choice instead of being swamped by danger×100.
+- **Add a destination-lane safety hard gate** (binary mask) before scoring, instead of soft danger penalty alone: lanes whose projected enemy gap < safety_buffer get score = -inf. This is the strongest survival lever.
+- **Danger override should also avoid moving INTO another threatened lane**: currently it picks UP/DOWN by `can_up`, ignoring whether the adjacent lane is itself dangerous. Check both adjacent lanes and choose the safer side.
+- **Lateral commitment when safely aligned with lane but no item present**: continue lateral motion toward the nearest lane edge expected to spawn collectibles (or simply maintain motion) rather than stopping — this directly attacks the 0.72 NOOP rate.
+- **Add a small parameter for "transition abort"**: if mid-transition the destination becomes unsafe, prefer pure horizontal escape this frame instead of completing the diagonal.

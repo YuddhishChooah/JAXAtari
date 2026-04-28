@@ -1,0 +1,32 @@
+## 1. Root cause
+The policy makes lane-entry decisions based on the *current* lane's car geometry, not where that car will be when the chicken actually arrives in the lane. TTC is computed against `chicken_l/chicken_r` at the current y, but the threat for an UP move is the car in the next lane's row at the moment the chicken occupies it. Combined with a single binary "safe" gate (TTC>safe_time OR clear>clear_px), this both lets the chicken step into cars that *will* arrive and freezes it when a brief window is actually available.
+
+## 2. Evidence from metrics
+- `collision_rate` 0.66 per crossing and `near_miss_count` 800 → entry timing is wrong, not just unlucky.
+- `avg_crossing_time` 330 frames vs `min_crossing_time` 188 → policy can cross fast when lucky but usually stalls.
+- `up_action_rate` 0.0074 with `hesitation_rate` 0.24 and `down_action_rate` 0 → it waits far more than it advances; `wait_horizon=20` plus the OR-clear gate is letting NOOP dominate.
+- `lane_transitions` ≈ `crossings` (11.67) → almost no backward motion, meaning DOWN escape is essentially never triggered (`down_ttc=3.6` fires too late to matter, and by then the chicken is already hit).
+- `avg_upward_progress` 0.013 is tiny → UP gate is too strict in the *wrong* dimension (clearance) and too loose in the *right* one (future overlap).
+
+## 3. Policy logic causing it
+- `_ttc_for_lane` uses `gap = chicken_l - car_r` (or symmetric) which assumes the car must reach the chicken column. For an UP decision this is the right column but wrong row — the function is reused on `next_lane` without accounting for the ~1-frame transit, and more importantly without checking the *exit* time (when the car's tail clears the chicken column). A car already overlapping but about to exit is flagged TTC=0 forever.
+- The `clear > clear_px` disjunction overrides TTC: a slow car 11 px away is "safe" even if it will overlap in 2 frames. Conversely a fast car 9 px away with dx away from chicken is flagged unsafe. Clearance and TTC should not be OR-combined; clearance is only meaningful with sign of dx.
+- `near_top` forces UP unconditionally below y=29 — but lane 0 (y=27) still has cars; this is fine, but `finish_y≈29` means it only triggers after the last lane is already cleared, so it does little.
+- DOWN is gated by `cur_ttc < down_ttc` using the *current* lane car, but once the chicken is mid-lane the car is already overlapping → ttc=0, then `down_safe` is checked with the same flawed function. DOWN never fires (rate 0).
+- Single-lane lookahead: `up_safe2` is computed but unused.
+- Lane index via nearest-y is fine, but the chicken transitions between lanes take multiple frames; the policy doesn't model "I'm between lanes, project where I'll be."
+
+## 4. What to preserve
+- 176-feature split, lane indexing by nearest y, per-lane dx from prev/curr.
+- Compact 5-ish scalar parameter set and the flat decision tree shape.
+- Treating active flag and inactive cars as no-threat.
+- UP-dominant bias and the idea of a wait window.
+
+## 5. What to change next
+- Replace TTC with a *windowed overlap predictor*: for a horizon H, check whether `car_l(t) ≤ chicken_r AND car_r(t) ≥ chicken_l` for t ∈ [t_enter, t_exit], where t_enter≈1 frame for next lane and t_exit = t_enter + occupancy (≈ frames the chicken spends in that lane, another tunable). Use car positions linearly extrapolated by dx. This directly answers "will I be hit if I step up now?"
+- Drop the OR with raw clearance; instead fold clearance into the predictor by including the chicken width and a small safety pad parameter.
+- Add forward-direction awareness: only cars whose dx would bring them into the chicken column during the entry window are threats; cars moving away with current non-overlap are immediately safe.
+- Make DOWN proactive, not reactive: trigger DOWN when next-lane predictor says unsafe AND current-lane predictor says a car will overlap within a short window AND the lane below is safe over its own entry window. Currently DOWN never activates.
+- Use the second-next-lane check (`up_safe2`) as a tie-breaker to prefer UP into a lane that also has a clear follow-up, reducing getting trapped.
+- Tighten `finish_y` to the actual goal threshold (top border ~15) and let the predictor handle the last lanes; the current 29 is nearly a no-op.
+- Reduce parameter count to: entry_delay, occupancy, safety_pad, down_trigger_window, plan_horizon. This keeps the policy compact while shifting the decision basis from static distance to predicted overlap.

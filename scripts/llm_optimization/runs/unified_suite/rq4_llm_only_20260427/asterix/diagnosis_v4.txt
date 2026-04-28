@@ -1,0 +1,41 @@
+# Diagnosis: Asterix Policy Underperformance
+
+## 1. Root cause
+The policy is dying every episode (3 hits, 0 lives remaining, terminal game over) because lane-entry safety checks underestimate danger during vertical transitions. Diagonal moves commit the agent into lanes where enemies converge during the multi-frame transit, but the danger model uses a single linear `enemy_dx` projection with a small `danger_radius=26` and only a 1.5/lane extra buffer — too small relative to actual enemy approach speeds and arrival times. Score density is also low (0.45 collectibles visible on average) because the policy spends most frames moving horizontally (83%) within whatever lane it lands in, rather than aggressively switching lanes to harvest.
+
+## 2. Evidence from metrics
+- `hits_taken=3`, `terminal_game_over=1`, `lives_remaining=0` — survival is the binding constraint.
+- `hit_diagonal_fraction=1.0`, `hit_horizontal_fraction=0` — every death occurs during a diagonal lane change, confirming transit-time danger is mispredicted.
+- `avg_hit_enemy_gap=9.33` — collisions happen well inside `danger_threshold=18`, meaning the gate accepts lanes whose projected gap collapses mid-transit.
+- `diagonal_rate=0.15` but produces 100% of deaths — diagonal entries are disproportionately lethal.
+- `horizontal_rate=0.83`, `vertical_rate=0.014` — once in a lane, the agent rarely commits to vertical moves; it oscillates horizontally.
+- `item_pickup_rate_per_1000=9.4`, `avg_collectibles_visible=0.45` — the agent is not positioning to see/intercept items; it's reactive, not proactive.
+- `avg_stage_index=3.1`, `topmost_stage_index=0`, `bottommost=7` — the agent reaches all lanes but doesn't exploit the high-value ones.
+
+## 3. Policy logic causing it
+- **Transit-gap sampler is too coarse and optimistic**: `_transit_min_gap` samples only 3 points and takes `min` with `g_now`; including `g_now` masks mid-transit closure. Linear `enemy_dx` extrapolation over `k_arrival = 3 + 3·d` (up to 24 frames) is unreliable.
+- **Safety buffer scales weakly with distance**: `extra_buf = 1.5·lane_dist` adds at most 10.5 px for a 7-lane jump while transit time grows linearly — buffer should scale with `k_steps`, not lane count alone.
+- **Hard gate then soft penalty double-count inconsistently**: `safe_lane` boolean gate uses `danger_threshold`, but `danger_weight·danger·50` is also subtracted; eligible lanes still get chosen even when soft danger is high.
+- **Stay bonus (+6) plus lane_dist_penalty (8/lane)** strongly biases against switching, so the agent only chases items 1 lane away — explaining low pickup rate and low collectibles-visible.
+- **Escape logic only considers ±1 adjacent lane** with the same weak `danger_threshold` gate; if both adjacent lanes are unsafe it falls back to horizontal escape which often re-enters the threat.
+- **`in_danger` uses only `danger_threshold`** with a 2-frame lookahead, missing slower converging enemies that hit on frame 5–10.
+- **Scout fallback ignores collectible value** entirely — when no eligible item exists, the agent doesn't reposition toward likely future spawn lanes.
+
+## 4. What to preserve
+- Two-frame dx estimation for both enemies and collectibles.
+- `VALUE_TABLE` lookup via `coll_visual_id` for value-weighted targeting.
+- Lane-aligned indexing of enemy/collectible arrays.
+- Per-lane transit-gap concept and time-discounted value scoring.
+- Compact parameter set with `value_weight`, `danger_weight`, `lane_dist_penalty`, `x_intercept_penalty`.
+- Diagonal action mapping (no pure UP) and current escape-via-diagonal structure.
+
+## 5. What to change next
+- **Tighten transit-gap sampling**: sample 5–6 points across the transit, exclude `g_now` from the min (only mid- and end-transit gaps matter for entry safety), and use the running min as the danger signal.
+- **Scale safety buffer with arrival time**, not lane count: `safe_buffer + α·k_steps` so longer transits demand wider clearance. Raise `danger_threshold` floor (e.g., 22–28) and add a parameter for transit-scaled extra.
+- **Account for enemy approach direction**: penalize lanes where `enemy_dx` points toward the player's projected x more than lanes with diverging enemies.
+- **Decouple gate and soft penalty consistently**: either gate hard with a generous buffer and drop the soft `danger_weight·50` term, or remove the gate and rely on a steep soft penalty — current double-counting creates inconsistent thresholds (per rule 16).
+- **Reduce stay bonus and the 8/lane penalty**: current values trap the agent in its starting lane. Lower `lane_dist_penalty` and remove or shrink stay bonus so 200/300-point items 2–3 lanes away win.
+- **Multi-step escape**: when `in_danger`, evaluate transit-gap for all 8 lanes (not just ±1) and pick the safest reachable one; allow 2-lane escape via a single diagonal commit followed by re-evaluation.
+- **Earlier danger trigger**: extend `in_danger` lookahead to ~5 frames and trigger when projected gap at any point in that window drops below buffer, not just at frame 2.
+- **Value-aware scout**: when no eligible item exists, bias toward central lanes (3–4) where new collectibles most often appear, and toward the safer half of the screen, instead of moving away from the current enemy only.
+- **Add a "do not enter" rule**: if best candidate lane has projected min-gap < hard collision buffer (e.g., 10 px) at any sampled transit point, force NOOP/horizontal hold rather than committing diagonally — directly addresses 100% diagonal hit fraction.

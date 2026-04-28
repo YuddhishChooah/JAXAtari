@@ -1,0 +1,36 @@
+# Diagnosis
+
+## 1. Root cause
+The policy is too lane-discrete and too symmetric in its danger model. It treats the "next lane" as a single point 16px above and uses the same overlap check there as on the current lane, so it both (a) waits for an unrealistically clean window before stepping up and (b) under-models the moment the chicken is *between* lanes, where it is exposed to two lanes simultaneously. The result is slow crossings (~310 frames) with frequent contact (21.7 collisions, 887 near-misses).
+
+## 2. Evidence from metrics
+- `avg_crossing_time` 310 frames vs `min_crossing_time` 209 → policy *can* cross fast but usually stalls; ~100 wasted frames per crossing.
+- `collision_rate` 0.637 and `near_miss_count` 887 → danger check fires too late or misses the lane-straddle interval.
+- `hesitation_rate` 0.234 with `up_action_rate` 0.743 → frequent NOOP gating from `safe_up`, suggesting the up-lane check is over-triggering.
+- `time_efficiency` 3.08 crossings/1000 frames; DQN-level (~30/episode) requires ~7.5 → roughly 2× too slow.
+- `down_action_rate` 0.022 is fine; emergency DOWN is not the issue.
+- `avg_upward_progress` 0.0065 is low given UP rate 0.74 → many UPs are being cancelled by NOOP frames, i.e., oscillation at lane boundaries.
+
+## 3. Policy logic causing it
+- `y_up = chicken_y - 16` assumes a fixed 16px lane spacing, but `LANE_Y` spacing is 16 only between rows; when chicken is mid-transition, the "next lane" check targets an empty band and the *real* next lane (still 16 away) is missed or double-counted.
+- `_lane_danger` uses one `lane_radius` (~7) for membership; a single car can be assigned to the wrong lane during transitions, and chicken straddling two lanes is not modeled at all.
+- The four sample times {0, L/2, L, L·vel_scale} with L≈5 and vel_scale≈0.7 actually shrink the lookahead horizon (last sample is *earlier* than L), so far-future approach by fast cars is under-checked → collisions.
+- `gap_left/gap_right` use a fixed `1.0` on the non-approach side, which is fine, but `gap` is `safe_gap_up` (≈5.8) for both current and up lanes — too small for the current lane where the chicken is actually sitting, explaining high collision count.
+- `near_top` forces UP unconditionally inside the last 24 px → likely cause of a chunk of collisions in the top fast lanes.
+- Emergency DOWN requires `danger_curr & danger_up`; once already in danger_curr the chicken often can't escape in time.
+
+## 4. What to preserve
+- Overall UP/NOOP-dominant structure with rare DOWN.
+- Projected-overlap formulation with direction-aware gap inflation.
+- Two-lane scope (current + immediate next) — do not expand to multi-lane lookahead.
+- Compact 5-parameter shape; current `lane_radius`, `safe_gap_*`, `lookahead`, `vel_scale` are the right knobs.
+- Velocity estimation from prev/curr frames.
+
+## 5. What to change next
+- **Fix the time sampling**: ensure samples are monotonically increasing in t (e.g., {0, L, 2L} or use `vel_scale` as a *horizon multiplier ≥1*, not a fraction). The current schedule under-checks the future.
+- **Separate gaps for current vs up lane**: the current lane (where the chicken sits) needs the *largest* gap; the up lane needs a moderate gap; right now both use `safe_gap_up`.
+- **Model lane-straddle**: when chicken_y is not close to a lane center, treat *both* adjacent lanes as "current" for danger purposes, so it doesn't step into a car occupying the band it's entering.
+- **Snap `y_up` to actual `LANE_Y`**: pick the nearest lane center strictly above chicken_y rather than `chicken_y - 16`. This removes phantom-lane checks during transitions and is the single highest-leverage fix.
+- **Soften `near_top` override**: still check next-lane danger in the top region; top lanes are fast and are likely contributing disproportionately to the 21 collisions.
+- **Loosen the up-gate slightly**: given hesitation 0.23 and UP-when-safe being the only forward driver, a smaller `safe_gap_up` plus a *correct* horizon will increase crossings/1000 without raising collisions much (collisions are a time penalty, not terminal).
+- Keep DOWN logic essentially as-is; it's already rare and not the bottleneck.

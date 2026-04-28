@@ -1,0 +1,34 @@
+# Diagnosis
+
+## 1. Root cause
+The policy hesitates too often and collides too often simultaneously. The current-lane overlap check uses a short fixed horizon (3 frames) with a direction-aware margin that is too small for fast approaching traffic, while the next-lane gate uses an arrival window centered at t=8 that is decoupled from the chicken's actual UP cadence. The "block UP only when both near and far fail" relaxation lets the chicken step into lanes whose far-side car will arrive exactly when it gets there.
+
+## 2. Evidence from metrics
+- `collision_rate = 0.62` per crossing attempt — very high; the safety check is leaky.
+- `near_miss_count = 1156` per episode — chicken repeatedly enters lanes barely in time.
+- `hesitation_rate = 0.234` — large NOOP share despite collisions, so waiting is happening at the wrong moments.
+- `avg_crossing_time = 311` frames vs `min = 203` — average is ~1.5× the achievable minimum, indicating stalls in specific lanes.
+- `time_efficiency = 3.18` crossings/1000f, while DQN-level requires ≥ ~3.7. Gap is consistent with ~40 wasted collision-stun frames per crossing.
+
+## 3. Policy logic causing it
+- `_direction_margin` returns only 4.0 px for approaching cars. With dx up to ~3–4 px/frame, a car can traverse the chicken column in ≤2 frames — inside `horizon_cur=3` but the margin is too tight to flag it early.
+- `xm_cur` and `xm_next` are computed once from current `cy`/dx but applied to a window where the chicken is moving; the chicken's own motion isn't modeled, so projected overlap times are biased.
+- `next_blocks = next_hit & near_hit` — this AND is a major leak: if the immediate half-lane is clear but the destination lane has a car arriving at t≈8, the policy still goes UP. This explains many collisions on lane entry.
+- `arrive_t=8, arrive_w=4` gives a window [4,12]; the chicken actually reaches the next lane in ~4–6 frames at 1 px/frame stepping. The window is biased late and too wide, both missing real threats and falsely flagging others.
+- Emergency DOWN is gated by `cur_emerg` using the same tight margin, so it rarely fires before contact (`down_action_rate=1.6%`), removing the escape valve.
+- `near_top` forces UP unconditionally near the goal — likely source of collisions in the last 1–2 lanes.
+
+## 4. What to preserve
+- Two-frame dx estimation and the projected-overlap (interval-intersection) formulation.
+- Compact UP/NOOP-dominant structure with rare DOWN.
+- Checking only current lane + immediate next lane (per insights 11–12).
+- Parameter set scale (~8 scalars); the structure is right.
+
+## 5. What to change next
+- **Drop the AND gate**: make next-lane unsafe block UP on its own (OR with current/near), not require both. This is the single highest-leverage fix for collision rate.
+- **Recenter the arrival window** on realistic step time: `arrive_t ≈ 5`, `arrive_w ≈ 2–3`. Tighter and earlier.
+- **Increase x_margin for approaching traffic**, scaled by |dx| (e.g., margin = base + k·|dx|), so fast lanes get a larger guard band; keep slow lanes permissive to reduce hesitation.
+- **Remove unconditional `near_top` UP override**; top lanes still have cars. Keep the standard safety check there.
+- **Make emergency DOWN easier to trigger**: use a looser margin for `cur_emerg` than for the normal go/no-go, so it fires before, not after, contact.
+- **Add a tiny anti-hesitation bias**: if current lane is clear for the full `horizon_cur` and only the far arrival window is marginal, prefer UP; reserve NOOP for cases where current lane itself is contested. This should cut the 23% NOOP rate without raising collisions.
+- Avoid broad rewrites (per the v4 negative evidence); keep the same overlap kernel and only retune gating logic and margins.

@@ -1,0 +1,160 @@
+
+============================================================
+Game: PONG
+Optimizer: none
+Search Horizon: 10000 steps
+Evaluation Horizon: 10000 steps
+Output: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\pong
+============================================================
+
+Logger initialized for pong
+============================================================
+LLM Policy Optimization Loop for JAXAtari PONG
+============================================================
+
+============================================================
+Outer-loop step 1/5 (policy v1)
+============================================================
+Requesting initial policy from LLM...
+Saved policy to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\pong\policy_v1.py
+Successfully loaded policy module
+
+Evaluating LLM-chosen parameters directly (no inner optimizer)...
+  No-search ablation: evaluated LLM init_params directly return=0.62, win_rate=50.00%
+
+Results for iteration 1:
+  Search Return (10000 steps): 0.62
+  Average Return: 0.12
+  Player Score: 0.12
+  Enemy Score: 0.00
+  Win Rate: 12.50%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 13 metrics
+    win_rate: 0.167
+    points_won: 0.333
+    points_lost: 0.333
+    avg_ball_tracking_error: 47.064
+    max_ball_tracking_error: 156.987
+  >>> New best overall!
+Checkpoint saved to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\pong\optimization_checkpoint.json
+
+============================================================
+Outer-loop step 2/5 (policy v2)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\pong\diagnosis_v2.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\pong\policy_v2.py
+Successfully loaded policy module
+
+Evaluating LLM-chosen parameters directly (no inner optimizer)...
+  No-search ablation: evaluated LLM init_params directly return=16.50, win_rate=100.00%
+
+Results for iteration 2:
+  Search Return (10000 steps): 16.50
+  Average Return: 16.19
+  Player Score: 16.88
+  Enemy Score: 0.69
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 13 metrics
+    win_rate: 1.000
+    points_won: 17.667
+    points_lost: 0.000
+    avg_ball_tracking_error: 18.601
+    max_ball_tracking_error: 128.839
+  >>> New best overall!
+Checkpoint saved to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\pong\optimization_checkpoint.json
+
+============================================================
+Outer-loop step 3/5 (policy v3)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\pong\diagnosis_v3.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\pong\policy_v3.py
+Successfully loaded policy module
+
+Evaluating LLM-chosen parameters directly (no inner optimizer)...
+  No-search ablation: evaluated LLM init_params directly return=13.25, win_rate=100.00%
+
+Results for iteration 3:
+  Search Return (10000 steps): 13.25
+  Average Return: 13.06
+  Player Score: 13.38
+  Enemy Score: 0.31
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 13 metrics
+    win_rate: 0.976
+    points_won: 12.667
+    points_lost: 0.333
+    avg_ball_tracking_error: 23.834
+    max_ball_tracking_error: 135.480
+Checkpoint saved to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\pong\optimization_checkpoint.json
+
+============================================================
+Outer-loop step 4/5 (policy v4)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\pong\diagnosis_v4.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\pong\policy_v4.py
+Successfully loaded policy module
+
+Evaluating LLM-chosen parameters directly (no inner optimizer)...
+  No-search ablation: evaluated LLM init_params directly return=9.88, win_rate=100.00%
+
+Results for iteration 4:
+  Search Return (10000 steps): 9.88
+  Average Return: 8.12
+  Player Score: 11.75
+  Enemy Score: 3.62
+  Win Rate: 93.75%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 13 metrics
+    win_rate: 0.774
+    points_won: 11.000
+    points_lost: 3.333
+    avg_ball_tracking_error: 37.143
+    max_ball_tracking_error: 156.120
+Checkpoint saved to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\pong\optimization_checkpoint.json
+
+============================================================
+Outer-loop step 5/5 (policy v5)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\pong\diagnosis_v5.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\pong\policy_v5.py
+Successfully loaded policy module
+
+Evaluating LLM-chosen parameters directly (no inner optimizer)...
+  No-search ablation: evaluated LLM init_params directly return=5.75, win_rate=100.00%
+
+Results for iteration 5:
+  Search Return (10000 steps): 5.75
+  Average Return: 6.75
+  Player Score: 7.00
+  Enemy Score: 0.25
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 13 metrics
+    win_rate: 1.000
+    points_won: 6.000
+    points_lost: 0.000
+    avg_ball_tracking_error: 28.014
+    max_ball_tracking_error: 142.767
+Checkpoint saved to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\pong\optimization_checkpoint.json
+
+============================================================
+Optimization Complete!
+============================================================
+Best Score Achieved: 16.19
+Total Iterations: 5
+Results saved to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\pong\optimization_results.json

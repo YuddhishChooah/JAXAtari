@@ -1,0 +1,31 @@
+# Diagnosis
+
+## 1. Root cause
+The policy chases the ball's *current* x-position rather than predicting the ball's *interception* x at paddle-y. The "lead" term is structurally wrong: it extrapolates from paddle-to-ball offset rather than from ball velocity, and it does nothing useful while the ball ascends. Combined with no velocity input, the paddle is purely reactive and only becomes accurate when the ball is already close — too late for sharp angles.
+
+## 2. Evidence from metrics
+- `avg_ball_tracking_error = 2.67` is near `dead_zone = 2.56` → paddle sits at the edge of its dead-zone most of the time, i.e. tracking is "barely good enough."
+- `max_ball_tracking_error = 81` → catastrophic misses on fast/angled descents, exactly the regime where prediction matters.
+- `block_clear_percentage = 31%` with `lives_lost = 0.33` → episodes end by **timeout/stall**, not by dying. The agent isn't losing; it's failing to finish bricks because returns get shallow/repetitive.
+- `avg_hit_streak = max_hit_streak = 33.7` → the policy plays one long streak then stalls; no recovery dynamic.
+- `lead = 0.095` and `urgency_y = 139.8` were pushed by CMA-ES toward *minimizing* the lead term — the optimizer is telling you the lead formulation is harmful and being suppressed.
+
+## 3. Policy logic causing it
+- `target_x = ball_x + lead * (ball_x - paddle_center) * urgency`: this is "move further in the direction you're already chasing," which amplifies overshoot when the paddle is behind, and does nothing about the ball's actual trajectory.
+- No use of ball velocity (no previous-ball-x), so true lead prediction is impossible from a single frame — but the policy pretends to lead anyway.
+- `urgency` scales the (wrong) lead term instead of scaling the dead-zone or response gain, so urgency doesn't actually make the controller more decisive when the ball descends.
+- `fire_bias` compares to `ball_active` (a 0/1 flag); with `fire_bias = 0.86`, FIRE triggers correctly, but only on inactive frames — fine, not the bottleneck.
+- Dead-zone is constant; on a descending fast ball the same 2.56 px tolerance causes a miss, while on a slow ascending ball it causes oscillation.
+
+## 4. What to preserve
+- Object-centric indexing and the FIRE-on-inactive launch logic.
+- The compact 3–8 parameter budget and `jnp.where` branching structure.
+- The `dead_zone` concept (it does suppress jitter — `avg_paddle_movement = 1.67` is healthy).
+- The urgency-from-ball_y idea (the signal is right; only its *use* is wrong).
+
+## 5. What to change next
+- **Replace the lead formula with an angle/aim term that depends on ball_y, not on paddle error.** E.g. bias the target horizontally based on `(screen_mid - ball_x)` scaled by a parameter, so the paddle hits the ball off-center to steer rebounds toward unbroken regions — this directly addresses the stall (31% clear).
+- **Make dead-zone descent-aware**: shrink dead-zone (or boost gain) when ball is in the lower region, widen it when ball is high. Use `urgency` to *modulate dead_zone*, not the lead.
+- **Add a top-region idle bias**: when ball_y is small (high up), recenter paddle toward a learned home_x parameter to prepare for descent, reducing `max_tracking_error` spikes.
+- **Introduce a "hit-offset" parameter** so the paddle aims slightly off ball_x to break stuck columns — this is the single biggest lever against the stall pattern visible in `hit_streak == max_hit_streak`.
+- Keep parameter count ~5–6: `dead_zone_high`, `dead_zone_low`, `y_threshold`, `aim_offset`, `home_x`, `fire_bias`. Drop the current `lead` term entirely; CMA-ES already deprecated it.

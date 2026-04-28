@@ -1,0 +1,31 @@
+## 1. Root cause
+The policy spends too many frames idling/jittering rather than aggressively pre-positioning, and its "aim_offset" logic flips sign with `ball_dy` in a way that fights the intercept rather than reliably producing spiky returns. Combined with a small dead zone (2.0) and a noisy `return_intercept` prediction (single-bounce, ignores ball's actual reflected dy after enemy contact), the paddle oscillates around a slightly-wrong target.
+
+## 2. Evidence from metrics
+- `paddle_jitter_count = 830` per episode — very high direction reversals.
+- `avg_ball_tracking_error = 18.6` and `max = 128.8` — paddle frequently far from ball; large max suggests catastrophic mispredictions (likely the reverse-bounce branch).
+- `interception_rate = 0.637` — ~36% of frames mis-positioned.
+- `avg_reaction_time = 15` frames — slow to commit to a direction, consistent with target oscillation.
+- `points_lost = 0` but `points_won = 17.7` (not 21) — episodes time out at 10k frames; rallies (avg 550, max 1229) are too long, meaning returns aren't aggressive/spiky enough to end points.
+
+## 3. Policy logic causing it
+- `return_intercept` uses `jnp.abs(ball_dx)` and the *same* `ball_dy` after enemy hit — physically wrong; the enemy's return angle depends on their paddle contact, not the incoming dy. This injects noise into the away-phase target, causing the paddle to chase a fictitious point and reverse direction when the ball turns around.
+- `aim_sign = where(ball_dy >= 0, -1, +1)` flips every time the ball bounces off top/bottom walls during approach, yanking the target ±5 px and producing jitter near contact.
+- `track_lead * ball_dy` while ball moves away amplifies vertical wall-bounce noise into paddle motion.
+- Dead zone of 2 px is smaller than typical per-step paddle displacement, so the paddle overshoots and reverses.
+- FIRE-combo on every move frame is fine, but `idle_action = FIRE` when ball inactive can cause unnecessary serves/state changes; not the main issue though.
+
+## 4. What to preserve
+- 52-feature layout and `prev`/`curr` indexing.
+- Forward intercept with `reflect_y` (this is the strongest component).
+- FIRE-combo movement actions (`4`/`5`) — empirically better.
+- Compact 4-parameter structure and clipping to legal paddle range.
+- Inactive-ball recentre behavior.
+
+## 5. What to change next
+- **Drop or simplify the reverse-bounce predictor**: when `ball_dx <= 0`, just park paddle at playfield center (or mirror of current ball Y), don't track a fabricated return. This will cut max tracking error and jitter dramatically.
+- **Stabilize aim_offset**: base its sign on the *intercept-relative* position (e.g. sign of `intercept - center` or sign of incoming `ball_dy` sampled only when `ball_x > approach_x` AND latched), not recomputed every frame. Or expose a constant-sign offset parameter.
+- **Increase dead_zone** to ~4–6 px to suppress the 830 reversals; add a second, larger "commit zone" parameter so far-from-target uses full speed and near-target uses NOOP.
+- **Remove `track_lead` away-phase tracking** or restrict it to small `|ball_dy|`; current form amplifies wall-bounce noise.
+- **Add an "attack mode" parameter** that, when ball is very close (`ball_x > ~120`), aims for a fixed paddle edge (top or bottom third) to consistently produce steep returns and shorten rallies — addresses the 550-frame avg rally and the 17.7/21 ceiling.
+- Keep parameter count ≤5; e.g. `{dead_zone, aim_offset, approach_x, attack_x, idle_center_bias}`.

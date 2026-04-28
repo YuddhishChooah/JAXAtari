@@ -1,0 +1,32 @@
+## 1. Root cause
+The policy scores ~11 instead of ~21 because it loses too many frames to **reactive tracking with degraded prediction quality** rather than to a structural bug. Two compounding issues: (a) the intercept prediction does not model wall bounces correctly when `time_gain ≠ 1.0` (currently 0.377, which *under-predicts* travel time and lands the paddle short), and (b) the aim-spike bias is applied to the intercept point rather than offsetting the paddle's contact point, so the paddle deliberately mis-positions relative to the true intercept, increasing tracking error and missed steep balls.
+
+## 2. Evidence from metrics
+- `avg_ball_tracking_error = 15.7` and `max = 81.3` — large, despite 98% interception rate. Paddle is consistently offset from ball.
+- `time_gain = 0.377` — far below 1.0; intercept t is being shrunk to ~38% of the true flight time, so `_fold` returns a near-current ball Y, not the true landing Y. Effectively the policy is *chasing* the ball, not predicting it.
+- `avg_reaction_time = 15` frames — slow, consistent with chasing rather than pre-positioning.
+- `paddle_jitter_count = 148` with `dead_zone = 3.4` — moderate; jitter is symptom, not cause.
+- `points_lost = 0.33` per episode — small but non-zero; combined with `episode_length = 4000` capping scoring, the bigger issue is **slow point accumulation**, not losses. Rallies are very long (343 avg), so the agent isn't ending points fast enough to reach 21 before the frame cap.
+
+## 3. Policy logic causing it
+- `_intercept` multiplies `t` by `time_gain` after computing it from geometry. With `time_gain=0.377`, the predicted Y is essentially `by + 0.377·dy·t_true`, i.e., a fraction of the way toward the true intercept. The optimizer learned a small `time_gain` to compensate for something else (likely the unfolded `aim_bias` or fold instability), not because it improves prediction.
+- `aim_bias = -sign(dy)·aim_spike` is added to `intercept_player`, then the paddle centers on that shifted target. This means the paddle deliberately offsets by ~4.5px from the true intercept — risking edge misses on fast balls. To create spiky returns you want the *paddle edge* to contact the ball, which requires aiming the paddle so the ball hits near its top/bottom — but this should only be applied when there is margin (ball is slow / well-predicted), not unconditionally.
+- `idle_target` uses `intercept_enemy` mirrored partially — fine, but `time_gain<1` corrupts this too.
+- No multi-bounce wall reflection beyond `_fold`; `_fold` is correct in principle but only useful if `t` is the true flight time.
+- FIRE gating (`fire_dist=40`) is reasonable; not a primary issue.
+- Episode length 4000 with avg rally 343 ⇒ ~11–12 points possible; the policy is rally-length-limited, not skill-limited at defense. Need **faster point conversion** via genuinely off-center hits.
+
+## 4. What to preserve
+- 52-feature layout, `prev`/`curr` split, action mapping.
+- `_fold` reflection helper (correct).
+- Two-mode target: intercept when approaching, idle pre-position when receding.
+- Dead-zone gating with FIRE-combo action selection.
+- Five-parameter compact structure.
+
+## 5. What to change next
+- **Decouple `time_gain` from the intercept prediction.** Use raw geometric `t = (PLAYER_X - bx)/dx` directly for the prediction; repurpose `time_gain` as a *lead/lag bias* added to the target (or remove it). The current multiplicative use is the dominant error source.
+- **Apply `aim_spike` as a paddle-offset, not a target-offset, and only when the ball is still far** (e.g., `dist_to_player > fire_dist`). When the ball is close, center precisely on the intercept to avoid edge misses. This preserves defense while still producing spiky returns.
+- **Make aim direction smarter:** bias toward whichever paddle edge is *opposite the enemy paddle's current Y*, not just `-sign(dy)`. Use `enemy.y` (curr[9]) so returns travel away from the opponent — this directly reduces rally length and increases points/episode.
+- **Increase `dead_zone` slightly (≈4–5)** to cut the 148 jitter reversals; combine with predictive targeting so the paddle settles instead of oscillating.
+- **Tighten `idle_track` toward 1.0** once prediction is fixed; pre-positioning at the true mirrored intercept lets the paddle be stationary when the ball returns, reducing reaction time below 15.
+- Optionally add a single parameter for "aim only when |error| < margin" to gate the spike safely.

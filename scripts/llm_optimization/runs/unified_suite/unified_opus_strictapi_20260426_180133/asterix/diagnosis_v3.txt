@@ -1,0 +1,41 @@
+# Diagnosis
+
+## 1. Root cause
+Survival is the dominant bottleneck. The policy's danger model underestimates collisions during lane transitions: it treats `transit_steps = lane_dist * 4` as if motion is instantaneous on arrival, samples horizons only up to `transit_steps + 2`, and uses a small `transit_margin` (~7.7). It also commits to diagonal lane changes without re-checking that the *path through* (current lane during the transition) and the *destination at arrival time* will both be clear with adequate buffer.
+
+## 2. Evidence from metrics
+- `hits_taken` ≈ 2.67 with `terminal_game_over` = 0.67 → episodes end via deaths, not timeout.
+- `hit_diagonal_fraction` = 0.78 → most deaths happen mid-lane-change.
+- `avg_hit_enemy_gap` ≈ 11.9 → collisions occur with enemies very close in x; the danger buffer (`transit_margin` ≈ 7.7) is smaller than the actual collision radius observed.
+- `avg_collectibles_visible` ≈ 0.53, yet `item_pickup_rate_per_1000` ≈ 9.6 and `score_rate_per_1000` ≈ 482 → harvesting works when items are present; the score ceiling is set by dying early, not by routing.
+- `respawn_rate` ≈ 0.10 → ~10% of frames lost to recovery, directly capping score density.
+- `horizontal_rate` = 0.82, `vertical_rate` = 0 → vertical commitment is rare but disproportionately fatal when it happens.
+
+## 3. Policy logic causing it
+- **Transit model too optimistic.** `transit_steps = lane_dist * 4` with horizons capped at `[0..10]` and `max_h = transit_steps + 2` misses enemies that arrive *after* the player enters the destination lane. Once in the new lane, the player still spends many frames there exposed.
+- **Single-lane danger only.** `_transit_danger` checks only the destination lane's enemy projection at the player's current `px`. It ignores: (a) enemies in the *current* lane crossing the player during the upward step, (b) the player's own x-drift during the diagonal action.
+- **Margin/threshold mismatch.** `transit_margin ≈ 7.7` is subtracted from distance, then `danger_thresh ≈ 0.84` is high — closeness must be very large to veto. Effectively, lanes are flagged safe even when an enemy is ~10 px away, matching the observed `avg_hit_enemy_gap ≈ 11.9`.
+- **No dwell-time danger.** After arrival, the policy doesn't budget for the frames the player will sit in the new lane before the next decision; enemies that are far now but moving toward the player are not penalized.
+- **Emergency escape can pick a still-unsafe lane.** `escape_lane_safe` uses the same lax threshold; when both adjacent lanes are marginal, it commits diagonally instead of pure horizontal evasion.
+- **Stay-bias and value normalization clash with safety.** `stay_bias = 0.62` is comparable to `value_w * norm_value` (max 1.0), so a 50-point item at distance 1 can lose to staying in place — but a 300-point item far away beats both even when transit risk is real, because lane-distance penalty is linear and danger is a hard veto rather than a graded cost.
+- **Anti-idle override** can flip a deliberate NOOP/dodge into a horizontal move toward an item across dangerous lanes (the `best_any` selection ignores danger entirely).
+
+## 4. What to preserve
+- Two-frame dx estimation for enemies and collectibles.
+- Lane-indexed object arrays (no re-derivation from y).
+- Value-weighted collectible scoring via `VALUE_TABLE` and visual_id.
+- Reachability cost via `lane_dist_w`.
+- Hard veto pattern for unsafe item lanes (the *structure* is right; thresholds/inputs are wrong).
+- Diagonal action selection driven by horizontal need + vertical need.
+- Compact parametric form (~7–10 scalars).
+
+## 5. What to change next
+- **Widen and graduate the safety buffer.** Increase effective `transit_margin` to ~12–16 (matches observed hit gap ~12). Replace the hard `danger_thresh` veto with a *graded* danger penalty added into `item_score`, plus a hard veto only at a high closeness (e.g., > 0.9). This avoids both reckless entries and over-vetoing.
+- **Multi-lane transit danger.** When evaluating lane L from current lane C, compute danger as the worst of: (a) current lane C during frames `0..transit_steps`, (b) every intermediate lane at its crossing time, (c) destination lane L during a *dwell window* (e.g., 8–16 frames after arrival). This addresses the 78% diagonal-death rate.
+- **Account for player x-drift during diagonals.** Project player x by ±~1.5 px/frame during transit when scoring danger, not a static `px`.
+- **Separate "abort" logic.** Before emitting a diagonal action, recompute danger for both the current lane (during the move) and the destination (at arrival + dwell). If either exceeds a stricter abort threshold, fall back to pure horizontal repositioning, even if `dest_safe` was true at decision time.
+- **Stricter emergency escape.** When `cur_dangerous`, require the escape lane to be *clearly* safer (e.g., `danger[escape] < 0.5 * cur_danger` AND below an absolute cap). Otherwise prefer horizontal flee away from the enemy. Consider DOWN (action 3) as a valid escape when both diagonals are unsafe.
+- **Make anti-idle danger-aware.** The `best_any` selection should subtract a danger term so the patrol direction doesn't aim at an item across an enemy.
+- **Rebalance value vs. distance vs. danger.** Use `norm_value` already in [0,1]; cap `lane_dist` contribution (e.g., piecewise: free for dist≤1, steep beyond) so the agent will commit to a 300-point item 2 lanes away but won't chase a 50-point item 5 lanes away through traffic. Reduce `stay_bias` (~0.2) so items reliably outscore idling.
+- **Recalibrate parameters around survival.** Suggested ranges for next search: `transit_margin ∈ [10,18]`, `danger_range ∈ [40,70]`, `danger_thresh` repurposed as graded weight `danger_w ∈ [1.5, 4.0]`, plus a new `dwell_frames ∈ [6,16]` and `abort_thresh ∈ [0.5, 0.8]`.
+- **Do not** pursue another broad rewrite emphasizing upper-lane bias or aggressive item chasing; the prior failed candidate (906) shows that route — survival fixes are the lever.

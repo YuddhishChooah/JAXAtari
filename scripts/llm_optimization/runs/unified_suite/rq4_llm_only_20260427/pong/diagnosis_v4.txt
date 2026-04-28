@@ -1,0 +1,32 @@
+## 1. Root cause
+The policy reaches the ball intercept reasonably well (win rate 100%, only ~3 points lost per match) but leaves performance on the table due to (a) excessive paddle jitter from FIRE-combo movement with a small dead zone, (b) a poorly modeled "ball moving away" branch that issues unnecessary movement, and (c) a tracking-error that is high (avg 18.6 px > paddle half-height 8 px), indicating the intercept prediction is not being followed precisely when it matters.
+
+## 2. Evidence from metrics
+- `paddle_jitter_count` = 830 per episode → many direction reversals despite `dead_zone=2`. This is the explicit warning.
+- `avg_ball_tracking_error` = 18.6 px, `max` = 128 px → paddle frequently far from ball Y, suggesting wasted motion during the "away" phase.
+- `interception_rate` = 0.637 → ~36% of frames paddle is not intercept-ready; consistent with chasing the ball during reverse phase.
+- `avg_paddle_movement` = 1.77 px/frame, `total` = 17.7k px → high motion budget, mostly non-productive.
+- `points_lost` ≈ 3, `points_won` ≈ 17.7 → defense is the bottleneck, not offense.
+
+## 3. Policy logic causing it
+- `dead_zone = 2.0` is smaller than typical per-frame paddle step, so the controller oscillates around target every frame.
+- The `track_track = curr_ball_y + track_lead*ball_dy` branch (used when ball moves away) drags the paddle around mid-screen instead of parking at a stable anticipatory spot. This contributes to jitter and tracking error.
+- The "return_intercept" computation reflects only at `ENEMY_X` with `jnp.abs(ball_dx)` and **reuses the same `ball_dy`**, ignoring that the enemy paddle's vertical contact point changes the outgoing dy. Result: a noisy estimate that is then chased.
+- `aim_offset` is applied only when `moving_toward & close`, but the close threshold (`approach_x=70`) is far from `PLAYER_X=140`; aim bias is engaged for a long horizontal distance, where intercept prediction error dominates the small offset.
+- Movement actions are always `FIRE_UP/FIRE_DOWN`; FIRE has no kinematic effect on paddle, but pairing every step with FIRE doesn't reduce jitter — issue is the control law, not the action variant.
+- No hysteresis: a single sign flip in `error` immediately reverses direction.
+
+## 4. What to preserve
+- 52-feature layout and indexing.
+- Forward `predict_intercept` with wall reflection via `reflect_y` — this is the core strength.
+- FIRE-combo movement actions (empirically better in this run).
+- Idle-when-inactive behavior and clamping to legal paddle range.
+- Compact 4-parameter structure; do not balloon into a rewrite (the 13.06 candidate shows broad rewrites regress).
+
+## 5. What to change next
+- Increase `dead_zone` to ~4–6 px (≈ paddle half-height fraction) to cut jitter; metric explicitly flags this.
+- Add simple hysteresis: require `abs_err > dead_zone + margin` to start moving and `< dead_zone` to stop, or freeze action for N frames after a reversal.
+- Replace the "ball moving away" branch with a **stationary anticipatory park position** (e.g., playfield center, or a slow EMA of recent intercepts) instead of `curr_ball_y + track_lead*ball_dy`. This will sharply reduce jitter and total movement without hurting defense.
+- Drop or down-weight the `return_intercept` reflection model — it's structurally wrong (dy is not preserved across enemy contact). A constant park target will outperform it.
+- Tighten `approach_x` (e.g., 100–120) so `aim_offset` only engages when intercept prediction is reliable; this should improve offense (spiky returns) and reduce points lost on mispredicted aims.
+- Consider an additional small parameter: `park_y` or `hysteresis_margin`, but keep total params ≤ 5–6.

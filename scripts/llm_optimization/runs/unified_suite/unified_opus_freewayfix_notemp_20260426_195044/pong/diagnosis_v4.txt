@@ -1,0 +1,32 @@
+## 1. Root cause
+The policy's intercept prediction is too coarse and the receding/idle behavior is mistargeted, so the paddle frequently lags the ball and oscillates around an inaccurate target. The hard-sign aim offset and binary "approaching" gate inject discontinuities that cause jitter without improving placement.
+
+## 2. Evidence from metrics
+- avg_ball_tracking_error 28.8 and max 105 — paddle is far from the ball a large fraction of the time despite 100% win rate.
+- interception_rate 0.54 — barely better than chance positioning.
+- paddle_jitter_count 212 with avg_paddle_movement 1.37 — frequent reversals around the dead zone.
+- avg_reaction_time 14.9 frames — slow to commit when the ball turns around (idle target is wrong on receding phase).
+- points_lost 0 but points_won only ~12/episode — rallies are long (316 avg) because the agent barely catches balls instead of finishing them; offense is weak.
+
+## 3. Policy logic causing it
+- `_predict_intercept` only fires when `dx > 0.5`; on receding balls it falls back to `idle_target = g*by + (1-g)*SCREEN_MID`, which tracks the ball at the *enemy* side rather than pre-positioning where it will return. This causes large tracking error during half of every rally and slow reaction when dx flips sign.
+- Single-step `dx`/`dy` from frame stack 2 is noisy; small velocity noise flips the `approaching` gate, switching target between aim and idle → jitter.
+- `_hard_sign(dy, 0.5)` produces a step aim offset of ±8 px that toggles as dy noise crosses zero, adding jitter near the paddle.
+- Wall-bounce folding is applied to the final raw_y but `dy` sign is not reflected for aim purposes after a bounce, so aim offset can point the wrong way after a wall bounce.
+- FIRE gating uses the same `ball_close & approaching` window as aim; no notion of *contact frame*, so spiky returns are random rather than deliberate.
+- Dead zone (3.0) plus aim offset of 8 px means tiny prediction noise crosses ±dz repeatedly → reversals.
+
+## 4. What to preserve
+- 52-feature layout, compact action set, `_fold` wall reflection.
+- Parametric structure: `dead_zone`, `aim_gain`, `fire_dist`, `aim_close_dist`, plus a small idle/anticipation parameter.
+- Predict-intercept-then-error-then-action pipeline; clipping target to playfield.
+- FIRE-combo usage near contact (it helped vs movement-only).
+
+## 5. What to change next
+- Replace the receding-phase idle target: predict where the ball will return by simulating to the enemy x, folding, then back to PLAYER_X using |dx|; or simply pre-position to a learned anticipation point (e.g., mirror of ball_y around center, or weighted toward last intercept). This directly attacks the 28.8 tracking error and 14.9 reaction time.
+- Smooth velocity: use `dx`,`dy` but clamp magnitudes and add a minimum-speed floor; remove the binary `approaching` gate by using a soft weight (e.g., sigmoid on dx) so target doesn't snap between aim and idle.
+- Replace `_hard_sign(dy)` aim offset with a continuous offset proportional to a *miss-direction* signal (sign of error at predicted intercept) scaled by `aim_gain`, only when |error| is small — this turns aim into deliberate off-center contact rather than dy-driven toggling.
+- Make dead zone asymmetric/scaled: larger dead zone when |error| is small AND ball far; near-zero dead zone when ball is close and approaching. Add this as one extra parameter rather than one global `dead_zone`.
+- Tighten FIRE window: only enable FIRE on the 1–3 frames where dist_to_player < ~6 (contact), not the entire close region; keeps spiky returns intentional.
+- After fold, recompute effective dy sign for aim offset so post-bounce aiming is correct.
+- Consider a small hysteresis: latch last movement direction unless |error| exceeds dead_zone + small margin, to cut the 212 jitter count without raising lag.

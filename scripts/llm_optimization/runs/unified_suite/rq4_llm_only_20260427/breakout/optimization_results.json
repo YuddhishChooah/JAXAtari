@@ -1,0 +1,252 @@
+{
+  "best_score": 166.0,
+  "seed": 20260473,
+  "config": {
+    "llm_provider": "anthropic",
+    "llm_model": "claude-opus-4-7",
+    "api_key": "<redacted>",
+    "max_tokens": 8192,
+    "temperature": null,
+    "num_parallel_envs": 8,
+    "max_steps_per_episode": 10000,
+    "num_eval_episodes": 16,
+    "frame_stack_size": 0,
+    "search_max_steps": 10000,
+    "optimizer": "none",
+    "num_param_samples": 16,
+    "param_perturbation_scale": 0.3,
+    "cma_es_generations": 4,
+    "max_iterations": 5,
+    "target_score": 1000000000.0,
+    "diagnostic_refinement": true,
+    "resume_from_results": false,
+    "resume_best_params_for_cma": true,
+    "refresh_resume_metrics": true,
+    "stop_on_strong_best": false,
+    "output_dir": "scripts\\llm_optimization\\runs\\unified_suite\\rq4_llm_only_20260427\\breakout",
+    "verbose": true,
+    "save_intermediate": true,
+    "seed": 20260473
+  },
+  "runtime": {
+    "timestamp": "2026-04-27 17:47:49",
+    "python_version": "3.12.8 (tags/v3.12.8:2dc476b, Dec  3 2024, 19:30:04) [MSC v.1942 64 bit (AMD64)]",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "numpy_version": "1.26.4",
+    "jax_version": "0.6.0",
+    "git_commit": "0e949a9cca8e23eacac343f1c2272d333138b19f"
+  },
+  "best_params": {
+    "dead_zone": 2.0,
+    "lead": 0.18000000715255737,
+    "anchor_x": 80.0,
+    "anchor_pull": 0.05000000074505806
+  },
+  "best_metrics": {
+    "avg_return": 166.0,
+    "avg_player_score": 166.0,
+    "avg_enemy_score": 0.0,
+    "win_rate": 1.0,
+    "total_rewards": [
+      135.0,
+      432.0,
+      103.0,
+      32.0,
+      89.0,
+      83.0,
+      418.0,
+      8.0,
+      414.0,
+      7.0,
+      24.0,
+      91.0,
+      15.0,
+      410.0,
+      179.0,
+      216.0
+    ],
+    "player_scores": [
+      135.0,
+      432.0,
+      103.0,
+      32.0,
+      89.0,
+      83.0,
+      418.0,
+      8.0,
+      414.0,
+      7.0,
+      24.0,
+      91.0,
+      15.0,
+      410.0,
+      179.0,
+      216.0
+    ],
+    "enemy_scores": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "search_avg_return": 139.5,
+    "search_avg_player_score": 139.5,
+    "search_avg_enemy_score": 0.0,
+    "search_win_rate": 1.0,
+    "logger_metrics": {
+      "blocks_broken": 81.0,
+      "blocks_remaining": 27.0,
+      "block_clear_percentage": 0.75,
+      "avg_ball_tracking_error": 2.6692112057421276,
+      "max_ball_tracking_error": 71.0,
+      "total_paddle_movement": 14672.0,
+      "avg_paddle_movement": 1.9056732799770861,
+      "lives_remaining": 4.666666666666667,
+      "lives_lost": 0.3333333333333333,
+      "final_score": 295.0,
+      "block_clear_rate": 10.307496893419861,
+      "max_hit_streak": 81.0,
+      "avg_hit_streak": 81.0,
+      "episode_length": 7563.333333333333
+    }
+  },
+  "history": [
+    {
+      "iteration": 1,
+      "metrics": {
+        "avg_return": 166.0,
+        "avg_player_score": 166.0,
+        "avg_enemy_score": 0.0,
+        "win_rate": 1.0,
+        "search_avg_return": 139.5,
+        "search_avg_player_score": 139.5,
+        "search_avg_enemy_score": 0.0,
+        "search_win_rate": 1.0,
+        "logger_metrics": {
+          "blocks_broken": 81.0,
+          "blocks_remaining": 27.0,
+          "block_clear_percentage": 0.75,
+          "avg_ball_tracking_error": 2.6692112057421276,
+          "max_ball_tracking_error": 71.0,
+          "total_paddle_movement": 14672.0,
+          "avg_paddle_movement": 1.9056732799770861,
+          "lives_remaining": 4.666666666666667,
+          "lives_lost": 0.3333333333333333,
+          "final_score": 295.0,
+          "block_clear_rate": 10.307496893419861,
+          "max_hit_streak": 81.0,
+          "avg_hit_streak": 81.0,
+          "episode_length": 7563.333333333333
+        }
+      },
+      "best_params": {
+        "dead_zone": 2.0,
+        "lead": 0.18000000715255737,
+        "anchor_x": 80.0,
+        "anchor_pull": 0.05000000074505806
+      },
+      "filepath": "scripts\\llm_optimization\\runs\\unified_suite\\rq4_llm_only_20260427\\breakout\\policy_v1.py"
+    },
+    {
+      "iteration": 2,
+      "metrics": {
+        "avg_return": 54.375,
+        "avg_player_score": 54.375,
+        "avg_enemy_score": 0.0,
+        "win_rate": 1.0,
+        "search_avg_return": 25.375,
+        "search_avg_player_score": 25.375,
+        "search_avg_enemy_score": 0.0,
+        "search_win_rate": 1.0
+      },
+      "best_params": {
+        "dead_zone": 1.5,
+        "commit_zone": 4.0,
+        "k_lead": 0.550000011920929,
+        "anchor_x": 80.0,
+        "anchor_pull": 0.25,
+        "descend_gain": 1.0
+      },
+      "filepath": "scripts\\llm_optimization\\runs\\unified_suite\\rq4_llm_only_20260427\\breakout\\policy_v2.py"
+    },
+    {
+      "iteration": 3,
+      "metrics": {
+        "avg_return": 56.1875,
+        "avg_player_score": 56.1875,
+        "avg_enemy_score": 0.0,
+        "win_rate": 1.0,
+        "search_avg_return": 39.625,
+        "search_avg_player_score": 39.625,
+        "search_avg_enemy_score": 0.0,
+        "search_win_rate": 1.0
+      },
+      "best_params": {
+        "dead_zone": 1.5,
+        "descend_gain": 0.550000011920929,
+        "ascend_dead_zone": 6.0,
+        "vx_scale": 1.100000023841858,
+        "corner_bias": 3.5,
+        "ascend_anchor": 80.0
+      },
+      "filepath": "scripts\\llm_optimization\\runs\\unified_suite\\rq4_llm_only_20260427\\breakout\\policy_v3.py"
+    },
+    {
+      "iteration": 4,
+      "metrics": {
+        "avg_return": 92.125,
+        "avg_player_score": 92.125,
+        "avg_enemy_score": 0.0,
+        "win_rate": 1.0,
+        "search_avg_return": 47.75,
+        "search_avg_player_score": 47.75,
+        "search_avg_enemy_score": 0.0,
+        "search_win_rate": 1.0
+      },
+      "best_params": {
+        "dead_zone": 1.5,
+        "lead_gain": 0.41999998688697815,
+        "anchor_x": 76.0,
+        "anchor_pull": 0.3499999940395355,
+        "descend_y": 110.0,
+        "aim_offset": 3.0
+      },
+      "filepath": "scripts\\llm_optimization\\runs\\unified_suite\\rq4_llm_only_20260427\\breakout\\policy_v4.py"
+    },
+    {
+      "iteration": 5,
+      "metrics": {
+        "avg_return": 118.5,
+        "avg_player_score": 118.5,
+        "avg_enemy_score": 0.0,
+        "win_rate": 1.0,
+        "search_avg_return": 173.625,
+        "search_avg_player_score": 173.625,
+        "search_avg_enemy_score": 0.0,
+        "search_win_rate": 1.0
+      },
+      "best_params": {
+        "dead_zone": 3.0,
+        "lead_gain": 0.3499999940395355,
+        "descent_y": 110.0,
+        "urgency_sharp": 0.07999999821186066,
+        "anchor_x": 80.0,
+        "edge_bias": 4.0
+      },
+      "filepath": "scripts\\llm_optimization\\runs\\unified_suite\\rq4_llm_only_20260427\\breakout\\policy_v5.py"
+    }
+  ],
+  "best_policy_path": "scripts\\llm_optimization\\runs\\unified_suite\\rq4_llm_only_20260427\\breakout\\policy_v1.py"
+}

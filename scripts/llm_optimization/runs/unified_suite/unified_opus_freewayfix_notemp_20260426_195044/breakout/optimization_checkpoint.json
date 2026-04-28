@@ -1,0 +1,251 @@
+{
+  "best_score": 64.4375,
+  "seed": 9953,
+  "config": {
+    "llm_provider": "anthropic",
+    "llm_model": "claude-opus-4-7",
+    "api_key": "<redacted>",
+    "max_tokens": 8192,
+    "temperature": null,
+    "num_parallel_envs": 8,
+    "max_steps_per_episode": 4000,
+    "num_eval_episodes": 16,
+    "frame_stack_size": 0,
+    "search_max_steps": 2000,
+    "optimizer": "cma-es",
+    "num_param_samples": 16,
+    "param_perturbation_scale": 0.3,
+    "cma_es_generations": 4,
+    "max_iterations": 5,
+    "target_score": 1000000000.0,
+    "diagnostic_refinement": true,
+    "resume_from_results": false,
+    "resume_best_params_for_cma": true,
+    "refresh_resume_metrics": true,
+    "stop_on_strong_best": false,
+    "output_dir": "scripts\\llm_optimization\\runs\\unified_suite\\unified_opus_freewayfix_notemp_20260426_195044\\breakout",
+    "verbose": true,
+    "save_intermediate": true,
+    "seed": 9953
+  },
+  "runtime": {
+    "timestamp": "2026-04-26 21:01:24",
+    "python_version": "3.12.8 (tags/v3.12.8:2dc476b, Dec  3 2024, 19:30:04) [MSC v.1942 64 bit (AMD64)]",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "numpy_version": "1.26.4",
+    "jax_version": "0.6.0",
+    "git_commit": "0e949a9cca8e23eacac343f1c2272d333138b19f"
+  },
+  "best_params": {
+    "dead_zone": 2.5613253116607666,
+    "fire_bias": 0.8581287860870361,
+    "lead": 0.09463681280612946,
+    "urgency_y": 139.7843017578125
+  },
+  "best_metrics": {
+    "avg_return": 64.4375,
+    "avg_player_score": 64.4375,
+    "avg_enemy_score": 0.0,
+    "win_rate": 1.0,
+    "total_rewards": [
+      57.0,
+      43.0,
+      65.0,
+      14.0,
+      56.0,
+      68.0,
+      12.0,
+      53.0,
+      11.0,
+      57.0,
+      46.0,
+      335.0,
+      25.0,
+      72.0,
+      49.0,
+      68.0
+    ],
+    "player_scores": [
+      57.0,
+      43.0,
+      65.0,
+      14.0,
+      56.0,
+      68.0,
+      12.0,
+      53.0,
+      11.0,
+      57.0,
+      46.0,
+      335.0,
+      25.0,
+      72.0,
+      49.0,
+      68.0
+    ],
+    "enemy_scores": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "search_avg_return": 18.75,
+    "search_avg_player_score": 18.75,
+    "search_avg_enemy_score": 0.0,
+    "search_win_rate": 1.0,
+    "logger_metrics": {
+      "blocks_broken": 33.666666666666664,
+      "blocks_remaining": 74.33333333333333,
+      "block_clear_percentage": 0.3117283950617284,
+      "avg_ball_tracking_error": 2.668140586797066,
+      "max_ball_tracking_error": 81.0,
+      "total_paddle_movement": 6272.333333333333,
+      "avg_paddle_movement": 1.669247001957358,
+      "lives_remaining": 4.666666666666667,
+      "lives_lost": 0.3333333333333333,
+      "final_score": 48.666666666666664,
+      "block_clear_rate": 8.954360228198858,
+      "max_hit_streak": 33.666666666666664,
+      "avg_hit_streak": 33.666666666666664,
+      "episode_length": 3757.3333333333335
+    }
+  },
+  "history": [
+    {
+      "iteration": 1,
+      "metrics": {
+        "avg_return": 64.4375,
+        "avg_player_score": 64.4375,
+        "avg_enemy_score": 0.0,
+        "win_rate": 1.0,
+        "search_avg_return": 18.75,
+        "search_avg_player_score": 18.75,
+        "search_avg_enemy_score": 0.0,
+        "search_win_rate": 1.0,
+        "logger_metrics": {
+          "blocks_broken": 33.666666666666664,
+          "blocks_remaining": 74.33333333333333,
+          "block_clear_percentage": 0.3117283950617284,
+          "avg_ball_tracking_error": 2.668140586797066,
+          "max_ball_tracking_error": 81.0,
+          "total_paddle_movement": 6272.333333333333,
+          "avg_paddle_movement": 1.669247001957358,
+          "lives_remaining": 4.666666666666667,
+          "lives_lost": 0.3333333333333333,
+          "final_score": 48.666666666666664,
+          "block_clear_rate": 8.954360228198858,
+          "max_hit_streak": 33.666666666666664,
+          "avg_hit_streak": 33.666666666666664,
+          "episode_length": 3757.3333333333335
+        }
+      },
+      "best_params": {
+        "dead_zone": 2.5613253116607666,
+        "fire_bias": 0.8581287860870361,
+        "lead": 0.09463681280612946,
+        "urgency_y": 139.7843017578125
+      },
+      "filepath": "scripts\\llm_optimization\\runs\\unified_suite\\unified_opus_freewayfix_notemp_20260426_195044\\breakout\\policy_v1.py"
+    },
+    {
+      "iteration": 2,
+      "metrics": {
+        "avg_return": 48.75,
+        "avg_player_score": 48.75,
+        "avg_enemy_score": 0.0,
+        "win_rate": 1.0,
+        "search_avg_return": 21.375,
+        "search_avg_player_score": 21.375,
+        "search_avg_enemy_score": 0.0,
+        "search_win_rate": 1.0
+      },
+      "best_params": {
+        "aim_offset": 2.5326120853424072,
+        "dead_zone": 2.792405605316162,
+        "descend_dead_zone": 1.5261871814727783,
+        "fire_bias": 0.19418096542358398,
+        "offset_side_gain": 0.8472270965576172,
+        "urgency_y": 139.3985137939453
+      },
+      "filepath": "scripts\\llm_optimization\\runs\\unified_suite\\unified_opus_freewayfix_notemp_20260426_195044\\breakout\\policy_v2.py"
+    },
+    {
+      "iteration": 3,
+      "metrics": {
+        "avg_return": 47.75,
+        "avg_player_score": 47.75,
+        "avg_enemy_score": 0.0,
+        "win_rate": 1.0,
+        "search_avg_return": 17.25,
+        "search_avg_player_score": 17.25,
+        "search_avg_enemy_score": 0.0,
+        "search_win_rate": 1.0
+      },
+      "best_params": {
+        "aim_offset": 2.749040365219116,
+        "dead_zone_high": 4.590213775634766,
+        "dead_zone_low": 1.7771921157836914,
+        "fire_bias": 0.1295749843120575,
+        "home_x": 79.97071075439453,
+        "y_threshold": 120.2760009765625
+      },
+      "filepath": "scripts\\llm_optimization\\runs\\unified_suite\\unified_opus_freewayfix_notemp_20260426_195044\\breakout\\policy_v3.py"
+    },
+    {
+      "iteration": 4,
+      "metrics": {
+        "avg_return": 64.125,
+        "avg_player_score": 64.125,
+        "avg_enemy_score": 0.0,
+        "win_rate": 1.0,
+        "search_avg_return": 22.0,
+        "search_avg_player_score": 22.0,
+        "search_avg_enemy_score": 0.0,
+        "search_win_rate": 1.0
+      },
+      "best_params": {
+        "aim_offset": 2.050300359725952,
+        "dead_zone_far": 4.6045355796813965,
+        "dead_zone_near": 1.9281984567642212,
+        "lead": 0.13642394542694092,
+        "y_split": 120.20630645751953
+      },
+      "filepath": "scripts\\llm_optimization\\runs\\unified_suite\\unified_opus_freewayfix_notemp_20260426_195044\\breakout\\policy_v4.py"
+    },
+    {
+      "iteration": 5,
+      "metrics": {
+        "avg_return": 21.9375,
+        "avg_player_score": 21.9375,
+        "avg_enemy_score": 0.0,
+        "win_rate": 1.0,
+        "search_avg_return": 14.5,
+        "search_avg_player_score": 14.5,
+        "search_avg_enemy_score": 0.0,
+        "search_win_rate": 1.0
+      },
+      "best_params": {
+        "aim_offset": 5.915576934814453,
+        "dead_zone_asc": 5.833144187927246,
+        "dead_zone_desc": 1.9670991897583008,
+        "descent_y": 139.97726440429688,
+        "fire_bias": 0.47159773111343384,
+        "side_bias_gain": 4.845982074737549
+      },
+      "filepath": "scripts\\llm_optimization\\runs\\unified_suite\\unified_opus_freewayfix_notemp_20260426_195044\\breakout\\policy_v5.py"
+    }
+  ],
+  "best_policy_path": "scripts\\llm_optimization\\runs\\unified_suite\\unified_opus_freewayfix_notemp_20260426_195044\\breakout\\policy_v1.py"
+}

@@ -1,0 +1,33 @@
+## 1. Root cause
+The policy tracks the ball's *current* x position with a weak proportional lead, but it has no notion of ball direction or vertical-velocity-aware interception. It also blends in a center anchor most strongly when the ball is high (where lead error is largest), which actively pulls the paddle away from where the ball will land. Result: the paddle arrives late on diagonal descents and clears ~75% of bricks instead of completing the board.
+
+## 2. Evidence from metrics
+- `block_clear_percentage = 0.75` and `blocks_remaining = 27`: episodes end mid-clear, suggesting the harder edge/corner bricks (which need precise diagonal interception) are missed.
+- `max_ball_tracking_error = 71`: at some moment the paddle is 71 px from the ball — far beyond `dead_zone=2`. Indicates catastrophic mispositioning, not jitter.
+- `avg_ball_tracking_error = 2.67` only slightly above `dead_zone`: average tracking is fine, but worst-case is terrible — typical of a reactive (no-velocity) controller surprised by direction changes.
+- `avg_paddle_movement = 1.9` per frame with `total = 14672`: paddle is in near-constant motion, consistent with chasing rather than predicting.
+- `lives_lost = 0.33`: deaths are rare but do occur, capping returns.
+- `avg_hit_streak = max_hit_streak = 81`: a single long rally then stall — once the ball reaches a geometry the reactive controller can't solve, progress halts.
+
+## 3. Policy logic causing it
+- **No velocity / no memory**: `policy(obs_flat, params)` is purely positional. It cannot distinguish a ball moving toward vs. away from the paddle, so it tracks both equally — wasting movement and mispositioning for the next bounce.
+- **Urgency schedule is inverted in effect**: `urgency = ball_y/180` makes the anchor dominate when the ball is high. But "ball high" is exactly when you should be *pre-positioning* under its predicted landing x. Anchoring to x=80 when the ball is at x=140 high up guarantees a long late chase.
+- **Lead is proportional to (ball_x − paddle_cx)**, not to ball motion. This is just a gain on the error, not a true lead; it cannot anticipate diagonal trajectories.
+- **Single dead_zone, no hysteresis**: fine here (movement isn't pathological), but combined with constant chasing it produces the high `total_paddle_movement`.
+- **FIRE only when `ball_active==False`**: fine, but no "fire to break sticky/tunnel situations" — not the main issue.
+
+## 4. What to preserve
+- Compact 4–6 parameter structure and CMA-ES friendliness.
+- `_paddle_center` computation and dead-zone-based discrete action selection.
+- FIRE-on-inactive-ball gating.
+- The idea of an anchor / default position (it stabilizes between rallies).
+
+## 5. What to change next
+- **Introduce ball velocity without state**: derive a pseudo-velocity proxy from observation channels you already have. Specifically, `ball.orientation` (obs[15]) and/or `ball.state` (obs[14]) likely encode direction; use them to sign the lead. If unreliable, approximate vertical phase from `ball_y` and horizontal intent from `(ball_x − anchor_x)` sign.
+- **Predictive interception target**: replace `target = ball_x + lead*(ball_x − paddle_cx)` with `target = ball_x + k_lead * dir_x * (screen_bottom − ball_y)`, i.e. project where the ball will be when it reaches paddle height. Add one parameter `k_lead` (slope) and rely on a direction sign.
+- **Flip the urgency blend**: when ball is *high and descending*, commit to the predicted landing x (not the anchor). Anchor should dominate only when the ball is *ascending* or inactive. This is the single highest-leverage fix for `max_tracking_error=71`.
+- **Add a small "wall reflection" awareness via clamping**: clamp the predicted target to `[wall_left, wall_right]` so leads beyond the wall fold back — this handles the diagonal-corner bricks that are likely the unbroken 27.
+- **Add a hysteresis / second dead-zone parameter** (`commit_zone > dead_zone`) to reduce paddle thrash once near target; should lower `total_paddle_movement` and improve fine alignment for edge bricks.
+- **Parameter budget suggestion (6)**: `dead_zone`, `commit_zone`, `k_lead`, `anchor_x`, `anchor_pull`, `descend_gain` (weight applied only when ball descending). Keep `anchor_pull` small and gated on ascending phase.
+
+Expected effect: lower `max_ball_tracking_error`, higher `block_clear_percentage` (the remaining 27 bricks are typically corner/edge bricks needing predictive positioning), and reduced `lives_lost` toward 0.

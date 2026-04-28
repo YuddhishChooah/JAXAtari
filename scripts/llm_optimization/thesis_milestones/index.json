@@ -1,0 +1,18 @@
+{
+  "purpose": "Chronological thesis milestone snapshots for LeGPS. Each file freezes the project status, evidence, risks, and next steps at a specific point in time.",
+  "policy": {
+    "format": "One JSON file per milestone.",
+    "naming": "YYYY-MM-DD_short_description.json",
+    "update_rule": "Do not overwrite old milestones. Add a new milestone file and update latest_milestone when the thesis state meaningfully changes.",
+    "scope": "Milestones should capture interpretation, evidence status, known risks, and next steps. They should not store API keys or private credentials."
+  },
+  "latest_milestone": "2026-04-27_project_status_after_rq4_first_pass.json",
+  "milestones": [
+    {
+      "date": "2026-04-27",
+      "file": "2026-04-27_project_status_after_rq4_first_pass.json",
+      "title": "Project status after canonical reproducibility and first RQ4 ablation",
+      "summary": "The project has a working LeGPS prototype, canonical reproducibility for five games, and first optimizer-ablation evidence, but still lacks seeded reruns, systematic shortcut tests, and broader environment coverage."
+    }
+  ]
+}

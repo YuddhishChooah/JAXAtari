@@ -1,0 +1,161 @@
+
+============================================================
+Game: FREEWAY
+Optimizer: none
+Search Horizon: 10000 steps
+Evaluation Horizon: 10000 steps
+Output: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\freeway
+============================================================
+
+Logger initialized for freeway
+============================================================
+LLM Policy Optimization Loop for JAXAtari FREEWAY
+============================================================
+
+============================================================
+Outer-loop step 1/5 (policy v1)
+============================================================
+Requesting initial policy from LLM...
+Saved policy to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\freeway\policy_v1.py
+Successfully loaded policy module
+
+Evaluating LLM-chosen parameters directly (no inner optimizer)...
+  No-search ablation: evaluated LLM init_params directly return=16.00, win_rate=100.00%
+
+Results for iteration 1:
+  Search Return (10000 steps): 16.00
+  Average Return: 16.00
+  Player Score: 16.00
+  Enemy Score: 0.00
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 17 metrics
+    crossings: 16.000
+    collision_count: 24.333
+    collision_rate: 0.603
+    avg_upward_progress: 0.015
+    total_upward_progress: 3170.333
+  >>> New best overall!
+Checkpoint saved to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\freeway\optimization_checkpoint.json
+
+============================================================
+Outer-loop step 2/5 (policy v2)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\freeway\diagnosis_v2.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\freeway\policy_v2.py
+Successfully loaded policy module
+
+Evaluating LLM-chosen parameters directly (no inner optimizer)...
+  No-search ablation: evaluated LLM init_params directly return=22.12, win_rate=100.00%
+
+Results for iteration 2:
+  Search Return (10000 steps): 22.12
+  Average Return: 22.31
+  Player Score: 22.31
+  Enemy Score: 0.00
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 17 metrics
+    crossings: 22.000
+    collision_count: 38.333
+    collision_rate: 0.635
+    avg_upward_progress: 0.004
+    total_upward_progress: 4305.667
+  >>> New best overall!
+Checkpoint saved to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\freeway\optimization_checkpoint.json
+
+============================================================
+Outer-loop step 3/5 (policy v3)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\freeway\diagnosis_v3.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\freeway\policy_v3.py
+Successfully loaded policy module
+
+Evaluating LLM-chosen parameters directly (no inner optimizer)...
+  No-search ablation: evaluated LLM init_params directly return=25.00, win_rate=100.00%
+
+Results for iteration 3:
+  Search Return (10000 steps): 25.00
+  Average Return: 24.94
+  Player Score: 24.94
+  Enemy Score: 0.00
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 17 metrics
+    crossings: 26.000
+    collision_count: 42.667
+    collision_rate: 0.621
+    avg_upward_progress: 0.006
+    total_upward_progress: 4936.667
+  >>> New best overall!
+Checkpoint saved to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\freeway\optimization_checkpoint.json
+
+============================================================
+Outer-loop step 4/5 (policy v4)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\freeway\diagnosis_v4.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\freeway\policy_v4.py
+Successfully loaded policy module
+
+Evaluating LLM-chosen parameters directly (no inner optimizer)...
+  No-search ablation: evaluated LLM init_params directly return=21.50, win_rate=100.00%
+
+Results for iteration 4:
+  Search Return (10000 steps): 21.50
+  Average Return: 21.50
+  Player Score: 21.50
+  Enemy Score: 0.00
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 17 metrics
+    crossings: 22.000
+    collision_count: 41.000
+    collision_rate: 0.651
+    avg_upward_progress: 0.008
+    total_upward_progress: 4400.667
+Checkpoint saved to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\freeway\optimization_checkpoint.json
+
+============================================================
+Outer-loop step 5/5 (policy v5)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\freeway\diagnosis_v5.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\freeway\policy_v5.py
+Successfully loaded policy module
+
+Evaluating LLM-chosen parameters directly (no inner optimizer)...
+  No-search ablation: evaluated LLM init_params directly return=17.75, win_rate=100.00%
+
+Results for iteration 5:
+  Search Return (10000 steps): 17.75
+  Average Return: 18.19
+  Player Score: 18.19
+  Enemy Score: 0.00
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 17 metrics
+    crossings: 17.333
+    collision_count: 46.000
+    collision_rate: 0.726
+    avg_upward_progress: 0.017
+    total_upward_progress: 3965.333
+Checkpoint saved to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\freeway\optimization_checkpoint.json
+
+============================================================
+Optimization Complete!
+============================================================
+Best Score Achieved: 24.94
+Total Iterations: 5
+Results saved to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\freeway\optimization_results.json

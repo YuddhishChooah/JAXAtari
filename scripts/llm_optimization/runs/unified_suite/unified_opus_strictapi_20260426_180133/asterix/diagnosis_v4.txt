@@ -1,0 +1,38 @@
+## 1. Root cause
+The policy commits to a single "best" lane per tick using a value/danger score, but it has no notion of **per-step progress toward the chosen target** vs. **time-to-arrival of the collectible**. Combined with a stay-bias and a hard-veto on danger, this causes the agent to oscillate between targets and to abandon partially-completed lane changes whenever a different lane briefly looks better. The agent harvests the easy nearby items (getting it past the random/early baseline) but fails to convert mid-distance high-value items into pickups, capping it around 2k.
+
+A secondary root cause: the danger model is **symmetric in enemy direction**. Enemies moving away from the player are penalized as much as enemies moving toward the player at the same projected x, which causes the policy to over-veto perfectly safe lanes and fall back to patrol/idle behavior.
+
+## 2. Evidence from metrics
+- Final score ~2009 with 100% win rate → agent survives well but does not harvest enough; this is the classic "safe but passive" failure mode the spec warns about.
+- Failed sibling candidate: 27 pickups, 18% diagonal rate, 82% horizontal → even when forced to move, the agent stays in-lane horizontally instead of changing lanes. This pattern is consistent with a target-selection layer that keeps re-picking the current lane via `stay_bias` + `lane_cost`.
+- `hits_taken ≈ 2.67` and `respawn_rate ≈ 0.10` are low → danger model is over-conservative, not under-conservative.
+- `noop_rate = 0` but score still low → the anti-idle patrol is firing often, meaning the main scorer frequently returns NOOP (i.e., target == current lane, target_x ≈ px). The agent is "busy" moving laterally on empty lanes rather than committing to lane changes.
+
+## 3. Policy logic causing it
+- `stay_bias = 0.64` added to the **current lane's item score** strongly biases re-selecting the current lane even when it has no item (because `item_candidate` masks it out, but when the current lane *does* have a low-value item, stay_bias dominates `value_w * norm_value` for a 50-pt item: 0.64 vs 1.23 * 0.17 ≈ 0.20).
+- `lane_cost` piecewise jumps from 0.3 (adjacent) to 1.3 (2 lanes away). With `lane_dist_w = 0.85`, a 2-lane move costs ~1.1, which exceeds the value of a 100-pt item (norm 0.33 × 1.23 ≈ 0.41). The policy structurally refuses to chase anything beyond adjacent lanes.
+- `transit_safe` uses `path_d < 0.7` over **all intervening lanes**, including lanes the agent only diagonally crosses through briefly. Any single momentarily-close enemy anywhere in the path aborts the move and reverts to `horiz_action` (which on `same_lane=False` is just NOOP→fallback_patrol). This produces the observed high horizontal / low diagonal ratio.
+- `_lane_danger` uses `|proj - player_x|` with no sign awareness of `e_dx`. An enemy moving away at x=px+10 looks identical to one approaching at x=px-10.
+- `intercept_w = 0.30` × `intercept_dist` (which can be ~80 px) dominates `value_w * norm_value`. A 300-pt item 40 px away scores 1.23 - 12 = -10.8, losing to a 50-pt item 5 px away. Value ranking is effectively destroyed by the intercept term magnitude.
+- The c_dx projection uses `transit_steps = lane_dist * 4.0` but applies it to the **collectible's** dx, not subtracted from the player's reachable x window — this overestimates how far an item will have drifted by arrival.
+
+## 4. What to preserve
+- Two-frame dx estimation for enemies and collectibles.
+- Lane-aligned indexing (no y-coordinate rediscovery).
+- Value table from `visual_id` and value-weighted scoring concept.
+- `_path_danger` for transit safety (the *idea* is right; the threshold and scope are wrong).
+- Diagonal-action selection based on enemy side.
+- Hard-veto only at very high closeness (graded danger > hard cutoff) — this part is healthy.
+- Compact parametric form with ~7 scalars.
+
+## 5. What to change next
+- **Rescale `intercept_w` by ~10×** smaller (or normalize `intercept_dist` by ~80 px) so value ranking dominates among reachable items. The current term overwhelms `value_w`.
+- **Make danger directional**: weight `closeness` by an "approach" factor like `max(0, sign(player_x - e_x) * e_dx)` so receding enemies don't veto safe lanes.
+- **Reduce `stay_bias` to ~0.1–0.2** and only apply it when the current lane *has an active item*, never as a tiebreaker against other item lanes.
+- **Flatten `lane_cost`**: use a small linear cost (e.g., 0.15 × lane_dist) rather than a piecewise jump at distance>1. The agent must be willing to traverse 2–3 lanes for 200/300-pt items.
+- **Add target persistence (no recurrent state needed)**: bias selection toward the lane whose collectible the agent is already aligned with horizontally, by giving a bonus when `|c_x - px| < threshold` AND lane is reachable. This prevents per-tick target flipping without memory.
+- **Fix `transit_safe`**: compute path danger using horizons matched to *each lane's arrival time* (already partly there in `_lane_danger`), not the worst-over-all-horizons used currently. And lower `abort_thresh` only for the destination lane; intervening lanes should use a higher abort threshold since the agent only briefly crosses them diagonally.
+- **Remove the symmetric anti-idle fallback patrol** and replace its behavior by ensuring the main scorer always picks a productive action; the patrol currently masks bugs in the main path.
+- **Reachability-weighted value**: divide expected value by `(1 + lane_dist)` instead of subtracting a lane cost — this naturally prefers a 300-pt item 3 lanes away (75) over a 50-pt item 1 lane away (25), which the current additive form fails to do.
+- Consider parameterizing the **danger horizon dwell window** (currently hard-coded to 10) since that controls how aggressively the agent can pass through lanes.

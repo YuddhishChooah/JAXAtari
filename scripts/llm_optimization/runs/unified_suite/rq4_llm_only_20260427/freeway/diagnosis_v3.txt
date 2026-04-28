@@ -1,0 +1,35 @@
+# Diagnosis
+
+## 1. Root cause
+The policy gates UP almost exclusively on `next_lane_dy=16` (one full lane ahead) being clear over a long horizon (10), while ignoring whether the *current* lane is safe enough to keep moving through. This produces both excessive hesitation at lane boundaries and high collision exposure mid-lane, because the chicken commits to UP based on the *future* lane but never re-checks the lane it is actually traversing.
+
+## 2. Evidence from metrics
+- `avg_crossing_time = 367.97` and `time_efficiency = 2.69` are far below what 22 crossings in 8164 frames could be (DQN reaches ~30 with much faster crossings).
+- `hesitation_rate = 33.6%` — one third of frames are NOOP, indicating the `ttc_next >= horizon_next` gate (10-frame full clearance) is too strict and stalls often.
+- `collision_rate = 0.64` per crossing and `near_miss_count = 1720` — despite waiting a lot, collisions are still frequent, so the waiting isn't actually buying safety; it's mistimed.
+- `avg_upward_progress = 0.0044` is very small relative to `up_action_rate = 0.65`: many UP actions don't translate to progress, consistent with collision knockbacks.
+- `down_action_rate = 1.7%` is appropriately rare; DOWN is not the issue.
+
+## 3. Policy logic causing it
+- **Single-gate UP**: UP requires `ttc_next >= horizon_next (10)`. A binary cliff produces "wait fully or commit fully" behavior, no graded timing.
+- **`next_lane_dy = 16` probes one lane spacing away**, but the chicken spends many frames *between* lanes; during that traversal there is no current-lane safety check controlling UP, only the emergency DOWN branch.
+- **`lane_band = 7`** is generous and likely flags cars in adjacent lanes as threats to "next", inflating wait times, while simultaneously the current-lane band misses cars when chicken is straddling lanes.
+- **No partial-progress probe**: nothing checks a *closer* probe (e.g. dy ≈ 8) representing the lane the chicken is about to enter within 1–3 frames.
+- **Emergency DOWN requires `~next_safe`**, so it never fires when the next lane appears clear even if current lane is about to hit — wasted safety net.
+- **Horizon vs. crossing time**: `horizon_next = 10` is roughly the time to traverse one lane; demanding the lane be clear for the *entire* arrival window is overconservative compared to "clear at predicted arrival ± small window".
+
+## 4. What to preserve
+- Overall UP/NOOP/rare-DOWN structure.
+- Linear extrapolation of car x via `curr - prev` and the analytic entry/exit time computation in `_min_ttc`.
+- Compact parameter set (~7 scalars) and the near-top forced-UP shortcut.
+- Separate horizons for current vs. next lane (the asymmetry is correct in spirit).
+
+## 5. What to change next
+- **Replace the single `next_safe` gate with a two-condition AND**: UP allowed iff (current lane has no imminent overlap in a *short* window, e.g. 2–4 frames) AND (next lane clear at predicted arrival, narrow window around expected arrival time, not full 0..10).
+- **Use an arrival-window check** for the next lane: instead of "clear for [0, horizon_next]", check "clear for [t_arrive − w, t_arrive + w]" with t_arrive ≈ lane_dy / chicken_speed. This removes most unnecessary waits.
+- **Add a near-probe at dy ≈ 8** (half lane) to catch the lane currently being entered; this is the missing middle term between `cy` and `cy − 16`.
+- **Tighten `lane_band_cur` to ~4–5** (chicken height is 8) so adjacent-lane cars don't trigger false current-lane danger, and keep `lane_band_next` ~6.
+- **Reduce `horizon_next` to ~6–7** and shorten `horizon_cur` to ~3; long horizons over-penalize.
+- **Loosen `x_margin` asymmetrically** by car direction: cars moving away need less margin than cars approaching. A single direction-aware margin term would cut hesitation.
+- **Make DOWN trigger independent of `next_safe`**: if current-lane TTC < ttc_emergency and lower lane is clear, escape regardless of what the next lane looks like.
+- **Bias toward UP on ties**: when current is safe and next is "marginal" (e.g. ttc_next ≥ horizon_cur but < horizon_next), still go UP rather than NOOP — the metric rewards speed and collisions are only time penalties.

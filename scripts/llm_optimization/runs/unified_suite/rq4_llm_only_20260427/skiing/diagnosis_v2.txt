@@ -1,0 +1,37 @@
+## 1. Root cause
+The policy is already perfect at gate accuracy (20/20 gates passed, 0 collisions) but is far too slow. Episodes last ~2129 steps with average_speed_y ≈ 1.18, so the dominant cost is the per-frame time penalty, not missed-gate penalties. The structural problem is that the policy never commits to a high-speed straight heading (notch 3 or 4); it sits in too-conservative steering/tuck logic that keeps the skier near a slower oblique heading.
+
+## 2. Evidence from metrics
+- gates_passed = 20, missed_gates = 0, collisions = 0 → safety is solved.
+- average_gate_center_error ≈ 6.66 px, comparable to dead_zone = 6 → the skier is essentially always "slightly off-center", which keeps steering active or blocks tucking.
+- average_speed_y = 1.18 is low; tucked straight skiing should be noticeably higher.
+- down_action_rate = 0.59, noop_rate = 0.37, turn_rate = 0.039 → very few corrections, but tuck is not converting to high downhill speed, implying heading is rarely the fast straight-down notch.
+- average_steps ≈ 2129 with reward_total ≈ -13547 → time penalty dominates; halving travel time is the biggest available win.
+
+## 3. Policy logic causing it
+- `tuck_dx = 3.0` is much smaller than the observed 6.66 px error, so DOWN engages only intermittently; most of the time `target_dx` exceeds tuck_dx and DOWN is suppressed in favor of NOOP/steer.
+- `heading_ok` requires `|ori_n| < 1.1`, i.e. only orientation notches 3 or 4 (the fast ones) — good — but combined with the strict `tuck_dx`, the skier rarely satisfies both simultaneously.
+- `ori_release = 1.6` allows the heading to settle at ±1.5 notches (orientation 315° or 45°), which are *moderate* turns, not the fast notches 3/4. So the equilibrium heading the controller drives toward is too oblique.
+- `lookahead_y = 55` is unused (select_gate ignores it), so the skier may be aiming at a far gate instead of locking on the imminent one, producing persistent small dx that prevents committing to straight tuck.
+- Recovery logic uses the same `ori_release` threshold, so it never actively recenters heading toward notch 3/4 once a turn ends; the skier drifts at moderate angles.
+- Tree avoidance uses a hard ±30 px override; with no trees encountered it's inert, but it adds no benefit either.
+- No hysteresis / no "commit to straight" once gate is approximately aligned: the skier oscillates between micro-steer and NOOP rather than locking to fast heading.
+
+## 4. What to preserve
+- Gate selection logic and aiming at `flag_x + 16`.
+- Heading-feedback gating that prevents holding LEFT/RIGHT (this is why turn_rate is only 3.9% and there are zero timeouts/horizontal stalls).
+- Sparse-correction structure (steer → release → tuck).
+- Tree-avoidance branch as a safety net.
+- Signed orientation in notches; the discretization is convenient.
+
+## 5. What to change next
+- Tighten target heading: drive orientation toward notches 3 or 4 (|ori_n| ≤ 1.0 ideally ≤ 0.5). Add a parameter like `ori_target` (≈ 0.5) and *actively* steer back toward straight whenever `|target_dx| < dead` and `|ori_n| > ori_target`. Currently recovery only fires when `|ori_n| > ori_release = 1.6`, which is too lax.
+- Decouple the dead zone for steering from the tuck threshold, and raise `tuck_dx` (or compare a *predicted* dx after lookahead, not current dx) so DOWN engages whenever the skier will be inside the gate at arrival. Predict `dx_at_gate = (gate_center - skier_x) - k*(gy - skier_y)*lateral_drift_per_y`, or simpler: tuck whenever `|dx| < gate_half_width - margin` (e.g. <12 px), since being anywhere inside the 32-px gate is sufficient.
+- Lower `ori_release` to ~1.0 so the skier stops adding turn earlier and spends more time in the fast notches.
+- Add a "speed priority" rule: if the active gate is far ahead (`gy - skier_y > lookahead_y`) and `|dx| < gate_half_width`, force DOWN regardless of small misalignment. This actually uses `lookahead_y`.
+- Use prev/curr to compute `flag_dy` and only begin steering when the gate is within a fire-time window; for far gates, prefer tuck. This converts the unused stacked frame into real lookahead.
+- Introduce small hysteresis: once aligned (`|dx| < dead`), require `|dx| > dead + h` before resuming steering, to prevent micro-oscillation that suppresses tuck.
+- Consider preferring DOWN over NOOP as the default idle action when heading is straight; current down_rate 0.59 should rise toward ~0.8+ given zero collisions.
+- Keep parameter count small: add at most `ori_target`, `tuck_inside_margin`, and reuse `lookahead_y`. Re-tune `dead_zone` downward (≈3–4) once tuck no longer depends on it.
+
+Expected effect: same 20/20 gates and 0 collisions, but average_speed_y rises and average_steps drops substantially, making the return less negative.

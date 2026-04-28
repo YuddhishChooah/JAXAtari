@@ -1,0 +1,39 @@
+## 1. Root cause
+The policy underestimates danger during vertical lane transitions and lacks a true "abort/clear" check before committing diagonals. Danger is computed only for the player's current x in the current lane; when moving diagonally, the destination lane's danger at the *future* player x is never evaluated. Combined with a coarse, linear danger function and no consideration of enemy approach direction, the agent walks into enemies while transitioning lanes.
+
+## 2. Evidence from metrics
+- `hits_taken` ≈ 2.33 with `terminal_game_over` = 0.67 → deaths, not time, end episodes.
+- `hit_diagonal_fraction` = 1.0, `hit_horizontal_fraction` = 0 → every life loss occurs on a diagonal lane change.
+- `avg_hit_enemy_gap` ≈ 31.6, just above `danger_radius` (25.2) and below `safe_threshold` (40.5) → danger threshold is mis-scaled relative to the radius where collisions actually happen.
+- `avg_collectibles_visible` ≈ 0.53 yet `item_pickup_rate_per_1000` ≈ 9.4 is moderate; `score_rate_per_1000` ≈ 468 is low → the agent does collect when items appear but spends too many frames idling/patrolling and dies before density grows.
+- `horizontal_rate` = 0.85, `vertical_rate` = 0, `noop_rate` = 0 → fallback path collapses to RIGHT, producing passive lateral drift instead of seeking.
+- `topmost_stage_index` = 0, `bottommost = 7`, `avg_stage_index` ≈ 2.8 → reachability is fine; the issue is *which* lanes it enters and *when*.
+
+## 3. Policy logic causing it
+- Danger uses only `player_x` as reference, not the destination lane's projected player x after the diagonal step; entering a lane whose enemy is at a similar x is not penalized.
+- `_lane_danger` is linear in distance with a hard cutoff at `danger_radius`; a same-lane enemy at distance 26 registers near-zero danger.
+- Enemy `orientation`/`dx` sign is ignored: an enemy moving toward the player is treated identically to one moving away. `pred_x = x + 2·dx` is symmetric and uses only a 2-step horizon.
+- Lane scoring penalizes danger of the *target* lane via `player_x`, but the diagonal commitment also crosses through the current lane — no transit-clearance check.
+- `safe_threshold` is on the same scale as `danger`, but `danger` is bounded by `danger_radius` (~25) while threshold is 40.5 → `is_dangerous` almost never fires, so escape logic is dead code.
+- Fallback when no valid collectible: `safety_score = -danger - 5·lane_dist` keeps the agent in/near the current lane and final action collapses to RIGHT — pure passive drift, not active hunting.
+- `stay_bonus` only applies when the current lane has an item; otherwise lane_dist_penalty (~14.8) dominates value (~50–300 × 1.17), often making distant high-value items unreachable in the score, biasing the agent to short trips or none.
+- `value_weight` ≈ 1.17 makes a 50-pt item worth ~58 vs. one lane of distance ≈ 14.8; reachability is roughly correct but intercept_penalty 0.5 × ~30 ≈ 15 can flip the choice unpredictably.
+
+## 4. What to preserve
+- Two-frame dx estimation for enemies and collectibles.
+- Lane-indexed object arrays (no y-based lane re-derivation).
+- Value table lookup via `visual_id` and masking inactive/zero-value lanes.
+- Compact parameterized scoring of (value, danger, lane distance, intercept distance).
+- Diagonal-action mapping for upward motion; no Python control flow.
+
+## 5. What to change next
+- Compute danger per lane at the *projected player position after the move* (current lane danger uses px; up/down lane danger uses px adjusted by expected horizontal step and a multi-step time-to-arrive). For a diagonal step, evaluate danger at intermediate frames too (transit clearance).
+- Make danger use enemy approach: scale by `sign(player_x - enemy_x) == sign(enemy_dx)` (approaching) vs. receding; only treat approaching enemies as high danger. Use a longer horizon (e.g., 4–8 frames) consistent with lane traversal time.
+- Replace the linear hinge with a smooth/exponential danger (e.g., decay with distance) so near-misses still register; keep `danger_radius` as a scale, not a hard cutoff.
+- Put `safe_threshold` and `danger_weight` on the same scale as `_lane_danger` outputs; otherwise the escape branch never triggers. Tune so dangerous lanes actually flag.
+- Add a hard veto: never choose a target lane whose transit danger exceeds a threshold, even if value is high; prefer waiting one step or sidestepping.
+- Replace the "no target → drift RIGHT" fallback with active seeking: move toward the nearest *future* collectible spawn region (e.g., toward the side where most recent collectibles appeared, or toward screen center vertically) and bias to lanes adjacent to safe ones.
+- Reduce `lane_dist_penalty` relative to `value_weight × value` so a 200/300-pt item 3 lanes away beats a 50-pt item in the current lane; let intercept_penalty handle reachability finely.
+- Use collectible `dx` sign to choose horizontal approach direction (intercept ahead of motion), and pick the diagonal whose horizontal component matches the intercept direction rather than defaulting to RIGHT on ties.
+- Consider a small NOOP/wait option when both adjacent lanes are unsafe and current lane is clear — currently rate is 0, forcing motion into danger.
+- Keep parameter count small: add at most an `approach_weight`, `transit_danger_weight`, and `danger_decay` rather than expanding the action policy.

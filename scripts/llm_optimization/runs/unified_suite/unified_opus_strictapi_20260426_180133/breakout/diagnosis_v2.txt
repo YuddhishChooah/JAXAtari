@@ -1,0 +1,31 @@
+## 1. Root cause
+The policy tracks the ball's *current* x-position rather than its *future* interception point, and the "lead" term is degenerate — it just amplifies the same paddle→ball error instead of projecting the ball's trajectory. Combined with a permanent urgency multiplier scaling the error, the controller is a slightly-tuned proportional follower with no predictive component, so it loses long rallies when the ball travels diagonally at high y.
+
+## 2. Evidence from metrics
+- `avg_ball_tracking_error = 2.4` (good steady-state) but `max_ball_tracking_error = 78` — the paddle is far off during fast diagonal descents, exactly the regime that ends rallies.
+- `lives_lost = 0.33` per episode but `block_clear_percentage = 0.28`: episodes terminate by timeout/few deaths, not by clearing — meaning rallies are surviving but slow, not that bricks are being aggressively chased.
+- `avg_hit_streak = max_hit_streak = 30.3`: the agent only ever produces one streak per life, never recovers a difficult bounce.
+- `total_paddle_movement = 5936` over 3336 frames (~1.75 px/frame) — moderate, but with a dead_zone of 3.16 the controller is mostly bang-bang, suggesting oscillation contributes to the large max error.
+- `fire_bias = 0.93` is fine; launch is not the bottleneck.
+
+## 3. Policy logic causing it
+- `target_error = raw_error + lead * (ball_x - paddle_center)` — the "lead" parameter multiplies the *positional* error, not ball velocity. It is mathematically equivalent to a gain bump, providing no predictive value.
+- No ball velocity is estimated, so the controller cannot anticipate where the ball will land. Without a frame-to-frame memory the policy must infer velocity from `ball.orientation` (index 15) or use ball.y as a crude proxy — currently neither is used.
+- `urgency = 1 + gain * y/urgency_y` scales error symmetrically whether ball is ascending or descending. During ascent this causes unnecessary aggressive moves and overshoot; the spec explicitly notes descent is the dangerous regime.
+- Dead zone (~3 px) is smaller than paddle half-width (8 px), so the paddle hunts around center rather than settling — contributes to oscillation when ball is far.
+- Ball y is normalized by a *learned* divisor (`urgency_y ≈ 140`) instead of a fixed screen height, conflating two roles (urgency threshold vs. normalization).
+
+## 4. What to preserve
+- The compact 5-parameter structure and CMA-ES-friendly scalar parameters.
+- FIRE-on-inactive launch logic (working: 100% win rate, fire_bias converged sensibly).
+- Dead-zone gating to avoid per-frame flips.
+- Paddle-center offset of +8.
+
+## 5. What to change next
+- **Use ball.orientation (obs index 15) or sign of (ball_x - paddle_center) trend** as a velocity/direction proxy, since no state is allowed. Better: read the orientation field — it likely encodes ball direction and gives true predictive signal at zero memory cost.
+- **Replace the fake "lead" with a real predictive target**: target_x = ball_x + lead * vx_proxy * (screen_bottom - ball_y). Using ball.y as time-to-impact and orientation-derived vx gives genuine interception.
+- **Make urgency one-sided**: only boost gain when ball is descending (orientation indicates downward, or ball_y above a threshold *and* increasing). Ascending phase should use lower gain to reduce overshoot.
+- **Add an asymmetric/larger dead zone** (5–10 px, near paddle half-width) to eliminate hunting; let CMA-ES tune it in a wider range.
+- **Normalize ball_y by a fixed constant** (e.g., 210) and let `urgency_y` instead act as a *threshold* below which urgency activates — decouples the two concerns.
+- Consider adding a small "return-to-center" bias when ball is inactive or far above, so the paddle starts rallies in a good position; this can be a single extra parameter.
+- Keep parameter count ≤ 7 to stay CMA-ES-tractable.

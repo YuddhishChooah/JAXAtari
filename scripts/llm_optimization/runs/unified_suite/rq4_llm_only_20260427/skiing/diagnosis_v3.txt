@@ -1,0 +1,35 @@
+## 1. Root cause
+The policy already passes all 20 gates with zero collisions, but accumulates a very long episode (~2129 steps) at low downhill speed (avg_speed_y ≈ 1.18). The dominant return loss is now **time penalty per frame**, not missed gates or crashes. The policy is over-conservative: it tucks/NOOPs too passively and steers too rarely (turn_rate ≈ 3.9%), so heading drifts toward straight but never aggressively commits to a fast downhill heading line, and lateral corrections happen late, requiring slow approach windows.
+
+## 2. Evidence from metrics
+- gates_passed = 20, collisions = 0 → safety/targeting is solved.
+- reward_total ≈ -13547 with average_steps ≈ 2129 → almost all loss is the per-frame time penalty (≈ -6/step pattern of ALE Skiing).
+- average_speed_y = 1.18 is well below the ~1.7–1.9 achievable at headings 337.5°/22.5°.
+- turn_rate = 3.9%, down_rate = 59%, noop = 37% → policy spends most frames passive; few corrective notches.
+- average_gate_center_error = 6.6 ≈ dead_zone (6.0) → skier is consistently drifting near the dead-zone edge but not correcting because dead_zone gates the steering.
+- left/right rates nearly symmetric and tiny → corrections are minimal and likely too late.
+
+## 3. Policy logic causing it
+- `dead_zone = 6` plus `tuck_dx = 3` creates a wide band (|dx|∈[3,6]) where the policy issues NOOP rather than DOWN or a corrective notch. That wastes frames neither accelerating nor steering.
+- `ori_release = 1.6` (≈ ±36°) is too permissive: it allows the heading to sit at notch ±2 (315°/45°), which has noticeably reduced y-speed. Recovery toward straight only triggers beyond ±1.6 notches, so the skier cruises diagonally for long stretches.
+- Recovery is gated on `~want_right & ~want_left`: while target_dx is non-trivial, heading is never actively recentered toward the fast notches (3/4: 337.5°/22.5°), even if a single corrective tick would suffice.
+- `lookahead_y = 55` is fine, but gate selection uses only the nearest ahead gate; there is no early pre-aim toward the *next* gate while still aligned with the current one, so the skier finishes one gate then has to brake-turn for the next.
+- DOWN is only issued when both aligned (<3 px) AND heading_ok (<1.1 notches). With heading often at ±1.5 notches, DOWN is suppressed → NOOP dominates and time accumulates.
+- Tree avoidance sets `avoid_dx = ±30` which can cause large heading swings even when the actual tree threat is marginal; combined with low turn_rate, this isn't the current loss, but it remains a latent slowdown trigger.
+
+## 4. What to preserve
+- Gate selection logic (nearest active gate ahead, aim at flag_x+16).
+- Signed-orientation feedback in 22.5° notches.
+- Heading-gated steering (don't hold LEFT/RIGHT every frame) — this is what's keeping speed from collapsing entirely.
+- Tree avoidance structure and zero-collision behavior.
+- Compact parameter dictionary; no state, no recurrence.
+
+## 5. What to change next
+- **Tighten heading band for fast cruise**: drive heading toward notches ±0.5 (i.e., 337.5°/22.5°). Reduce `ori_release` to ~0.7–1.0 so the skier actively recenters from notch ±2 back to ±1.
+- **Always allow DOWN when not actively turning**: replace the strict `aligned & heading_ok` tuck gate with "DOWN whenever no LEFT/RIGHT was chosen." Tucking even at small heading offsets is faster than NOOP and does not change heading.
+- **Shrink/remove the dead band gap**: make `tuck_dx` ≥ `dead_zone` (or eliminate the in-between NOOP zone) so every frame is either a corrective notch or a DOWN.
+- **Earlier lateral commitment**: increase `lookahead_y` (e.g., 70–90) and start steering toward the gate center as soon as it's in range, while heading is still near straight; this lets corrections finish before the gate arrives, removing late micro-adjustments that lower speed.
+- **Predictive aim using prev/curr**: use `flag_dy = curr_flag_y - prev_flag_y` to estimate frames-to-gate and pre-bias `target_dx`, so the skier aims slightly past current gate toward the next gate's x once aligned.
+- **Asymmetric thresholds for correction vs. initiation**: require a larger |dx| to *start* a turn than to *continue* recovering heading, preventing oscillation while still tightening the alignment.
+- **Soften tree avoidance magnitude**: use a graded avoid_dx proportional to proximity rather than a fixed ±30, so it doesn't over-rotate the skier when a tree is borderline.
+- Expected effect: average_steps should drop from ~2130 toward ~1400–1600 with gates_passed preserved, yielding a substantially less negative return.

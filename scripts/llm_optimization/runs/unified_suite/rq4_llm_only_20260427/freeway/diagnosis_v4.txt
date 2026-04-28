@@ -1,0 +1,37 @@
+# Diagnosis
+
+## 1. Root cause
+The policy is too permissive about stepping UP into lanes whose far-time car arrival is masked by a flawed "both fail" gating rule, while simultaneously hesitating in safe states because the current-lane window check fires on cars that have already passed. The result is a high collision rate (0.62/crossing, 42.7 collisions/episode) combined with a non-trivial 23% NOOP rate — the worst of both modes.
+
+## 2. Evidence from metrics
+- `collision_rate=0.621` and `near_miss_count=1156` per episode → contact is frequent, not rare.
+- `hesitation_rate=0.234` while `up_action_rate=0.75` → still pausing often despite collisions, so waits are mistimed (waiting in danger, stepping in danger).
+- `avg_crossing_time=311` vs `min_crossing_time=203` → ~50% slack; many crossings stall mid-road.
+- `time_efficiency=3.18` crossings/1000f ≈ DQN-equivalent throughput per crossing but capped by 8170-frame episode and collision penalties → score ceiling pinned by collisions, not crossings.
+- `down_action_rate=0.016` → emergency DOWN is essentially inert; not a contributor and not the cause.
+
+## 3. Policy logic causing it
+- `next_blocks = next_hit & near_hit`: the AND makes the next-lane arrival check almost never veto UP. As soon as `near_hit` is false (the half-lane probe is short-window and frequently clear), the agent steps up even when a car is arriving exactly at lane-entry time. This directly produces collisions on entry.
+- `_overlap_in_window` for the current lane uses `[0, horizon_cur]` with `t_enter/t_exit` derived from x-overlap times. For cars that have already overlapped the chicken column (chicken is currently being hit), `t_enter` is negative and `t_exit` may still be ≥0, so `cur_hit` stays true after the danger has actually moved on, causing hesitation right after a brush.
+- `_direction_margin` returns a binary 4.0/2.0 with no sensitivity to |dx|; fast lanes (5,6,7,8,9 with +1 dir, but speeds vary) get the same margin as slow lanes. Fast-lane entries are under-protected.
+- `arrive_t=8`, `arrive_w=4` covers t∈[4,12]; combined with the AND gate, the arrival window rarely blocks. The window is also fixed regardless of lane speed, so it under/over-shoots per lane.
+- Emergency DOWN guard `~down_hit` uses the same near-probe window; with `cur_emerg` rare and DOWN almost unused, this branch is not contributing meaningfully — fine to keep minimal.
+- No use of car height/lane-band asymmetry; `lane_band_cur=5` is tight but `cars_y` can drift, occasionally missing the actual threatening car (under-detection on current lane) while `lane_band_next=6` may include adjacent-lane cars (over-detection on next).
+
+## 4. What to preserve
+- Overall UP/NOOP structure with rare DOWN.
+- Two-frame dx estimation and projected-overlap formulation (t_enter/t_exit intersection with a window).
+- Separate checks for current lane and next lane.
+- Direction-aware x-margin concept.
+- Compact parameter set (≈8 scalars).
+- Near-top forced UP shortcut.
+
+## 5. What to change next
+- Replace `next_blocks = next_hit & near_hit` with `next_blocks = next_hit` (OR semantics: any of current-lane-soon, near-probe, or arrival-window unsafe ⇒ wait). This is the single highest-leverage fix for collision rate.
+- Clamp the current-lane window to `[0, horizon_cur]` AND require `t_exit > 0` only when `t_enter ≤ horizon_cur` — but additionally treat "car already past chicken" (t_exit < small ε given dx sign) as safe so hesitation right after a pass is removed.
+- Make x-margin scale with |dx| (e.g., `xm = base + k*|dx|`) instead of a binary 2/4 switch, so fast lanes get more buffer and slow lanes less. Add one parameter `margin_k`.
+- Make `arrive_t` adaptive: estimate it as `near_dy / max(|chicken_step|, 1)` using a fixed assumed step (e.g., 1.5 px/frame upward) rather than a hardcoded 8, so the arrival window aligns with actual transit time. Keep `arrive_w` as a parameter.
+- Tighten `lane_band_next` slightly (≈5) and keep `lane_band_cur` at 5 to reduce cross-lane false positives on the next-lane check (currently likely over-blocking on adjacent lanes while under-blocking on real threats due to the AND bug).
+- Add a small "just-passed" override: if the only current-lane hit has `t_exit < 1` and dx moves it further away, treat as clear — directly cuts the 23% hesitation.
+- Keep DOWN logic but gate it more strictly (`cur_emerg` with TTC<1.5 only); current 1.6% rate is fine, do not expand.
+- Do not add multi-lane lookahead, do not add memory/state, do not broaden parameter count beyond ~1–2 new scalars (negative evidence from v2).

@@ -1,0 +1,36 @@
+# Diagnosis
+
+## 1. Root cause
+The policy treats the chicken's *current* lane as the reference for safety checks and only considers a single car per lane at the *current frame*. It does not project where the chicken will be after stepping UP, nor where the car will be at the moment of arrival. Combined with a near-zero DOWN rate and a very high near-miss count, the chicken is repeatedly stepping into lanes whose cars are about to overlap CHICKEN_X within 1–3 frames.
+
+## 2. Evidence from metrics
+- `collision_rate = 0.66` per crossing — the dominant failure mode is being hit, not being slow.
+- `near_miss_count ≈ 800` per episode — the entry-timing predicate is firing "safe" right at the edge of car arrival.
+- `down_action_rate = 0`, despite `down_ttc=3.6` — the DOWN branch is unreachable in practice; defensive retreat never happens.
+- `hesitation_rate = 0.24` while `up_action_rate = 0.007` looks contradictory — UP is the chosen action almost every step it occurs, but the rate metric counts only literal action id 2 in the wrapper; the *decision* is UP-dominant, so collisions come from UP firings, not from indecision.
+- `avg_crossing_time = 330` frames vs. theoretical ~150 — the agent stalls in mid-lanes (`avg_y ≈ 115`), suggesting the `wait_horizon`/`safe_time` thresholds (≈8 and ≈20) leave long unsafe windows.
+- `min_crossing_time = 188` shows fast crossings exist when traffic aligns; the policy just can't reproduce the timing.
+
+## 3. Policy logic causing it
+- `_ttc_for_lane` evaluates the car relative to the chicken's *current* X/Y, but after an UP the chicken occupies `LANE_Y[lane-1]` — TTC should be computed against arrival time (≥1 frame), not "now".
+- `_lane_safe = (ttc > safe_time) | (clear > clear_px)`. The OR with a static `clear_px` defeats the timing logic: a car 11px away moving fast toward the column passes the clearance test and UP is taken into a collision.
+- Only the immediate next lane is checked rigorously; `up_safe2` is computed but unused. Two-lane look-ahead is dropped.
+- `cur_danger & down_safe` requires `cur_ttc < 3.6`. Because `_ttc_for_lane` returns 1e6 once the car has passed the column, danger almost never registers in the current lane (chicken is at fixed X, car has already crossed). DOWN is effectively dead code.
+- `_lane_index` uses argmin over LANE_Y but the chicken can be between lanes during transition; jitter near boundaries can flip the reference lane and the safety target.
+- No accounting for car *width direction*: `gap_left = car_l - chicken_r` is correct only if the car is to the right and moving left; when a left-moving car is already past chicken_r, `gap_left < 0` returns 1e6 — fine — but a left-moving car approaching from the right with `car_l` slightly less than `chicken_r` (already overlapping width) is handled only via `overlap_now`, with no lookahead for the *trailing* edge clearing.
+
+## 4. What to preserve
+- The 176-feature split and per-lane vectorized car indexing.
+- The compact 5-parameter shape (`safe_time`, `clear_px`, `finish_y`, `down_ttc`, `wait_horizon`) — tuning works, just needs better predicates beneath it.
+- UP-dominant decision tree with a `near_top` shortcut.
+- Using prev/curr to estimate `dx` per lane.
+
+## 5. What to change next
+- **Compute TTC at arrival, not now.** For an UP candidate, evaluate the target lane's car position at `t=1` (or a small `entry_delay` parameter): `car_x_future = car_x + dx * t_entry`, then check overlap with the chicken column. Add a *dwell* window: also require no overlap for `t ∈ [t_entry, t_entry + dwell]` so the chicken isn't hit immediately after stepping.
+- **Replace `(ttc>safe) | (clear>px)` with AND of "no overlap during dwell window"**. The OR is what lets fast cars slip through. Keep `clear_px` as a small body-margin added to car width, not as an alternative safety route.
+- **Make DOWN reachable.** Trigger DOWN when the *current* lane's car will overlap the chicken column within the next 1–2 frames (predict forward), not based on a TTC that's already 1e6. Also allow DOWN when next-lane is unsafe AND current-lane will become unsafe within `down_ttc` frames.
+- **Two-lane look-ahead (use `up_safe2`).** Prefer UP only when the next lane is safe AND the lane after is at least "enterable soon" (TTC bounded). This avoids stepping into a lane that traps the chicken between two converging cars.
+- **Lane index by binary thresholds**, not argmin, to remove boundary jitter; or snap to lane only when `|cy - LANE_Y[lane]| < 4`.
+- **Asymmetric thresholds per direction.** Lanes 0–4 move left, 5–9 move right; the relevant edge differs. Already handled in TTC, but add a small per-direction safety bias because right-moving traffic in lower lanes tends to cluster.
+- **Tighten `wait_horizon` and raise `safe_time`.** Current best `safe_time≈8.6` with arrival not modeled means real margin ≈ 7 frames; with proper arrival-time prediction, `safe_time` of 3–5 frames of *post-arrival* clearance is sufficient and reduces hesitation.
+- **Add an "imminent overlap" override** independent of `cur_ttc`: if any active car in the current lane has predicted overlap within 2 frames, force DOWN if down-lane is clear else NOOP — this directly attacks the 0.66 collision rate.

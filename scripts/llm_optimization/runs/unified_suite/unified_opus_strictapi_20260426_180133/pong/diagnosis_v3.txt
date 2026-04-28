@@ -1,0 +1,33 @@
+## 1. Root cause
+The policy scores +11 with 0–1 enemy points but episodes are truncated at 4000 frames before reaching 21. The paddle is not actually tracking the ball during normal play — it only converges to a good position right before contact. Average tracking error (~30 px) and interception rate (3.5%) are very poor; rallies last ~340 frames because the paddle wanders, not because it defends well. Most of the 11 points come from the spike-on-contact behavior, but throughput per frame is too low to cap out the score.
+
+## 2. Evidence from metrics
+- avg_ball_tracking_error 30.6, max 146 → paddle is far from ball most of the time.
+- interception_rate 0.035 → paddle rarely sits on the ball line.
+- avg_rally_length 342 frames, episode_length 4000, points_won 11 → only ~11 scoring events per 4000 frames; time-per-point too high.
+- paddle_jitter_count 130 with dead_zone≈3.4 → still jittery, suggesting target_y itself oscillates (not just paddle).
+- points_lost 0 → defense is "good enough" but offense throughput is the bottleneck.
+
+## 3. Policy logic causing it
+- `fallback_gain=0.13` with `fallback_target = ball_y + 0.13*(pred_enemy - ball_y)` ≈ ball_y. So when the ball moves away, the paddle chases the live ball Y across the whole screen instead of pre-positioning near center or near predicted return Y. This wastes the entire "away" half of each rally and creates the high tracking error and jitter.
+- `predict_gain=2.07` multiplies `ball_dy * t`, which over-shoots the true intercept (true reflection math doesn't need a gain >1). The reflect helper then folds the overshoot back, producing a target that swings as ball_dx changes — a major source of target oscillation and jitter.
+- `aim_spike` is applied as `sign(ball_dy)*4.88` only while `moving_toward`. Sign flips on every wall bounce, snapping the target by ~10 px instantly → direction reversals counted as jitter and missed intercepts near contact.
+- `fire_window=12` combined with `aligned` tolerance of `player_h/2+2 ≈ 10` means FIRE fires almost any time the ball is close, regardless of whether a spike is actually achievable.
+- Serve handling fires only one frame (`ball_active<0.5`); fine, but no bias to recenter between points, contributing to long idle drift.
+
+## 4. What to preserve
+- 52-feature layout, frame-diff for ball_dx/ball_dy.
+- Three-regime structure: incoming / outgoing / stationary.
+- Reflection helper for predicted intercept.
+- Dead-zone gating and the FIRE_UP/FIRE_DOWN action mapping.
+- Spike concept (off-center contact) — it's why score-per-rally is high.
+
+## 5. What to change next
+- Fix `predict_gain` semantics: use it as a small correction (≈1.0) or remove the multiplier; the geometric prediction should not be scaled. Over-prediction is the main tracking-error driver.
+- Replace the near-zero `fallback_gain` behavior. When ball moves away, target should be either (a) screen center (~109) or (b) the predicted enemy-return intercept extrapolated back to PLAYER_X, not the live ball Y. This will collapse tracking error and jitter during the outgoing half.
+- Stabilize the spike: only apply spike when `|error|` is already small AND ball is within fire_window; otherwise spike=0. Prevents target snap on every dy sign flip.
+- Tighten FIRE: require both `close` and `|error| < small_constant` (≈ paddle_h/4), not half-paddle. Reduces wasted FIREs and lets `fire_window` shrink.
+- Increase `dead_zone` modestly (4–6) OR add hysteresis (different thresholds for entering vs leaving movement) to cut the 130 reversals.
+- Add a tiny "lead" term using `ball_dy` directly when ball is very close (t small), instead of relying on the long-horizon prediction near contact where dx/t is noisy.
+- Consider an explicit recenter bias parameter for the "moving_away" branch (target = α*center + (1-α)*pred_enemy_return) — one new scalar, keeps policy compact.
+- Throughput: shorter rallies via more reliable spikes will lift score from 11 toward 21 within the same 4000-frame budget; the defense side already concedes ~0 points, so optimize for faster kills, not safer tracking.

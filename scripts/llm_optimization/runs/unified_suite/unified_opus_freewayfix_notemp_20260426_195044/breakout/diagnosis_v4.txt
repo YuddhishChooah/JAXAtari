@@ -1,0 +1,30 @@
+## 1. Root cause
+The policy tracks the ball's *current* x position rather than predicting where the ball will intersect the paddle's y-line. The "lead" term is structurally wrong: it extrapolates from the paddle toward the ball (amplifying current position) instead of projecting the ball's trajectory using its velocity. Without velocity information (which requires no state if approximated via ball orientation or via ball y as a proxy for time-to-impact), the paddle is always chasing, not intercepting.
+
+## 2. Evidence from metrics
+- `avg_ball_tracking_error` = 2.67 is essentially at the dead_zone (2.56) — tracking is "good" by the policy's own definition, yet score is mediocre. This means tracking-to-current-position is not the bottleneck; **interception** is.
+- `max_ball_tracking_error` = 81 indicates catastrophic misses on fast diagonal trajectories — exactly what a non-predictive controller fails at.
+- `avg_hit_streak` ≈ 33.7 with only 0.33 lives lost per episode → the agent rarely dies, but episodes terminate with **74 blocks remaining**. The ball is getting "stuck" in repetitive shallow trajectories that clear only the bottom rows.
+- `block_clear_rate` = 8.95/1000 frames is low; episodes are long (3757 frames) but unproductive — symptom of weak angle control (paddle hits ball with center, no English).
+- `fire_bias` converged near 0.86 (high) — FIRE is being triggered often, suggesting the launch condition is noisy.
+
+## 3. Policy logic causing it
+- `target_x = ball_x + lead * (ball_x - paddle_center) * urgency`: this is a *positive feedback* on the paddle-to-ball gap, not a velocity lead. It pushes the target *further* from the paddle when the paddle is already behind, which is fine for chase speed but does nothing for predicting bounce point.
+- No velocity estimate and no use of `ball.orientation` (index 15), which likely encodes direction.
+- `urgency` scales the wrong term. Urgency should gate *whether to move at all* or shrink the dead zone when ball is descending, not amplify a pseudo-lead.
+- FIRE condition `ball_active < fire_bias` with `fire_bias=0.86` fires whenever ball_active is 0 *or* possibly 1 if encoded oddly — may waste frames firing during play.
+- Single dead_zone for all ball-y regimes: too loose when ball is near paddle, too tight when ball is high (causing jitter, `total_paddle_movement`=6272 is high relative to useful coverage).
+
+## 4. What to preserve
+- The compact 4-parameter structure and CMA-ES-friendly scalar design.
+- The `paddle_center = player.x + 8` convention.
+- The discrete `RIGHT/LEFT/NOOP` selection via dead-zone comparison.
+- The FIRE-on-inactive-ball fallback (just refine its condition).
+- Current `dead_zone` magnitude (~2.5) as a baseline for the descending regime.
+
+## 5. What to change next
+- **Introduce a y-dependent target offset** using `ball.orientation` (obs index 15) as a sign for horizontal velocity direction. Target = `ball_x + orientation_sign * lead * (paddle_y - ball_y)` — a true linear projection. This adds zero state.
+- **Split dead_zone into two regimes**: tighter when ball is descending and near paddle (`ball_y` large), looser when ball is far/ascending. This reduces jitter and improves precision at the critical moment — directly attacks the `max_ball_tracking_error=81`.
+- **Add an aim-offset parameter** so the paddle deliberately contacts the ball off-center to impart angle, breaking shallow-trajectory loops that leave 74 blocks unbroken. Parameterize as a small bias added to target_x.
+- **Tighten FIRE gating**: only fire when ball inactive AND lives change detected via a threshold on `ball_active` strictly (e.g., `ball_active < 0.5`), and remove `fire_bias` as a learned threshold or repurpose it as the aim-offset.
+- Keep parameter count at 4–6: e.g., `{lead, dead_zone_near, dead_zone_far, y_split, aim_offset}`. Avoid full rewrites of the action selection — the prior worse candidate (47.75) likely overhauled structure; instead, surgically replace the lead formula and stratify the dead zone.

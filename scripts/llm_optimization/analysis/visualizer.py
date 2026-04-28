@@ -11,7 +11,7 @@ from typing import Optional
 import matplotlib.pyplot as plt
 import numpy as np
 
-from .benchmarks import get_benchmark_comparison
+from .benchmarks import compute_human_normalized_score, get_benchmark_comparison
 from .results_loader import ACTIVE_GAMES, ExperimentResult, ResultsLoader
 
 
@@ -20,6 +20,8 @@ class UnifiedVisualizer:
         "pong": "#2ecc71",
         "freeway": "#3498db",
         "asterix": "#f39c12",
+        "breakout": "#e74c3c",
+        "skiing": "#1abc9c",
     }
 
     def __init__(self, loader: Optional[ResultsLoader] = None, output_dir: Optional[str] = None):
@@ -40,6 +42,20 @@ class UnifiedVisualizer:
     def _save(self, fig: plt.Figure, filename: str, save: bool) -> None:
         if save:
             fig.savefig(self.output_dir / filename, bbox_inches="tight")
+
+    def _resolve_policy_path(self, policy_path: str) -> Path:
+        path = Path(policy_path.replace("\\", "/"))
+        if path.is_absolute():
+            return path
+        candidates = [
+            self.loader.project_root / path,
+            self.loader.unified_path / path,
+            self.loader.base_path / path,
+        ]
+        for candidate in candidates:
+            if candidate.exists():
+                return candidate
+        return candidates[0]
 
     def plot_reward_distribution(self, game: str, save: bool = True, show: bool = False) -> plt.Figure:
         exp = self._get_experiment(game)
@@ -85,8 +101,7 @@ class UnifiedVisualizer:
 
     def plot_parameter_landscape(self, game: str, save: bool = True, show: bool = False) -> plt.Figure:
         exp = self._get_experiment(game)
-        best_policy_path = Path(exp.best_policy_path.replace("\\", "/"))
-        policy_path = self.loader.base_path.parent.parent / best_policy_path
+        policy_path = self._resolve_policy_path(exp.best_policy_path)
         spec = importlib.util.spec_from_file_location(policy_path.stem, policy_path)
         if spec is None or spec.loader is None:
             raise RuntimeError(f"Could not load policy module from {policy_path}")
@@ -143,13 +158,40 @@ class UnifiedVisualizer:
             plt.show()
         return fig
 
-    def generate_curated_figures(self, show: bool = False) -> None:
+    def plot_human_normalized_overview(self, save: bool = True, show: bool = False) -> plt.Figure:
+        experiments = self.loader.load_all_experiments()
+        games = [game for game in ACTIVE_GAMES if game in experiments]
+        normalized_scores = [
+            compute_human_normalized_score(game, experiments[game].best_score)
+            for game in games
+        ]
+        colors = [self.GAME_COLORS[game] for game in games]
+
+        fig, ax = plt.subplots(figsize=(8, 5))
+        ax.bar([g.capitalize() for g in games], normalized_scores, color=colors)
+        ax.axhline(0.0, color="black", linewidth=1, linestyle=":")
+        ax.axhline(100.0, color="#8e44ad", linewidth=1.5, linestyle="--", label="Human = 100")
+        ax.set_title("Unified LeGPS Human-Normalized Scores")
+        ax.set_ylabel("Human-normalized score (%)")
+        ax.legend()
+        self._save(fig, "unified_human_normalized_scores.png", save)
+        if show:
+            plt.show()
+        return fig
+
+    def generate_curated_figures(self, show: bool = False, include_benchmarks: bool = False) -> None:
         self.plot_unified_overview(show=show)
+        if include_benchmarks:
+            self.plot_human_normalized_overview(show=show)
         for game in self.loader.discover_experiments():
-            self.plot_reward_distribution(game, show=show)
-            self.plot_iteration_progression(game, show=show)
+            exp = self._get_experiment(game)
+            if exp.total_rewards:
+                self.plot_reward_distribution(game, show=show)
+            if exp.iterations:
+                self.plot_iteration_progression(game, show=show)
             self.plot_parameter_landscape(game, show=show)
-            self.plot_single_game_benchmark_comparison(game, show=show)
+            if include_benchmarks:
+                self.plot_single_game_benchmark_comparison(game, show=show)
 
 
 # Backward-compatible export name inside the local package.

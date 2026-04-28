@@ -16,7 +16,7 @@ PROJECT_ROOT = ROOT.parent.parent
 DIRS_TO_REMOVE = [
     ROOT / "outputs",
     ROOT / "analysis" / "figures",
-    ROOT / "unified_prompt_main",
+    ROOT / "runs" / "single_game",
     PROJECT_ROOT / ".pytest_cache",
 ]
 

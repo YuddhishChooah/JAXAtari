@@ -1,0 +1,35 @@
+## 1. Root cause
+The policy treats DOWN as a normal fallback when the upper lane is dangerous, and its overlap check is too coarse (symmetric `safe_gap` on both sides of the car, ignoring car direction). This causes excessive backtracking and mistimed lane entries, so crossings are slow and collision-prone.
+
+## 2. Evidence from metrics
+- `down_action_rate = 0.214` — DOWN is used roughly 1 in 5 frames; should be near-zero.
+- `time_efficiency = 2.5` crossings/1000f and `avg_crossing_time = 388` frames — extremely slow vs. the ~250-frame minimum implied by `min_crossing_time = 208`.
+- `collision_rate = 0.62` and `near_miss_count = 749` — overlap projection is not catching real threats while still triggering false positives that cause backtracks.
+- `lane_transitions = 10` equals `crossings = 10` — chicken makes net forward progress only, but `total_upward_progress = 2636` over 4000 frames implies many DOWN strides cancelling UP strides.
+- `up_action_rate = 0.786` but `avg_upward_progress = 0.0042` per frame — UP actions are being undone, consistent with frequent DOWN.
+
+## 3. Policy logic causing it
+- `emergency = danger_curr & safe_down & ¬near_top` fires whenever the *current* lane projects any overlap, but `danger_curr` is already triggered by the same conservative overlap check that flags near-misses; combined with `¬safe_up`, it routes the chicken DOWN routinely instead of just waiting (NOOP).
+- The default branch only chooses between UP and NOOP via `go_up = safe_up | near_top | (up_bias>0.8)`. With `up_bias=0.815 < 0.8`, this disjunct never fires, so the policy is purely reactive on `safe_up`, with no NOOP-vs-UP nuance based on `danger_curr`.
+- `overlap_at` adds `safe_gap` symmetrically. Cars approaching from the side that will *leave* the chicken are still flagged, doubling false dangers.
+- A single scalar `lookahead = 3.9` is applied uniformly; fast lanes need longer projection, slow lanes need shorter, but there is no per-lane velocity scaling.
+- `lane_radius = 12.2` is wider than lane spacing (16). Cars from adjacent lanes leak into "current lane" danger.
+- `down_margin` is reused as the lookahead for the down lane, mixing two semantically different parameters.
+
+## 4. What to preserve
+- Two-frame velocity estimation via prev/curr.
+- Compact UP/NOOP/DOWN structure with a small parameter set.
+- Projected-overlap concept on current and next-up lane only.
+- Vectorized car arithmetic over all 10 cars.
+
+## 5. What to change next
+- **Eliminate routine DOWN.** Restrict DOWN to the conjunction `danger_curr_imminent & danger_up & safe_down_strong`, and require a stricter safety margin on `safe_down` than on `safe_up`. Otherwise prefer NOOP over DOWN.
+- **Default to UP unless next-up lane is unsafe; otherwise NOOP.** Drop the `up_bias>0.8` shortcut; replace with: `if safe_up: UP else NOOP`. Use `danger_curr` only to gate the emergency branch.
+- **Tighten `lane_radius`** to ~8 (half of 16) so adjacent-lane cars don't leak into the current lane's danger set.
+- **Make overlap direction-aware.** Inflate the gap only on the side the car is approaching from (sign of `dx`); the trailing side needs little or no margin. This will cut near-miss false positives that cause stalls.
+- **Per-lane lookahead scaling.** Use `lookahead_eff = lookahead * (1 + k*|dx|)` or simply project by frames and check overlap at multiple small horizons (e.g., t=0, t=L/2, t=L) instead of just endpoints — endpoint-only checks miss cars passing through during the interval.
+- **Separate parameters cleanly:** `safe_gap_up`, `safe_gap_down` (down stricter), and a single `lookahead` in frames; remove the reuse of `down_margin` as a lookahead.
+- **Add a "very safe to push" rule near top:** when `chicken_y < TOP_BORDER + 24`, force UP regardless, since the last lanes have the highest payoff per frame.
+- **Reduce hesitation cost:** if `safe_up` is true, never choose NOOP — current code already does this, but ensure no other branch overrides it.
+
+Expected effect: DOWN rate drops toward <2%, collisions fall because direction-aware gaps and tighter lane radius reduce both false negatives and false positives, and crossings/1000f rises toward the 4–5 range needed to approach DQN-level scores.

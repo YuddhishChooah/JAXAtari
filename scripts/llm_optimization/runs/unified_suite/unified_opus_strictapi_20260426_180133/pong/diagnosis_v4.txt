@@ -1,0 +1,33 @@
+## 1. Root cause
+The policy under-tracks the ball during rallies because its prediction is gain-scaled and applied uniformly even when the ball is far away or moving away, while the spike bias pushes the target away from the actual intercept right when contact matters. Combined with a movement-only-on-error scheme, the paddle drifts off the ball between hits and produces jitter as it corrects late.
+
+## 2. Evidence from metrics
+- avg_ball_tracking_error 30.6 and max 146.3: paddle is frequently far from the ball; predict_gain=2.07 amplifies dy linearly far past the wall, producing wild raw_y before reflection.
+- interception_rate 0.035: paddle rarely sits at the true intercept line.
+- paddle_jitter_count 130 with dead_zone=3.44: jitter is from oscillation around a moving (over-amplified) target, not from too-small dead zone.
+- avg_reaction_time 15 frames: late commit because target switches between pred_player, fallback, and ball_y modes.
+- Despite this, points_won=11 / points_lost=0 in 4000 frames → the enemy is weak, masking poor tracking; episode is truncated before reaching 21, capping return at ~11.
+
+## 3. Policy logic causing it
+- `_predict_y` multiplies `ball_dy * t * gain` with predict_gain≈2.07; this doubles the vertical travel before reflection, so the reflected intercept is biased.
+- `t` clipped to 120 plus gain=2 means predictions saturate at the wall reflections far from reality when ball is slow in x.
+- Spike term adds ±4.88 to target while ball is approaching and aligned, fighting the alignment that just enabled FIRE.
+- `fallback_target = ball_y + (pred_enemy-ball_y)*0.13` keeps target near current ball_y when moving away, so paddle drifts and must chase on reversal.
+- Action tree only moves on |error|>dead_zone; with dead_zone=3.44 and a noisy target, paddle holds NOOP near contact then jitters.
+- Episode length 4000 with return ~11 implies a frames-per-episode cap, not a 21-point cap, so longer rallies/scoring rate dominates—current policy wastes frames mistracking.
+
+## 4. What to preserve
+- 52-feature parsing and prev/curr split.
+- Small parameter set: dead_zone, predict_gain, aim_spike, fallback_gain, fire_window.
+- Linear-time intercept with wall reflection via `_reflect_y`.
+- Serve handling (FIRE when ball inactive) and FIRE-combo near contact.
+- Compact action mapping (0–5) and current error sign convention.
+
+## 5. What to change next
+- Remove or fix `predict_gain`: physics intercept should use gain=1.0 on `ball_dy*t`. Repurpose `predict_gain` as a small bias/tilt or delete it; current 2.07 is the dominant error source.
+- Make spike contact-gated: only apply aim_spike when `(PLAYER_X - ball_x) < fire_window` AND already aligned; otherwise target the true intercept. Also reduce its magnitude or scale by `sign(error)` so it never increases |error| beyond paddle half-height.
+- Improve fallback when ball moves away: target a neutral ready position (e.g., screen mid or last predicted intercept held), not `ball_y`. Add a parameter `idle_y` or use `(PLAYFIELD_TOP+PLAYFIELD_BOTTOM)/2` blended by `fallback_gain`.
+- Tighten dead zone (≈1.5–2.0) since target will be cleaner; jitter should drop once prediction stops oscillating.
+- Use paddle center vs intercept consistently; consider precomputing `intercept = pred_player` once and reusing for both movement and FIRE alignment.
+- Add a "commit early" behavior: when ball is moving toward player and `t` small, force movement even inside dead zone if |error| > 1, to cut reaction time.
+- Since episodes are frame-capped at 4000, prioritize faster scoring: keep spike but only after solid alignment, and ensure paddle returns to predicted intercept immediately after contact (don't dwell on ball_y).

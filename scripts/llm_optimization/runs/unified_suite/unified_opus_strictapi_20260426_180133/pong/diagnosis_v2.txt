@@ -1,0 +1,34 @@
+## 1. Root cause
+The intercept predictor is structurally weak: it only updates the target while the ball moves toward the player, ignores the paddle's own height (uses a constant `PADDLE_CENTER_OFFSET=8` regardless of `paddle.h`), and has no smoothing of `ball_dy`. Combined with a small dead zone (~0.35) and a `predict_gain<1`, the paddle chases a noisy and biased target, producing high tracking error and heavy jitter. The score is positive only because the opponent is weak; the policy is far below its potential.
+
+## 2. Evidence from metrics
+- avg_ball_tracking_error = 36.3 px (very large vs. paddle half-height 8) → predicted target is wrong or stale.
+- paddle_jitter_count = 981 over 4000 frames (~25% of frames are direction reversals) → dead zone too small relative to per-frame error noise.
+- avg_reaction_time = 14.5 frames → paddle starts moving late, consistent with using `fallback_y=109` whenever `ball_dx<=0` instead of pre-positioning.
+- interception_rate = 0.58 → roughly chance-level alignment.
+- total_paddle_movement = 9058 px, avg 2.27 px/frame → constant oscillation, not deliberate tracking.
+- points_lost = 0 but points_won only 6.7/episode in 4000 frames → enemy is weak; policy wastes time, not exploits.
+
+## 3. Policy logic causing it
+- `predict_gain=0.85` shrinks predicted travel, so target_y is biased toward current ball_y, lagging the true intercept.
+- `aim_offset=-0.86` plus `PADDLE_CENTER_OFFSET=8` (hard-coded, ignores `curr.player.h`) introduces a systematic vertical bias.
+- Wall-reflection math uses `mod` over `2*span`, which is correct only for arbitrary bounces but assumes constant `dy`; with noisy `ball_dy` (often integer-quantized, sometimes 0), the reflected target jumps frame-to-frame.
+- When `ball_dx <= 0` (ball moving away) the target snaps to a single constant `fallback_y=109`, causing a large discontinuous jump and a burst of movement each time direction flips.
+- Dead zone (0.35) is far below per-frame target noise, so sign of `error` flips constantly → jitter.
+- FIRE gating uses only `ball_active<0.5` for serve; otherwise FIRE is combined with movement based on a bias scalar that's effectively always on, adding no value.
+- No use of `ball_dx` magnitude or sign-of-`dy` to gate prediction validity; near-zero `dx` is clamped to 1e-3, which yields t≈80 and a wildly extrapolated y.
+
+## 4. What to preserve
+- Overall structure: small parametric controller, intercept prediction with wall reflection, fallback when ball recedes, dead-zone bang-bang control, FIRE on serve.
+- Parameter set is reasonable; keep `predict_gain`, `dead_zone`, `aim_offset`, `fallback_y`, `fire_bias` as tunables.
+- Compact action mapping and the `prev/curr` 52-feature parsing.
+
+## 5. What to change next
+- Use the actual paddle height from `curr.player.h` to compute paddle center, removing the hard-coded offset and the need for `aim_offset` to compensate.
+- Make prediction time-to-impact robust: only predict when `ball_dx > eps_dx`; otherwise hold last predicted target or drift slowly toward `fallback_y` (no instantaneous snap).
+- Initialize/lean `predict_gain` toward 1.0; a value <1 systematically under-shoots fast balls.
+- Add a separate, larger dead zone (e.g., paddle_half_height scale, ~4–8 px) and/or hysteresis: require `|error|` to exceed `dz_out` to start moving and fall below `dz_in < dz_out` to stop. This directly attacks the 981 jitter count.
+- When ball moves away, set fallback target to the predicted enemy return Y (mirror prediction toward enemy x and reflect back), or simply track ball_y slowly, instead of a fixed constant.
+- Gate FIRE more meaningfully: only when ball is within ~10–15 px of paddle x AND `|error|` small, to attempt off-center "spike" hits; otherwise NOOP-FIRE wastes nothing but the combo logic currently fires on every approach.
+- Consider an additional parameter for an aim bias proportional to `ball_dy` sign, so the policy intentionally hits off-center to produce the "spiky" returns mentioned in the brief.
+- Guard against `ball_dx` near zero by falling back to fallback logic rather than clamping to 1e-3, which produces huge extrapolation errors.

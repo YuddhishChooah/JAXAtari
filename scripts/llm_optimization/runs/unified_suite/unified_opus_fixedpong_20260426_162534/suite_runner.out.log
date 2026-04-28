@@ -1,0 +1,7 @@
+
+=== Running pong (1/4) ===
+Output: C:\Users\yuddh\OneDrive\Desktop\Msc AI and ML\SoSe 2025\Practical Lab 2\JAXAtari\scripts\llm_optimization\runs\unified_suite\unified_opus_fixedpong_20260426_162534\pong
+pong: completed, best_score=11.0625, elapsed=5.7 min
+
+=== Running freeway (2/4) ===
+Output: C:\Users\yuddh\OneDrive\Desktop\Msc AI and ML\SoSe 2025\Practical Lab 2\JAXAtari\scripts\llm_optimization\runs\unified_suite\unified_opus_fixedpong_20260426_162534\freeway

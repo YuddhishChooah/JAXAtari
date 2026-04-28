@@ -1,0 +1,33 @@
+# Diagnosis
+
+## 1. Root cause
+The policy only tracks the ball when `dx > 0.5` (ball approaching). During the much longer phase when the ball recedes toward the enemy, it switches to an "idle" target that blends current ball Y with screen mid. This wastes the receding window — instead of pre-positioning to where the ball will return, the paddle drifts back toward center, then must chase the ball under tight time pressure when it reverses. Combined with a hard-sign aim offset that flips abruptly near contact, this produces high tracking error, reactive (late) movement, and frequent direction reversals.
+
+## 2. Evidence from metrics
+- `avg_ball_tracking_error = 28.8` and `max = 105` — paddle is often a full paddle-height+ away from the ball.
+- `avg_reaction_time = 14.9 frames` — paddle reacts late, consistent with idling near center while ball recedes.
+- `paddle_jitter_count = 212` with `avg_paddle_movement = 1.37` — many reversals despite a `dead_zone` of 3.0; the hard-sign aim offset and the approaching/receding mode switch both inject discontinuities.
+- `interception_rate = 0.54` — only ~half of approaches are well-positioned.
+- `points_lost = 0` but `points_won = 12.3` per episode of 4000 frames → rallies are long but scoring is slow; offense (aim/spike) is weak, not defense.
+
+## 3. Policy logic causing it
+- **Mode switch on `dx > 0.5`**: discards the receding phase as useful prediction time. The ball bounces off the enemy paddle/walls predictably; the policy could integrate a two-leg trajectory (to enemy, then back) instead of going idle.
+- **Idle target = blend of `by` and screen mid**: tracks a moving but irrelevant Y (ball going away), guaranteeing the paddle is misplaced when the ball returns.
+- **`aim_offset` uses `_hard_sign(dy)`**: produces a step discontinuity of ±aim_gain·8 px exactly in the close-range window, causing late jitter and overshoot.
+- **`aim_close_dist ≈ 30` with `fire_dist ≈ 25`**: aim offset and FIRE both engage only in the last ~30 px, leaving no settle time; combined with dead_zone=3, error oscillates around the shifted target.
+- **No velocity feed-forward**: target is a position, not position + lead, so paddle is always one reaction-time behind.
+
+## 4. What to preserve
+- 52-feature layout, compact action set, clipping to playfield.
+- `_fold` wall-bounce reflection for predicted intercept.
+- Small parameter set (dead_zone, gains, thresholds).
+- FIRE-combo on close approach (it's helping; keep it but trigger more carefully).
+- Hard scoring discipline: 0 points lost shows defense baseline is fine.
+
+## 5. What to change next
+- **Replace the receding "idle" branch with a predicted return intercept**: when `dx < 0`, estimate time-to-enemy-paddle, reflect, then time-back-to-player using |dx|, and fold Y. This keeps a single continuous target across both phases.
+- **Soften the aim offset**: replace `_hard_sign(dy)` with a smooth function (e.g., `tanh(dy / k)` scaled by aim_gain·paddle_half), and gate it by a smooth distance weight, not a hard `ball_close` flag. This will cut jitter near contact.
+- **Add a small velocity lead term** to the target: `target += lead_gain * sign(error)` is wrong; instead use `target_effective = target - paddle_vy_estimate * lead`. Since there's no paddle velocity, just widen `dead_zone` slightly (e.g., 4–5) to suppress the 212 reversals.
+- **Decouple `aim_close_dist` from `fire_dist`**: allow aim shaping to start earlier (e.g., 50–70 px) so the paddle has time to position for a spiky return; keep FIRE trigger short.
+- **Offensive aim target**: instead of nudging by ±half-paddle based on `dy` sign, bias the contact point away from the enemy's current Y (`curr[9]`) — hit toward the side the enemy is farthest from. This directly addresses the slow scoring rate.
+- **Keep parameters few**: add at most `return_predict_gain` and `aim_softness`; consider removing `idle_track_gain` since the idle branch is being replaced.

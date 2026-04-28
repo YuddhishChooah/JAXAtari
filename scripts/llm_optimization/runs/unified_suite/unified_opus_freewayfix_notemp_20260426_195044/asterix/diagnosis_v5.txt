@@ -1,0 +1,41 @@
+# Diagnosis
+
+## 1. Root cause
+The policy dies from collisions during diagonal lane transitions because danger is evaluated only at the *target* x (predicted collectible position) and the *current* x at the current frame, never along the transit path. Lane entry clearance is not checked, and the danger scale is inconsistent with the safe_threshold veto, so unsafe lanes still pass the filter.
+
+## 2. Evidence from metrics
+- `hits_taken=3`, `terminal_game_over=1`, `lives_remaining=0` — life exhaustion is the score ceiling.
+- `hit_diagonal_fraction=1.0`, `hit_horizontal_fraction=0` — every fatal hit happens during diagonal transitions, confirming unsafe vertical entries.
+- `avg_hit_lane_index≈3` and `avg_hit_lane_gap≈41` — hits occur in mid-lanes at moderate x-gaps, meaning enemies were closing in but danger was underestimated.
+- `item_pickup_rate_per_1000≈9.96` is decent, but `score_rate_per_1000≈498` is held down by the 7% `respawn_rate` and early game over.
+- `avg_collectibles_visible=0.56` — items are sparse; missing one because of a death is very costly.
+- `horizontal_rate=0.85`, `diagonal_rate=0.15` — when the policy does commit to diagonals, those few transitions are disproportionately fatal.
+
+## 3. Policy logic causing it
+- `_lane_danger_at` evaluates danger at a *single* reference x (either `px` or predicted collectible x). The intermediate lane the player crosses, and the target lane evaluated at the player's *current* x at arrival time, are not checked.
+- Danger is multiplied by `radius` (~26) so values can reach ~30–60, while `safe_threshold≈40` is on the same scale — but `danger_weight≈2.3` is then applied in scoring, mixing scales (rule 16 violation in spirit). The veto threshold is loose enough that lanes with closing enemies still qualify.
+- `enemy_dx` uses a 1-frame delta; with `frame_stack=2` this is noisy and underestimates fast approaches.
+- The escape branch only triggers when `lane_diff==0` and `cur_danger > safe_threshold`. Once a target is chosen, the agent commits to the diagonal even if the *transit* lane or the target lane at arrival time is unsafe.
+- `switch_bonus` is named like a switch incentive but is applied as a *stay* bonus — minor, but it biases toward staying when an item is in the current lane, increasing exposure time.
+- Fallback `+5.0 * collect_active` can pull the agent toward an active lane regardless of value/danger when no valid target exists.
+- No abort/defer mechanism: the policy never chooses NOOP or pure horizontal hold to wait one frame for a lane to clear before committing to a diagonal.
+
+## 4. What to preserve
+- Overall structure: lane-indexed scoring, value table, current-lane computation, two-frame dx estimation.
+- Value-weighted collectible targeting with `VALUE_TABLE`.
+- Lane-distance penalty and intercept-distance penalty terms.
+- The compact parameter set (danger_radius, danger_weight, value_weight, lane_dist_penalty, intercept_penalty, safe_threshold) — these are well-shaped knobs.
+- The exponential danger kernel form.
+
+## 5. What to change next
+- **Path-clearance danger**: for any candidate target lane, compute danger as the *max* over (current lane, intermediate lane if |lane_diff|>1, target lane), each evaluated at the player's projected x at the arrival frame, not just at the collectible's predicted x.
+- **Time-to-arrival modeling**: estimate frames-to-reach as roughly `|lane_diff| * k_v + |x_diff| * k_h`, then evaluate each enemy's predicted x at *that* horizon, not a fixed horizon of 4.
+- **Consistent danger scale**: drop the `* radius` multiplier in `_lane_danger_at` so danger ∈ [0, ~1.5], and rescale `safe_threshold` and `danger_weight` accordingly. This makes the veto meaningful and tunable.
+- **Tighter entry veto**: add a separate, stricter `entry_safe_threshold` parameter for diagonals (lane changes), distinct from the in-lane horizontal threshold. Hits are 100% diagonal, so diagonals must be guarded harder than staying.
+- **Defer/abort action**: when the best target's transit danger exceeds the entry threshold, output a pure horizontal action that *increases* x-gap to the nearest enemy in the current lane (or NOOP if already safe), rather than forcing a diagonal.
+- **Replace stay bonus with a switch cost**: penalize lane changes by a small constant so the agent doesn't oscillate, but remove the bias that keeps it in a lane after the item is gone.
+- **Approach-aware danger**: strengthen the approaching-enemy multiplier (currently 1.5x) to ~2–3x, and add a "enemy will cross player x within N frames" indicator as an additional hard veto.
+- **Drop the `+5.0 * collect_active` fallback term** or gate it on lane safety; right now it can route the agent into an unsafe active-but-zero-value lane.
+- **Smooth dx**: since only 2 frames are available, clamp `enemy_dx` magnitude to a plausible range to avoid jitter-driven misprediction near edges.
+
+Net effect target: cut `hits_taken` from ~3 toward ≤1 while keeping `item_pickup_rate_per_1000` ≥ 9, which should roughly double `final_score` by extending episode length and avoiding respawn dead-time.

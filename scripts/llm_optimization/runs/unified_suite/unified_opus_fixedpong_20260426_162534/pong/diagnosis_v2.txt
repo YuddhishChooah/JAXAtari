@@ -1,0 +1,33 @@
+## 1. Root cause
+The policy only tracks the ball when it is moving toward the player (`dx > 0`); during enemy possession it parks the paddle at a static `fallback_y` (~105). Combined with `predict_gain ≈ 0.46` (which under-extrapolates the intercept) and a tuned `aim_offset ≈ -0.54`, the paddle reaches the correct Y too late once the ball reverses, producing late, large-amplitude corrections instead of early positioning. The score is high only because the enemy is weak; the rally quality (tracking error, jitter, reaction time) is poor.
+
+## 2. Evidence from metrics
+- `avg_ball_tracking_error = 28.87`, `max = 103.77`: paddle is far from the ball most of the time — consistent with idling at fallback while ball is on the enemy side.
+- `avg_reaction_time = 15.5` frames: paddle starts moving long after ball reverses, indicating no pre-positioning.
+- `paddle_jitter_count = 183` with `avg_paddle_movement = 1.29` and `total_movement = 5178`: lots of direction reversals → dead zone too small relative to overshoot from late corrections.
+- `interception_rate = 0.85` despite high tracking error: enough to win against this opponent, but leaves +14 points on the table.
+- `predict_gain ≈ 0.46`: the optimizer shrank the prediction because reflections + late commitment make full-gain extrapolation overshoot — a symptom, not a fix.
+
+## 3. Policy logic causing it
+- Hard switch on `moving_toward`: discards information when `dx ≤ 0`, so paddle does nothing useful for ~half the rally.
+- `fallback_y` is a learned constant rather than a meaningful anchor (e.g., current ball Y, or mirrored prediction off enemy paddle).
+- `predict_gain` multiplies `dy * t`, which is dimensionally wrong — gain should scale `t` or the residual, not the whole vertical travel; this couples gain with reflection logic and forces it below 1.
+- Single dead zone with no hysteresis → jitter near target.
+- `fire_bias` is a scalar threshold, not state-dependent; FIRE is either always on or always off, wasting the option.
+- No velocity feed-forward: paddle does not anticipate its own travel time vs. ball arrival time.
+
+## 4. What to preserve
+- 52-feature layout and `prev`/`curr` indexing.
+- Reflection-folding intercept computation (the modulo trick is correct).
+- Compact param dict: `dead_zone`, `aim_offset`, plus a small number of new scalars.
+- Action mapping via `MOVE_UP/DOWN` and `FIRE_UP/DOWN`.
+- `error = target - paddle_center` sign convention.
+
+## 5. What to change next
+- Always compute a target, even when `dx ≤ 0`: e.g., track `curr.ball.y` (or a mirrored intercept off the enemy paddle using `-dx`) during enemy possession so the paddle pre-positions.
+- Replace `predict_gain` multiplying `dy*t` with a `time_gain` that scales `t` only, or add a separate `return_bias` for the idle-tracking target; keep gain near 1.0.
+- Add hysteresis: two thresholds (`dead_zone`, `dead_zone + margin`) or freeze action when `|error| < dead_zone` AND previous action was idle, to cut jitter (~183 reversals).
+- Add a paddle-speed feed-forward: compare `t_ball = (PLAYER_X - bx)/dx` to `|error|/paddle_speed`; only move when needed, else idle — reduces total travel and overshoot.
+- Make FIRE state-dependent: enable `FIRE_UP/DOWN` only when ball is close (`PLAYER_X - bx < threshold`) and `|error|` small, to attempt off-center spiky returns; keep it off otherwise.
+- Add an `aim_bias_sign` tied to `dy` so off-center hits are intentional (hit high side when ball moves down, etc.) rather than a constant offset.
+- Consider clamping `target` to `[PLAYFIELD_TOP + PADDLE_HEIGHT/2, PLAYFIELD_BOTTOM - PADDLE_HEIGHT/2]` to avoid pushing paddle into walls and causing stuck states.

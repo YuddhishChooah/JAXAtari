@@ -1,0 +1,32 @@
+## 1. Root cause
+The horizontal "velocity" proxy derived from `ball_orient` via `tanh` is almost certainly not a real velocity signal, so the predictive lead term is either noise or near-zero. The controller is effectively a pure positional tracker with a dead zone and an urgency gain — it reacts to where the ball *is*, not where it will *be*. This caps performance at "decent reactive paddle" level and prevents tail-end interceptions on steep angles.
+
+## 2. Evidence from metrics
+- `avg_ball_tracking_error = 11.63` and `max = 76.33`: the paddle is consistently lagging the ball, with occasional very large misses — characteristic of reactive (non-predictive) tracking.
+- `avg_hit_streak = 21.3` with only `0.67` lives lost over 2676 frames: it survives well but rallies die from mispredictions, not from being overwhelmed.
+- `block_clear_percentage = 19.7%` and `block_clear_rate = 7.7/1000`: clearing is slow, consistent with paddle hitting ball flatly (no angle control) so trajectories repeat in safe central columns.
+- `avg_paddle_movement = 1.50`/frame and `total = 4122`: heavy movement, suggesting the dead zone is too small relative to the noisy target — oscillation around the ball.
+- High `max_ball_tracking_error` (76) implies the policy completely loses the ball at least once per episode, again pointing to a bad lead signal on direction changes.
+
+## 3. Policy logic causing it
+- `_vx_from_orient(ball_orient)` assumes `orient` encodes a signed horizontal direction. In JAXAtari Breakout, `orientation` is typically a small categorical/state code, not a velocity. `tanh` of small integers saturates to ~±0.76 or ~0, giving a near-constant or meaningless lead.
+- `time_to_impact = SCREEN_BOTTOM - ball_y` is used as a multiplier on this fake vx, so the lead term grows linearly with distance — when it points the wrong way, the paddle is actively driven away from the ball.
+- The `urgency` gain only multiplies `error`; since `_select_move` is sign-thresholded, multiplying error by a constant changes nothing about direction, only marginally about whether NOOP is chosen. `descend_gain` is largely inert.
+- `dead_zone ≈ 5` is smaller than typical per-frame ball x-jumps; combined with no hysteresis, this produces left/right chatter (explaining high paddle movement).
+- No mechanism for *angle control* (deliberately hitting the ball off-center to steer it toward unbroken columns) — so block clear rate stagnates after the easy center bricks.
+- Inactive-state logic centers paddle then fires; fine, but `fire_bias` as a gate (`> 0`) is binary, wasting a parameter that CMA-ES can't meaningfully tune.
+
+## 4. What to preserve
+- Overall structure: positional error → thresholded discrete action.
+- The active/inactive split with FIRE-on-launch behavior.
+- Small parameter count (3–8 floats) and `jnp.where` branching.
+- The notion of a y-dependent regime (descending vs ascending) — it's the right idea, just wired to the wrong quantity.
+
+## 5. What to change next
+- **Drop the orientation-based vx proxy.** Without frame memory you cannot get true velocity, so don't fake it. Either remove the lead term, or replace it with a y-conditioned constant bias (e.g., aim slightly toward screen edges when ball is high, toward ball-x when descending).
+- **Make `descend_gain` actually do something directional**, e.g., shrink the dead zone or amplify movement commitment only when descending, by gating *which* threshold is used rather than scaling error.
+- **Introduce hysteresis / asymmetric dead zones** to cut oscillation: a larger "release" threshold than "engage" threshold, parameterized by one float. This should reduce `avg_paddle_movement` and tracking error simultaneously.
+- **Add a tiny aim-offset parameter** so the paddle targets `ball_x + offset` rather than ball center, enabling angle control and better block-clear rate. Sign of offset can flip with ball-y regime to bias bricks on alternating sides.
+- **Replace `fire_bias` binary gate with an always-on FIRE during inactive** (or fire whenever lives just changed) — free up the parameter for something tunable like the hysteresis or aim offset.
+- **Reconsider `center_pull`**: at 0.11 it barely moves the paddle pre-launch. Either remove it (launch from wherever) or make centering unconditional during inactive frames; CMA-ES is wasting a dimension here.
+- Net target: 5–6 meaningful parameters — dead_zone_engage, dead_zone_release (hysteresis), descend_y, aim_offset, descend_aim_flip, and possibly a single inactive behavior switch.

@@ -1,0 +1,62 @@
+[
+  {
+    "game": "pong",
+    "score_10000": 20.96875,
+    "human_normalized_pct": 138.89583333333334,
+    "dqn_pct": 110.9457671957672,
+    "random_baseline": -20.7,
+    "human_baseline": 9.3,
+    "dqn_baseline": 18.9,
+    "source": "runs/unified_suite/unified_opus_fixedpong_20260426_162534",
+    "policy_path": "C:\\Users\\yuddh\\OneDrive\\Desktop\\Msc AI and ML\\SoSe 2025\\Practical Lab 2\\JAXAtari\\scripts\\llm_optimization\\runs\\unified_suite\\unified_opus_fixedpong_20260426_162534\\pong\\policy_v2.py",
+    "formula": "(agent_score - random_score) / (human_score - random_score) * 100"
+  },
+  {
+    "game": "freeway",
+    "score_10000": 27.15625,
+    "human_normalized_pct": 91.74408783783782,
+    "dqn_pct": 89.62458745874588,
+    "random_baseline": 0.0,
+    "human_baseline": 29.6,
+    "dqn_baseline": 30.3,
+    "source": "runs/unified_suite/unified_opus_freewayfix_notemp_20260426_195044",
+    "policy_path": "C:\\Users\\yuddh\\OneDrive\\Desktop\\Msc AI and ML\\SoSe 2025\\Practical Lab 2\\JAXAtari\\scripts\\llm_optimization\\runs\\unified_suite\\unified_opus_freewayfix_notemp_20260426_195044\\freeway\\policy_v4.py",
+    "formula": "(agent_score - random_score) / (human_score - random_score) * 100"
+  },
+  {
+    "game": "asterix",
+    "score_10000": 9850.0,
+    "human_normalized_pct": 116.24261425298445,
+    "dqn_pct": 163.8389886892881,
+    "random_baseline": 210.0,
+    "human_baseline": 8503.0,
+    "dqn_baseline": 6012.0,
+    "source": "runs/unified_suite/unified_opus_strictapi_20260426_180133",
+    "policy_path": "C:\\Users\\yuddh\\OneDrive\\Desktop\\Msc AI and ML\\SoSe 2025\\Practical Lab 2\\JAXAtari\\scripts\\llm_optimization\\runs\\unified_suite\\unified_opus_strictapi_20260426_180133\\asterix\\policy_v5.py",
+    "formula": "(agent_score - random_score) / (human_score - random_score) * 100"
+  },
+  {
+    "game": "breakout",
+    "score_10000": 205.8125,
+    "human_normalized_pct": 678.1146179401993,
+    "dqn_pct": 51.29922731804586,
+    "random_baseline": 1.7,
+    "human_baseline": 31.8,
+    "dqn_baseline": 401.2,
+    "source": "runs/unified_suite/unified_opus_freewayfix_notemp_20260426_195044",
+    "policy_path": "C:\\Users\\yuddh\\OneDrive\\Desktop\\Msc AI and ML\\SoSe 2025\\Practical Lab 2\\JAXAtari\\scripts\\llm_optimization\\runs\\unified_suite\\unified_opus_freewayfix_notemp_20260426_195044\\breakout\\policy_v1.py",
+    "formula": "(agent_score - random_score) / (human_score - random_score) * 100"
+  },
+  {
+    "game": "skiing",
+    "score_10000": -3537.875,
+    "human_normalized_pct": 106.2613625677836,
+    "dqn_pct": 27.08462521914211,
+    "random_baseline": -17098.1,
+    "human_baseline": -4336.9,
+    "dqn_baseline": -13062.3,
+    "source": "runs/single_game/skiing_10000_corrected_20260427_1555",
+    "policy_path": "C:\\Users\\yuddh\\OneDrive\\Desktop\\Msc AI and ML\\SoSe 2025\\Practical Lab 2\\JAXAtari\\scripts\\llm_optimization\\runs\\single_game\\skiing_10000_corrected_20260427_1555\\policy_v1.py",
+    "formula": "(agent_score - random_score) / (human_score - random_score) * 100"
+  }
+]

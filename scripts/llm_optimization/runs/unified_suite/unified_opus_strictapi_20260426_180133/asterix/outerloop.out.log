@@ -1,0 +1,186 @@
+
+============================================================
+Game: ASTERIX
+Optimizer: cma-es
+Search Horizon: 2000 steps
+Evaluation Horizon: 4000 steps
+Output: scripts\llm_optimization\runs\unified_suite\unified_opus_strictapi_20260426_180133\asterix
+============================================================
+
+Logger initialized for asterix
+============================================================
+LLM Policy Optimization Loop for JAXAtari ASTERIX
+============================================================
+
+============================================================
+Outer-loop step 1/5 (policy v1)
+============================================================
+Requesting initial policy from LLM...
+Saved policy to: scripts\llm_optimization\runs\unified_suite\unified_opus_strictapi_20260426_180133\asterix\policy_v1.py
+Successfully loaded policy module
+
+Searching for optimal parameters (16 samples)...
+  CMA-ES: n=7 params, λ=16 population, 4 generations
+    Gen 1: best=937.50, mean=805.47, σ=0.267, overall_best=937.50
+    Gen 2: best=1000.00, mean=812.50, σ=0.258, overall_best=1000.00
+    Gen 3: best=1012.50, mean=796.88, σ=0.234, overall_best=1012.50
+    Gen 4: best=937.50, mean=680.08, σ=0.236, overall_best=1012.50
+
+Results for iteration 1:
+  Search Return (2000 steps): 1012.50
+  Average Return: 906.25
+  Player Score: 906.25
+  Enemy Score: 0.00
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 24 metrics
+    final_score: 1416.667
+    lives_remaining: 0.667
+    hits_taken: 2.333
+    terminal_game_over: 0.667
+    item_pickups: 28.333
+  >>> New best overall!
+Checkpoint saved to: scripts\llm_optimization\runs\unified_suite\unified_opus_strictapi_20260426_180133\asterix\optimization_checkpoint.json
+
+============================================================
+Outer-loop step 2/5 (policy v2)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts\llm_optimization\runs\unified_suite\unified_opus_strictapi_20260426_180133\asterix\diagnosis_v2.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts\llm_optimization\runs\unified_suite\unified_opus_strictapi_20260426_180133\asterix\policy_v2.py
+Successfully loaded policy module
+
+Searching for optimal parameters (16 samples)...
+  CMA-ES will use policy defaults because resumed params are incompatible (missing=['stay_bias', 'transit_margin'], extra=['danger_w', 'switch_bias']).
+  CMA-ES: n=7 params, λ=16 population, 4 generations
+    Gen 1: best=1006.25, mean=642.58, σ=0.317, overall_best=1006.25
+    Gen 2: best=1000.00, mean=838.67, σ=0.362, overall_best=1006.25
+    Gen 3: best=1018.75, mean=815.23, σ=0.365, overall_best=1018.75
+    Gen 4: best=1056.25, mean=848.83, σ=0.336, overall_best=1056.25
+
+Results for iteration 2:
+  Search Return (2000 steps): 1056.25
+  Average Return: 1428.12
+  Player Score: 1428.12
+  Enemy Score: 0.00
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 24 metrics
+    final_score: 1350.000
+    lives_remaining: 0.333
+    hits_taken: 2.667
+    terminal_game_over: 0.667
+    item_pickups: 27.000
+  >>> New best overall!
+Checkpoint saved to: scripts\llm_optimization\runs\unified_suite\unified_opus_strictapi_20260426_180133\asterix\optimization_checkpoint.json
+
+============================================================
+Outer-loop step 3/5 (policy v3)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts\llm_optimization\runs\unified_suite\unified_opus_strictapi_20260426_180133\asterix\diagnosis_v3.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts\llm_optimization\runs\unified_suite\unified_opus_strictapi_20260426_180133\asterix\policy_v3.py
+Successfully loaded policy module
+
+Searching for optimal parameters (16 samples)...
+  CMA-ES initialized from resumed best parameters.
+  CMA-ES: n=7 params, λ=16 population, 4 generations
+    Gen 1: best=1225.00, mean=996.88, σ=0.254, overall_best=1225.00
+    Gen 2: best=1181.25, mean=1092.58, σ=0.217, overall_best=1225.00
+    Gen 3: best=1175.00, mean=1054.30, σ=0.195, overall_best=1225.00
+    Gen 4: best=1156.25, mean=1105.08, σ=0.168, overall_best=1225.00
+
+Results for iteration 3:
+  Search Return (2000 steps): 1225.00
+  Average Return: 2009.38
+  Player Score: 2009.38
+  Enemy Score: 0.00
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 24 metrics
+    final_score: 2166.667
+    lives_remaining: 3.000
+    hits_taken: 0.000
+    terminal_game_over: 0.000
+    item_pickups: 43.333
+  >>> New best overall!
+Checkpoint saved to: scripts\llm_optimization\runs\unified_suite\unified_opus_strictapi_20260426_180133\asterix\optimization_checkpoint.json
+
+============================================================
+Outer-loop step 4/5 (policy v4)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts\llm_optimization\runs\unified_suite\unified_opus_strictapi_20260426_180133\asterix\diagnosis_v4.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts\llm_optimization\runs\unified_suite\unified_opus_strictapi_20260426_180133\asterix\policy_v4.py
+Successfully loaded policy module
+
+Searching for optimal parameters (16 samples)...
+  CMA-ES initialized from resumed best parameters.
+  CMA-ES: n=7 params, λ=16 population, 4 generations
+    Gen 1: best=918.75, mean=805.86, σ=0.281, overall_best=918.75
+    Gen 2: best=981.25, mean=794.53, σ=0.284, overall_best=981.25
+    Gen 3: best=950.00, mean=797.66, σ=0.265, overall_best=981.25
+    Gen 4: best=1000.00, mean=832.81, σ=0.292, overall_best=1000.00
+
+Results for iteration 4:
+  Search Return (2000 steps): 1000.00
+  Average Return: 1071.88
+  Player Score: 1071.88
+  Enemy Score: 0.00
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 24 metrics
+    final_score: 1350.000
+    lives_remaining: 0.000
+    hits_taken: 3.000
+    terminal_game_over: 1.000
+    item_pickups: 27.000
+Checkpoint saved to: scripts\llm_optimization\runs\unified_suite\unified_opus_strictapi_20260426_180133\asterix\optimization_checkpoint.json
+
+============================================================
+Outer-loop step 5/5 (policy v5)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts\llm_optimization\runs\unified_suite\unified_opus_strictapi_20260426_180133\asterix\diagnosis_v5.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts\llm_optimization\runs\unified_suite\unified_opus_strictapi_20260426_180133\asterix\policy_v5.py
+Successfully loaded policy module
+
+Searching for optimal parameters (16 samples)...
+  CMA-ES initialized from resumed best parameters.
+  CMA-ES: n=7 params, λ=16 population, 4 generations
+    Gen 1: best=1187.50, mean=1106.64, σ=0.290, overall_best=1187.50
+    Gen 2: best=1200.00, mean=1119.92, σ=0.298, overall_best=1200.00
+    Gen 3: best=1175.00, mean=1108.59, σ=0.266, overall_best=1200.00
+    Gen 4: best=1150.00, mean=1103.52, σ=0.240, overall_best=1200.00
+
+Results for iteration 5:
+  Search Return (2000 steps): 1200.00
+  Average Return: 2159.38
+  Player Score: 2159.38
+  Enemy Score: 0.00
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 24 metrics
+    final_score: 2100.000
+    lives_remaining: 3.000
+    hits_taken: 0.000
+    terminal_game_over: 0.000
+    item_pickups: 42.000
+  >>> New best overall!
+Checkpoint saved to: scripts\llm_optimization\runs\unified_suite\unified_opus_strictapi_20260426_180133\asterix\optimization_checkpoint.json
+
+============================================================
+Optimization Complete!
+============================================================
+Best Score Achieved: 2159.38
+Total Iterations: 5
+Results saved to: scripts\llm_optimization\runs\unified_suite\unified_opus_strictapi_20260426_180133\asterix\optimization_results.json

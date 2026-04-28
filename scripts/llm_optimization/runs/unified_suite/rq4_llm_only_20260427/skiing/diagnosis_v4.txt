@@ -1,0 +1,35 @@
+## 1. Root cause
+The policy is already passing all 20 gates without any collisions, but it accumulates excessive negative return because episodes are far too long (≈2129 steps) and average downhill speed is only ~1.18. The bottleneck is **slow downhill traversal**, not gate misses or safety. The dead zone, tuck criteria, and orientation release thresholds are too conservative, so the skier spends most frames in NOOP (37%) rather than DOWN, and rarely commits to the brief steering inputs needed to set an aggressive straight-down heading.
+
+## 2. Evidence from metrics
+- gates_passed = 20, gate_pass_rate = 1.0, all collision counters = 0 → safety/targeting are solved.
+- average_gate_center_error = 6.66 px → already inside ~half the gate; further precision yields little.
+- average_speed_y = 1.18 (low) and average_steps = 2129 (very high) → time penalty dominates the −13547 reward.
+- down_action_rate = 0.59, noop_rate = 0.37 → 37% of frames are wasted NOOPs that could be DOWN.
+- turn_rate = 0.039 (very low) → steering is not the cost; the policy is mostly coasting.
+- Best return −3567 with these dynamics confirms time-penalty, not penalty-from-misses, is the residual loss.
+
+## 3. Policy logic causing it
+- `tuck_dx = 3.0` and `heading_ok = |ori_n| < 1.1` gate DOWN behind two simultaneous tight conditions; whenever `|target_dx|` is between 3 and 6 (inside dead zone but outside tuck zone), the policy emits NOOP instead of DOWN. This is the dominant source of the 37% NOOP frames.
+- `dead_zone = 6.0` plus `lookahead_y = 55` (unused in `select_gate`) means the policy considers only the *currently ahead* gate and steers late; it doesn't pre-align, so it stays in a slightly-off-straight heading more often.
+- `ori_release = 1.6` notches (~36°) is permissive on the wrong side: it allows the heading to drift up to ±1.6 notches before recovery, which directly suppresses downhill speed (notches ±2 = 45°, half-speed regime).
+- The recovery branch only fires when not `want_left/right` *and* heading is beyond `ori_release`; between 1.1 and 1.6 notches the policy neither tucks (heading_ok fails) nor recovers nor steers → another NOOP sink.
+- Tree avoidance uses a hard ±30 px override but trees never trigger here; this code is dead weight, not harmful.
+- `select_gate` ignores `lookahead_y`, so the parameter does nothing.
+
+## 4. What to preserve
+- Overall structure: signed-orientation feedback, gate-center targeting at `flag_x + 16`, dead-zone steering with heading gating, priority ordering (steer > recover > tuck > noop).
+- The short-pulse steering pattern (do_right/do_left gated by ori_release) — it is what produces zero collisions and full gate passage.
+- Tree avoidance branch as a safety net (keep, even if rarely used).
+- The compact 6-parameter footprint.
+
+## 5. What to change next
+- **Default to DOWN, not NOOP.** Make DOWN the fallback action whenever no steering or recovery is needed, removing the `aligned & heading_ok` gating. NOOP should essentially disappear.
+- **Tighten heading tolerance for "straight enough."** Drop the heading_ok / ori_release thresholds toward ~0.6–1.0 notches so the skier spends more time near notches 3–4 (337.5°/22.5°, the high-speed regime) and triggers recovery sooner.
+- **Decouple tuck from alignment.** Tuck (DOWN) should be the steady-state; alignment should only gate *steering*, not *accelerating*.
+- **Use `lookahead_y` meaningfully.** Pre-select the next gate when the current one is within a small `dy` and start steering toward it earlier, so corrections happen while heading is still near-straight (avoids large heading excursions that kill speed).
+- **Reduce `dead_zone` slightly (e.g., 3–4 px).** With heading feedback already preventing oversteer, a smaller dead zone improves pre-alignment without causing oscillation, allowing earlier release back to straight heading.
+- **Consider a second orientation threshold** (`ori_recover` < `ori_release`) so recovery steering kicks in before the skier reaches a speed-killing angle, instead of sharing one threshold for both "stop turning" and "start recovering."
+- Remove or repurpose unused `lookahead_y` to avoid misleading parameter search.
+
+Expected effect: average_speed_y rises, average_steps drops substantially, and return becomes less negative without sacrificing the perfect gate/collision record.

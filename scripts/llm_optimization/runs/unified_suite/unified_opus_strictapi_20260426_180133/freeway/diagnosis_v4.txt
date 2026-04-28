@@ -1,0 +1,36 @@
+# Diagnosis
+
+## 1. Root cause
+The policy treats lane safety as a snapshot of the *next* lane only, ignoring (a) where the car will be when the chicken actually arrives in that lane, (b) the *exit* side risk for fast cars, and (c) multi-lane look-ahead. It also lacks any commitment/hysteresis: once UP fires, it does not protect the chicken through the ~1-frame transition, so it steps directly into cars whose front edge arrives within the action latency.
+
+## 2. Evidence from metrics
+- `collision_rate = 0.66` per crossing — extremely high; the chicken is being hit on more than half of attempts.
+- `near_miss_count ≈ 800` per episode — the chicken is constantly threading through cars, meaning the safety margin is ill-calibrated, not absent.
+- `avg_crossing_time ≈ 330` frames vs `min ≈ 188` — there are long stalls; `hesitation_rate = 0.24` confirms NOOP dominates while waiting.
+- `up_action_rate = 0.0074` is absurdly low (≈ 30 UP actions in 4000 frames for ~12 crossings of ~10 lanes). Most upward progress is happening from the rare moments the gate opens, and yet collisions still occur — so when UP does fire, the gate condition is wrong.
+- `down_action_rate = 0` — the DOWN branch never triggers, so `down_ttc` is dead weight in the parameter set; optimizer wastes a dimension.
+- `avg_upward_progress = 0.013` is tiny; chicken is mostly idling near y≈115 (middle lanes, the fast +1 traffic band).
+
+## 3. Policy logic causing it
+- `_ttc_for_lane` measures TTC of the car *to the chicken column*, but does not account for the ~1 lane-step time the chicken needs to occupy that lane, nor the car's width while crossing. A car with TTC=8 and `safe_time=8.5` is rejected, but a car with TTC=9 is accepted — yet at 9 frames a wide fast car still overlaps when the chicken is mid-lane.
+- "Safe if TTC large OR clear large" is an OR, not AND. A car already overlapping but slow (small dx) gets `clear=0` and short TTC → unsafe (correct), but a car *just past* the chicken with tiny `clear` and effectively infinite TTC (gap negative) returns `ttc=1e6`, marking unsafe via clear, then OR'd to safe. This produces the simultaneous "near miss" + "collision" pattern.
+- No prediction of car position at arrival time: should check `|car_x_future - chicken_x| > halfwidth` at `t = lane_step_frames`.
+- Only `next_lane` is checked. Fast lanes (5–9, +1 direction) demand looking 2 lanes ahead because once committed mid-band the chicken cannot stop safely.
+- `near_top` forces UP unconditionally — fine near goal, but `finish_y≈29` may override safety in the last fast lane.
+- DOWN never fires because `cur_danger` requires `cur_ttc < 3.6` AND `down_safe`; by the time TTC<3.6 the down lane is usually also unsafe. DOWN parameterization is effectively unused.
+
+## 4. What to preserve
+- Two-frame dx estimation and per-lane TTC structure.
+- Compact parameter vector and flat decision tree.
+- `near_top` shortcut (with a small guard).
+- Lane index via `argmin |LANE_Y - cy|`.
+- UP-dominant bias.
+
+## 5. What to change next
+- **Predictive overlap test**: replace TTC threshold with "will the car's x-interval overlap the chicken column at time t = k_arrival?" using `car_x + dx * k`. Parameterize `k_arrival` (frames to settle in new lane, ~4–8).
+- **Two-sided safety**: require both no-overlap-now AND no-overlap-at-arrival AND the *trailing* edge has cleared (so a car that just passed but is still adjacent is unsafe to step into).
+- **Look-ahead 2 lanes** when in the fast band (lanes 5–9): require `up_safe AND (up_safe2 OR cy not in fast band)`.
+- **Replace `down_ttc` with a useful parameter**, e.g. `arrival_frames` or a lane-band-specific safety margin, since DOWN is never used. Either remove DOWN entirely or make it trigger on predicted overlap in current lane within a small horizon (not just TTC).
+- **Tighten `clear_px` semantics**: use signed clearance in the direction of car travel only; a car that just passed (clearance on trailing side) should be treated as safe immediately, unblocking more UP opportunities and reducing hesitation.
+- **Add a small commitment counter via parameters only is not possible without state** — instead, make the gate asymmetric: stricter to *enter* a lane, looser to *stay*, by using `cy` offset within the lane (distance from `LANE_Y[lane]`) to detect "already moved" and bias toward continuing UP.
+- **Re-tune ranges**: `safe_time` is too coarse; replace with `arrival_frames` (4–10) and `post_pass_margin` (2–6 px). Expect higher `up_action_rate` (~0.05–0.10) and `collision_rate < 0.2`.

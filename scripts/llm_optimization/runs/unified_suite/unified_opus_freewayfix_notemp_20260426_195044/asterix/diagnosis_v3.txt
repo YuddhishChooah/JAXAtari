@@ -1,0 +1,39 @@
+# Diagnosis
+
+## 1. Root cause
+Survival is the binding constraint, not routing. The policy's danger model is computed at a single reference x (either the predicted collectible intercept or the player's current x) and at a fixed short horizon, so it does not check whether the *path through the lane during a vertical transition* is clear. Combined with a danger scale that is inconsistent with `safe_threshold`, lanes that should be vetoed are entering the candidate set, and diagonal moves commit the agent into lanes whose enemy will arrive exactly during the transition.
+
+## 2. Evidence from metrics
+- `hits_taken = 3`, `hit_rate_per_1000 = 0.89`, `terminal_game_over = 1`, `lives_remaining = 0`: deaths, not routing, cap the score.
+- `hit_diagonal_fraction = 1.0`, `hit_horizontal_fraction = 0`: every fatal hit happens during a lane change. Vertical transitions are unsafe.
+- `avg_hit_enemy_gap ≈ 41`: hits occur at a gap roughly equal to `safe_threshold (40.6)` and well above `danger_radius (26.2)`. The veto threshold is being applied to a quantity (`raw * active * approach_mul * radius`, max ≈ `1.5 * radius ≈ 39`) that *cannot* exceed `safe_threshold`, so the veto almost never fires.
+- `item_pickup_rate_per_1000 ≈ 10`, `score_rate_per_1000 ≈ 498`: when alive, harvesting works. Episode length 3376 with only 3 deaths means each death is very expensive.
+- `avg_collectibles_visible = 0.56`: items are sparse, so the agent must travel — making safe transitions even more important.
+- `topmost_stage_index = 0`, `bottommost = 7`: full lane reach already; no need for an upper-lane bias.
+
+## 3. Policy logic causing it
+- **Scale mismatch**: `_lane_danger_at` returns `exp(-d/r) * active * approach_mul * r`, bounded by ~`1.5*r ≈ 39`. The veto compares this to `safe_threshold ≈ 40.6`, so `veto` is essentially always False and `is_dangerous` (current-lane escape) is also rarely True. Rule 16 is being violated.
+- **Single-point danger**: danger is evaluated at one ref x (collectible intercept) per lane. During an UPRIGHT/UPLEFT, the player passes through an intermediate lane whose danger is never checked along the trajectory.
+- **No transit-time danger**: the projection horizon is fixed at 4 frames, but a lane change plus horizontal interception takes longer; the enemy that's safe at t=4 hits at t=8–12.
+- **Fallback ignores danger threshold**: when no valid safe collectible exists, `fallback_score` adds `5 * collect_active`, which can pull the agent into an active-but-dangerous lane (the veto only gates the *primary* target).
+- **Stay bonus interacts with veto-failure**: because veto rarely triggers, the agent commits to whatever lane wins on value, so it dives toward 200/300 items even when an enemy is closing.
+- **Escape logic is gated by `no_vert`**: escape only fires if `lane_diff == 0`. If a target lane is selected (lane_diff ≠ 0) but the *current* lane becomes dangerous mid-transition, there's no abort.
+- **Approach asymmetry is weak**: `approach_mul` only goes up to 1.5 and uses sign of dx; a fast enemy and a slow enemy at the same distance get the same danger.
+
+## 4. What to preserve
+- Two-frame dx estimation for enemies and collectibles.
+- Lane-aligned indexing (no rediscovery from y).
+- Value table from `visual_id` and value-weighted scoring.
+- Lane-distance penalty and intercept distance penalty structure.
+- Diagonal-vs-horizontal action assembly.
+- The compact ~7-parameter shape; do not balloon parameters.
+
+## 5. What to change next
+- **Fix the danger/threshold scale**. Either normalize danger to [0,1] (drop the `* radius` factor) and keep `safe_threshold` in [0,1], or keep raw distance-based danger and compare on the same scale. The veto must actually fire on the cases producing `avg_hit_enemy_gap ≈ 41`.
+- **Multi-horizon, trajectory-aware danger**. For a candidate target lane, evaluate danger at horizons matching the *expected arrival time* (≈ `lane_dist * frames_per_lane + intercept_dist * frames_per_pixel`). Take the max danger over that window, not a min over fixed horizons (current `min` of d0..d3 actually *underestimates* danger).
+- **Transit-lane safety check**. For diagonal moves, also require the intermediate lane(s) between `cur_lane` and `target_lane` to be safe at the transit time. This directly attacks `hit_diagonal_fraction = 1`.
+- **Abort/replan during transitions**. Drop the `no_vert` gate on escape: if the current lane's danger spikes, allow switching the chosen vertical direction or reverting to horizontal dodge even when `lane_diff ≠ 0`.
+- **Apply veto in the fallback too**. The fallback should also exclude lanes with danger above threshold; if everything is unsafe, prefer pure horizontal dodging away from the nearest approaching enemy rather than committing to a lane change.
+- **Stronger approach scaling**. Make `approach_mul` proportional to enemy speed (`|dx|`) and to time-to-collision (`gap / max(|dx|, eps)`), so fast closers dominate.
+- **Slightly de-emphasize value vs. survival**. With deaths costing ~500+ score each, reducing `value_weight` or increasing `danger_weight` net-of-scale-fix should help; but only after the scale bug is fixed, otherwise the previous tuning is meaningless.
+- **Do not** add upper-lane bias, recurrent state, or broaden the rewrite — `topmost_stage_index = 0` and the prior failed candidate confirm those directions don't help.

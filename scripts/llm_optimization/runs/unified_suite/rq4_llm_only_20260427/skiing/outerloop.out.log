@@ -1,0 +1,159 @@
+
+============================================================
+Game: SKIING
+Optimizer: none
+Search Horizon: 10000 steps
+Evaluation Horizon: 10000 steps
+Output: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\skiing
+============================================================
+
+Logger initialized for skiing
+============================================================
+LLM Policy Optimization Loop for JAXAtari SKIING
+============================================================
+
+============================================================
+Outer-loop step 1/5 (policy v1)
+============================================================
+Requesting initial policy from LLM...
+Saved policy to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\skiing\policy_v1.py
+Successfully loaded policy module
+
+Evaluating LLM-chosen parameters directly (no inner optimizer)...
+  No-search ablation: evaluated LLM init_params directly return=-3556.25, win_rate=0.00%
+
+Results for iteration 1:
+  Search Return (10000 steps): -3556.25
+  Average Return: -3567.81
+  Player Score: -3567.81
+  Enemy Score: 0.00
+  Win Rate: 0.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 18 metrics
+    gates_passed: 20.000
+    missed_gates: 0.000
+    gates_seen: 19.000
+    gate_pass_rate: 1.000
+    collision_count: 0.000
+  >>> New best overall!
+Checkpoint saved to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\skiing\optimization_checkpoint.json
+
+============================================================
+Outer-loop step 2/5 (policy v2)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\skiing\diagnosis_v2.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\skiing\policy_v2.py
+Successfully loaded policy module
+
+Evaluating LLM-chosen parameters directly (no inner optimizer)...
+  No-search ablation: evaluated LLM init_params directly return=-9160.00, win_rate=0.00%
+
+Results for iteration 2:
+  Search Return (10000 steps): -9160.00
+  Average Return: -9056.75
+  Player Score: -9056.75
+  Enemy Score: 0.00
+  Win Rate: 0.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 18 metrics
+    gates_passed: 8.333
+    missed_gates: 11.667
+    gates_seen: 19.000
+    gate_pass_rate: 0.439
+    collision_count: 0.000
+Checkpoint saved to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\skiing\optimization_checkpoint.json
+
+============================================================
+Outer-loop step 3/5 (policy v3)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\skiing\diagnosis_v3.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\skiing\policy_v3.py
+Successfully loaded policy module
+
+Evaluating LLM-chosen parameters directly (no inner optimizer)...
+  No-search ablation: evaluated LLM init_params directly return=-9147.50, win_rate=0.00%
+
+Results for iteration 3:
+  Search Return (10000 steps): -9147.50
+  Average Return: -9090.00
+  Player Score: -9090.00
+  Enemy Score: 0.00
+  Win Rate: 0.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 18 metrics
+    gates_passed: 9.000
+    missed_gates: 11.000
+    gates_seen: 19.000
+    gate_pass_rate: 0.474
+    collision_count: 1.333
+Checkpoint saved to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\skiing\optimization_checkpoint.json
+
+============================================================
+Outer-loop step 4/5 (policy v4)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\skiing\diagnosis_v4.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\skiing\policy_v4.py
+Successfully loaded policy module
+
+Evaluating LLM-chosen parameters directly (no inner optimizer)...
+  No-search ablation: evaluated LLM init_params directly return=-9005.12, win_rate=0.00%
+
+Results for iteration 4:
+  Search Return (10000 steps): -9005.12
+  Average Return: -9004.81
+  Player Score: -9004.81
+  Enemy Score: 0.00
+  Win Rate: 0.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 18 metrics
+    gates_passed: 9.000
+    missed_gates: 11.000
+    gates_seen: 19.000
+    gate_pass_rate: 0.474
+    collision_count: 0.000
+Checkpoint saved to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\skiing\optimization_checkpoint.json
+
+============================================================
+Outer-loop step 5/5 (policy v5)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\skiing\diagnosis_v5.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\skiing\policy_v5.py
+Successfully loaded policy module
+
+Evaluating LLM-chosen parameters directly (no inner optimizer)...
+  No-search ablation: evaluated LLM init_params directly return=-7783.75, win_rate=0.00%
+
+Results for iteration 5:
+  Search Return (10000 steps): -7783.75
+  Average Return: -7850.81
+  Player Score: -7850.81
+  Enemy Score: 0.00
+  Win Rate: 0.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 18 metrics
+    gates_passed: 11.667
+    missed_gates: 8.333
+    gates_seen: 19.000
+    gate_pass_rate: 0.614
+    collision_count: 2.000
+Checkpoint saved to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\skiing\optimization_checkpoint.json
+
+============================================================
+Optimization Complete!
+============================================================
+Best Score Achieved: -3567.81
+Total Iterations: 5
+Results saved to: scripts\llm_optimization\runs\unified_suite\rq4_llm_only_20260427\skiing\optimization_results.json

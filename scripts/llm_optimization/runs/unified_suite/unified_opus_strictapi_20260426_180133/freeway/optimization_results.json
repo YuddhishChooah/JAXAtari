@@ -1,0 +1,278 @@
+{
+  "best_score": 12.0,
+  "seed": 9601,
+  "config": {
+    "llm_provider": "anthropic",
+    "llm_model": "claude-opus-4-7",
+    "api_key": "<redacted>",
+    "max_tokens": 8192,
+    "temperature": 0.7,
+    "num_parallel_envs": 8,
+    "max_steps_per_episode": 4000,
+    "num_eval_episodes": 16,
+    "frame_stack_size": 0,
+    "search_max_steps": 2000,
+    "optimizer": "cma-es",
+    "num_param_samples": 16,
+    "param_perturbation_scale": 0.3,
+    "cma_es_generations": 4,
+    "max_iterations": 5,
+    "target_score": 1000000000.0,
+    "diagnostic_refinement": true,
+    "resume_from_results": false,
+    "resume_best_params_for_cma": true,
+    "refresh_resume_metrics": true,
+    "stop_on_strong_best": false,
+    "output_dir": "scripts\\llm_optimization\\runs\\unified_suite\\unified_opus_strictapi_20260426_180133\\freeway",
+    "verbose": true,
+    "save_intermediate": true,
+    "seed": 9601
+  },
+  "runtime": {
+    "timestamp": "2026-04-26 18:26:43",
+    "python_version": "3.12.8 (tags/v3.12.8:2dc476b, Dec  3 2024, 19:30:04) [MSC v.1942 64 bit (AMD64)]",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "numpy_version": "1.26.4",
+    "jax_version": "0.6.0",
+    "git_commit": "0e949a9cca8e23eacac343f1c2272d333138b19f"
+  },
+  "best_params": {
+    "clear_px": 10.337756156921387,
+    "down_ttc": 3.6320600509643555,
+    "finish_y": 29.414260864257812,
+    "safe_time": 8.55782413482666,
+    "wait_horizon": 19.993497848510742
+  },
+  "best_metrics": {
+    "avg_return": 12.0,
+    "avg_player_score": 12.0,
+    "avg_enemy_score": 0.0,
+    "win_rate": 1.0,
+    "total_rewards": [
+      12.0,
+      12.0,
+      12.0,
+      13.0,
+      12.0,
+      14.0,
+      13.0,
+      11.0,
+      11.0,
+      12.0,
+      12.0,
+      12.0,
+      13.0,
+      11.0,
+      11.0,
+      11.0
+    ],
+    "player_scores": [
+      12.0,
+      12.0,
+      12.0,
+      13.0,
+      12.0,
+      14.0,
+      13.0,
+      11.0,
+      11.0,
+      12.0,
+      12.0,
+      12.0,
+      13.0,
+      11.0,
+      11.0,
+      11.0
+    ],
+    "enemy_scores": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "search_avg_return": 6.875,
+    "search_avg_player_score": 6.875,
+    "search_avg_enemy_score": 0.0,
+    "search_win_rate": 1.0,
+    "logger_metrics": {
+      "crossings": 11.666666666666666,
+      "collision_count": 23.0,
+      "collision_rate": 0.6626503126503126,
+      "avg_upward_progress": 0.013003250812703177,
+      "total_upward_progress": 2317.3333333333335,
+      "lane_transitions": 11.666666666666666,
+      "lane_transition_rate": 0.002916666666666667,
+      "near_miss_count": 800.3333333333334,
+      "time_efficiency": 2.9166666666666665,
+      "avg_crossing_time": 329.67676767676767,
+      "min_crossing_time": 188.0,
+      "hesitation_rate": 0.23883333333333334,
+      "up_action_rate": 0.007416666666666668,
+      "down_action_rate": 0.0,
+      "episode_length": 4000.0,
+      "min_y_reached": 16.0,
+      "avg_y_position": 114.67333333333333
+    }
+  },
+  "history": [
+    {
+      "iteration": 1,
+      "metrics": {
+        "avg_return": 10.5,
+        "avg_player_score": 10.5,
+        "avg_enemy_score": 0.0,
+        "win_rate": 1.0,
+        "search_avg_return": 6.0,
+        "search_avg_player_score": 6.0,
+        "search_avg_enemy_score": 0.0,
+        "search_win_rate": 1.0,
+        "logger_metrics": {
+          "crossings": 10.333333333333334,
+          "collision_count": 32.666666666666664,
+          "collision_rate": 0.7596899224806202,
+          "avg_upward_progress": 0.003834291906309911,
+          "total_upward_progress": 2287.3333333333335,
+          "lane_transitions": 10.333333333333334,
+          "lane_transition_rate": 0.0025833333333333333,
+          "near_miss_count": 583.6666666666666,
+          "time_efficiency": 2.5833333333333335,
+          "avg_crossing_time": 382.1606060606061,
+          "min_crossing_time": 201.66666666666666,
+          "hesitation_rate": 0.08533333333333333,
+          "up_action_rate": 0.0,
+          "down_action_rate": 0.0,
+          "episode_length": 4000.0,
+          "min_y_reached": 16.0,
+          "avg_y_position": 121.91291666666666
+        }
+      },
+      "best_params": {
+        "down_thresh": 4.188357353210449,
+        "finish_y": 29.867706298828125,
+        "lane_band": 10.211140632629395,
+        "lookahead": 6.14234733581543,
+        "safe_gap": 11.724040985107422,
+        "up_bias": 0.9245571494102478
+      },
+      "filepath": "scripts\\llm_optimization\\runs\\unified_suite\\unified_opus_strictapi_20260426_180133\\freeway\\policy_v1.py"
+    },
+    {
+      "iteration": 2,
+      "metrics": {
+        "avg_return": 12.0,
+        "avg_player_score": 12.0,
+        "avg_enemy_score": 0.0,
+        "win_rate": 1.0,
+        "search_avg_return": 6.875,
+        "search_avg_player_score": 6.875,
+        "search_avg_enemy_score": 0.0,
+        "search_win_rate": 1.0,
+        "logger_metrics": {
+          "crossings": 11.666666666666666,
+          "collision_count": 23.0,
+          "collision_rate": 0.6626503126503126,
+          "avg_upward_progress": 0.013003250812703177,
+          "total_upward_progress": 2317.3333333333335,
+          "lane_transitions": 11.666666666666666,
+          "lane_transition_rate": 0.002916666666666667,
+          "near_miss_count": 800.3333333333334,
+          "time_efficiency": 2.9166666666666665,
+          "avg_crossing_time": 329.67676767676767,
+          "min_crossing_time": 188.0,
+          "hesitation_rate": 0.23883333333333334,
+          "up_action_rate": 0.007416666666666668,
+          "down_action_rate": 0.0,
+          "episode_length": 4000.0,
+          "min_y_reached": 16.0,
+          "avg_y_position": 114.67333333333333
+        }
+      },
+      "best_params": {
+        "clear_px": 10.337756156921387,
+        "down_ttc": 3.6320600509643555,
+        "finish_y": 29.414260864257812,
+        "safe_time": 8.55782413482666,
+        "wait_horizon": 19.993497848510742
+      },
+      "filepath": "scripts\\llm_optimization\\runs\\unified_suite\\unified_opus_strictapi_20260426_180133\\freeway\\policy_v2.py"
+    },
+    {
+      "iteration": 3,
+      "metrics": {
+        "avg_return": 8.125,
+        "avg_player_score": 8.125,
+        "avg_enemy_score": 0.0,
+        "win_rate": 1.0,
+        "search_avg_return": 4.375,
+        "search_avg_player_score": 4.375,
+        "search_avg_enemy_score": 0.0,
+        "search_win_rate": 1.0
+      },
+      "best_params": {
+        "danger_horizon": 2.433002233505249,
+        "down_safe_time": 4.908112525939941,
+        "dwell": 4.123937606811523,
+        "entry_delay": 2.157057046890259,
+        "finish_y": 30.018310546875,
+        "margin_px": 3.434699296951294
+      },
+      "filepath": "scripts\\llm_optimization\\runs\\unified_suite\\unified_opus_strictapi_20260426_180133\\freeway\\policy_v3.py"
+    },
+    {
+      "iteration": 4,
+      "metrics": {
+        "avg_return": 11.125,
+        "avg_player_score": 11.125,
+        "avg_enemy_score": 0.0,
+        "win_rate": 1.0,
+        "search_avg_return": 6.625,
+        "search_avg_player_score": 6.625,
+        "search_avg_enemy_score": 0.0,
+        "search_win_rate": 1.0
+      },
+      "best_params": {
+        "arrival_frames": 6.090629577636719,
+        "danger_horizon": 4.0444512367248535,
+        "fast_band_start": 4.0937347412109375,
+        "finish_y": 31.73701286315918,
+        "pad": 1.9213099479675293,
+        "post_pass_margin": 3.0758719444274902
+      },
+      "filepath": "scripts\\llm_optimization\\runs\\unified_suite\\unified_opus_strictapi_20260426_180133\\freeway\\policy_v4.py"
+    },
+    {
+      "iteration": 5,
+      "metrics": {
+        "avg_return": 11.4375,
+        "avg_player_score": 11.4375,
+        "avg_enemy_score": 0.0,
+        "win_rate": 1.0,
+        "search_avg_return": 6.0,
+        "search_avg_player_score": 6.0,
+        "search_avg_enemy_score": 0.0,
+        "search_win_rate": 1.0
+      },
+      "best_params": {
+        "down_window": 5.803004741668701,
+        "entry_delay": 2.2939035892486572,
+        "occupancy": 8.401779174804688,
+        "plan_horizon": 14.144144058227539,
+        "safety_pad": 2.821599245071411
+      },
+      "filepath": "scripts\\llm_optimization\\runs\\unified_suite\\unified_opus_strictapi_20260426_180133\\freeway\\policy_v5.py"
+    }
+  ],
+  "best_policy_path": "scripts\\llm_optimization\\runs\\unified_suite\\unified_opus_strictapi_20260426_180133\\freeway\\policy_v2.py"
+}

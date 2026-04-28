@@ -1,0 +1,42 @@
+## 1. Root cause
+The policy underestimates lane-entry danger and commits to diagonal lane changes without verifying the destination lane is clear at the moment of arrival. Combined with a 2-frame linear projection that is too short and a danger model that only measures distance to player x (not to the *destination* lane geometry during transit), the agent walks into enemies it could see coming. Item routing logic is reasonable; survival is the binding constraint.
+
+## 2. Evidence from metrics
+- `hits_taken` ≈ 2.33 with `terminal_game_over` = 0.67 → episodes end by death, not timeout.
+- `hit_diagonal_fraction` = 1.0 → every life-losing hit happens during a diagonal lane transition.
+- `avg_hit_enemy_gap` = 16 px → collisions occur with enemies the danger model should already see; threshold/buffer is too tight.
+- `hit_rate_per_1000` ≈ 0.96 → unsafe lane entries are frequent, not rare flukes.
+- `item_pickup_rate_per_1000` ≈ 9.5 and `score_rate_per_1000` ≈ 476 are decent when alive → score ceiling is gated by death, not by harvesting logic.
+- `avg_collectibles_visible` ≈ 0.52 → items are sparse; missing one due to a death is very costly.
+- `horizontal_rate` 0.82 vs `diagonal_rate` 0.18 → most steps are lateral, but the few diagonals carry all the risk.
+- `topmost_stage_index` = 0, `bottommost_stage_index` = 7 → reachability is fine; no upper-lane bias problem.
+
+## 3. Policy logic causing it
+- `_lane_danger` uses only `enemy_x` and `proj = enemy_x + 3*dx` vs `player_x`. During a diagonal step the player is *leaving* the current lane and *entering* a neighbor lane; danger for the destination lane is computed against current `px`, not against the x position the player will occupy on arrival, and not over the multi-frame transit window.
+- `danger_range` ≈ 39 with `danger_thresh` ≈ 0.22 looks conservative, but `danger_w * danger * 100` (≈133) is easily outweighed by `value_w * value` (up to ~415 for a 300-pt item) plus the +50 safe bonus and the `switch_bias`. So a high-value lane can be picked even when its danger is moderate.
+- Safety is enforced as a soft penalty in the lane score, not as a hard veto. `safe_mask` only adds a bonus; it never excludes unsafe lanes from selection.
+- Emergency dodge only triggers when `same_lane & cur_dangerous`. There is no abort/replan if the *destination* lane becomes dangerous mid-transition — the policy commits.
+- Enemy `dx` uses lane-aligned indices but `_lane_danger` compares to `player_x` for all lanes; this conflates "enemy near my x" with "enemy will be near me when I arrive in lane k", which depends on per-lane arrival time.
+- 3-frame projection is too short for slower agent vertical transitions; enemies moving toward the player from off-screen are underweighted.
+- Patrol fallback (`px<76 → RIGHT else LEFT`) ignores danger and item direction; can walk into enemies in the current lane while idling.
+- `intercept_w` ≈ 0.4 is small; `lane_dist_w` ≈ 19.8 dominates, so the agent prefers near lanes even when a 300-pt item sits two lanes away — but this is secondary to the death problem.
+
+## 4. What to preserve
+- Two-frame dx estimation for enemies and collectibles.
+- Lane-indexed object arrays (no y-based lane rediscovery).
+- Value table via `visual_id` with id 4 = 0.
+- Reachability/lane-distance cost in lane scoring.
+- Compact 7-parameter structure with a single argmax over lane scores.
+- Diagonal-only upward movement using actions 4/5.
+
+## 5. What to change next
+- Add a hard safety veto: lanes with projected danger above a threshold are excluded from the item-target argmax, not merely penalized. Keep one consistent danger scale so threshold and weight aren't double-applied.
+- Compute per-lane danger using a transit window: project enemy x over `k` frames where `k` scales with `|lane_idx - cur_lane|` (arrival time), and check the minimum clearance over that window, not just one snapshot.
+- Use a larger collision buffer (e.g., danger_range tuned upward, plus an additive safety margin in pixels around projected enemy x) given `avg_hit_enemy_gap`=16.
+- Evaluate destination-lane danger at the *predicted player x on arrival* (current px adjusted by horizontal action during transit), not at current px.
+- For diagonal moves, require BOTH current-lane exit clearance AND destination-lane entry clearance; if either fails, prefer pure horizontal repositioning this frame and retry next frame.
+- Add an "abort transition" branch: if mid-decision the chosen diagonal target lane becomes unsafe (danger spike from updated dx), fall back to a horizontal dodge away from the nearest enemy.
+- Replace the blind patrol fallback with a danger-aware idle: move horizontally *away* from the nearest active enemy in the current lane, biased toward the side with the nearest active collectible across any lane.
+- Rebalance weights so `danger_w * danger` can dominate `value_w * value` for a 300-pt item when danger is near threshold; or normalize value to [0,1] before weighting.
+- Extend projection horizon (e.g., 5–8 frames) and consider clipping enemy dx magnitude to avoid noisy single-frame estimates.
+- Add a small parameter for "transit safety margin" so the optimizer can directly tune entry clearance — this is the lever the current parameter set lacks.

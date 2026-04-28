@@ -2,9 +2,7 @@
 """
 Render a Pong policy rollout to MP4.
 
-Defaults to the best current unified Pong run:
-- best policy path from optimization_results.json
-- best_params from optimization_results.json
+Defaults to the canonical 10000-step best Pong policy.
 """
 
 from __future__ import annotations
@@ -40,6 +38,17 @@ def load_policy_module(policy_path: Path):
 
 
 def load_run_artifacts(policy_dir: Path, use_best_params: bool) -> tuple[Path, dict[str, float], int]:
+    canonical_path = policy_dir / "best_policy.json"
+    if canonical_path.exists():
+        data = json.loads(canonical_path.read_text(encoding="utf-8-sig"))
+        policy_path = PROJECT_ROOT / Path(data.get("canonical_policy_path", policy_dir / "policy.py"))
+        if use_best_params:
+            params = {k: float(v) for k, v in data["best_params"].items()}
+        else:
+            policy_module = load_policy_module(policy_path)
+            params = {k: float(v) for k, v in policy_module.init_params().items()}
+        return policy_path, params, int(data.get("frame_stack_size", 2) or 2)
+
     results_path = policy_dir / "optimization_results.json"
     data = json.loads(results_path.read_text(encoding="utf-8"))
     best_policy_rel = data.get("best_policy_path")
@@ -83,7 +92,7 @@ def main() -> None:
     parser.add_argument("--output", type=str, default=None)
     args = parser.parse_args()
 
-    policy_dir = PROJECT_ROOT / "scripts" / "llm_optimization" / "unified_prompt_main" / "pong"
+    policy_dir = PROJECT_ROOT / "scripts" / "llm_optimization" / "runs" / "best_10000_steps" / "pong"
     policy_path, params, frame_stack = load_run_artifacts(policy_dir, use_best_params=not args.no_best_params)
     policy_module = load_policy_module(policy_path)
     params = {k: jnp.float32(v) for k, v in params.items()}

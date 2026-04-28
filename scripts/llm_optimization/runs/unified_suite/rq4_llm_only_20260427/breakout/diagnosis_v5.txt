@@ -1,0 +1,32 @@
+# Diagnosis
+
+## 1. Root cause
+The policy tracks the ball's *current* x-position with a small constant lead, but has no notion of ball velocity or trajectory direction. It reacts identically whether the ball is rising (safe) or descending (dangerous), and the "lead" term is proportional to horizontal *displacement from paddle*, not to actual ball motion. This causes late interceptions on fast diagonal descents and unnecessary chasing when the ball is moving away harmlessly upward.
+
+## 2. Evidence from metrics
+- `block_clear_percentage = 0.75` with only `lives_lost = 0.33`: the agent rarely dies but cannot finish the board — episodes end with 27 blocks remaining, suggesting it loses the ball on harder late-stage angles rather than failing early.
+- `max_ball_tracking_error = 71` despite `avg_ball_tracking_error = 2.67`: large transient misses, consistent with being caught off-guard by fast descents (no velocity prediction).
+- `avg_hit_streak = max_hit_streak = 81`: a single long streak per episode, then termination — confirms failure mode is one catastrophic miss, not chronic mispositioning.
+- `avg_paddle_movement = 1.9` per frame is high — the paddle moves on ~95% of frames, indicating jitter despite the dead zone.
+
+## 3. Policy logic causing it
+- `lead = lead_coef * (ball_x - paddle_cx)`: this is a *position-error* lead, not a *velocity* lead. It only amplifies the existing error, equivalent to a higher proportional gain — it does not anticipate where the ball will be.
+- `urgency = ball_y / 180`: monotonic in y but ignores vertical direction; an ascending ball near the bricks is treated the same as a descending ball at mid-screen.
+- `anchor_pull = 0.05` is so small that the anchor term is nearly inert; the parameter is effectively wasted.
+- No FIRE issued mid-episode after life loss other than via `ball_active` flag — fine, but no hedging behavior when ball respawns.
+- Stateless design means horizontal velocity cannot be inferred, so true lead prediction is impossible without an extra channel.
+
+## 4. What to preserve
+- The compact 4-parameter structure and CMA-ES friendliness.
+- The `ball_active → FIRE` gate (working: 100% win-eligible episodes start cleanly).
+- The dead-zone anti-jitter mechanism (concept is right; value may need tuning).
+- The urgency blending between an anchor and ball-tracking target (sound idea).
+- `paddle_center = player.x + player.w/2` computation.
+
+## 5. What to change next
+- **Asymmetric urgency**: replace linear `ball_y/180` with a steeper response in the lower half of the screen (e.g., a threshold or quadratic in y), so reactions sharpen near the paddle where misses occur.
+- **Direction-aware behavior without state**: use a heuristic proxy for descent — when `ball_y` is large, weight tracking strongly; when small, strongly anchor. Currently the blend is too soft (linear), so mid-screen the policy is half-anchored and slow to commit.
+- **Replace position-proportional "lead" with a horizontal bias toward the screen edge the ball is heading to**, approximated by `sign(ball_x - anchor_x)` scaled — still only adds 0–1 params and gives directional anticipation.
+- **Increase dead_zone slightly** or add hysteresis to cut the 1.9 px/frame jitter, freeing reaction budget for big swings (reducing `max_tracking_error`).
+- **Make anchor_pull meaningful or remove it**: at 0.05 it does nothing; either let CMA-ES explore a wider range (rescale) or drop it for a parameter that matters (e.g., urgency exponent, descent threshold y).
+- Keep parameter count at 4–6; recommended set: `dead_zone`, `lead`, `urgency_threshold_y`, `urgency_sharpness`, `anchor_x`, `edge_bias`.

@@ -1,0 +1,33 @@
+## 1. Root cause
+The intercept predictor is too coarse and the paddle uses raw ball Y when the ball is receding, so the paddle tracks poorly when it matters and only roughly aligns when the ball approaches. Combined with a low dead zone relative to the noisy `dy_sign` aim offset, this produces high tracking error and heavy jitter.
+
+## 2. Evidence from metrics
+- `avg_ball_tracking_error = 42.3`, `max = 110`: paddle is frequently far from the ball — far larger than `PADDLE_HEIGHT/2`.
+- `paddle_jitter_count = 444` over 4000 frames (~11%): extreme oscillation despite a `dead_zone` of 1.84.
+- `avg_reaction_time = 15.2 frames`: paddle reacts late after ball reverses to approach.
+- `interception_rate = 0.525`: only half the time positioned correctly.
+- `points_lost = 0` but `points_won = 12.67`: defense works, but offense/throughput is limited (rallies long, score low → many wasted frames).
+
+## 3. Policy logic causing it
+- When `dx <= 0` (ball receding), target collapses to a fixed `idle_y = 105`. The paddle then drifts to center and must re-acquire the ball each rally, inflating reaction time and tracking error.
+- `_predict_intercept` uses single-step `dx, dy` from frame stack; with `frame_stack=2` these are noisy one-step deltas. `safe_dx = max(dx, 0.5)` also corrupts the prediction near `dx≈0` (treats stationary/receding as slow-approaching).
+- `aim_gain * tanh(dy) * 8` adds up to ±~9px offset that flips sign with every dy noise tick — a major jitter source near interception.
+- `dead_zone ≈ 1.84` is smaller than the per-frame aim oscillation, so jitter passes straight through.
+- FIRE gate uses `(PLAYER_X - bx) < fire_dist` without checking `dx > 0` cleanly relative to receding case (it does, but `fire_dist≈20` is narrow → minimal contribution).
+- No velocity smoothing; no fallback tracking when ball is receding (e.g., mirror enemy or track ball Y directly).
+
+## 4. What to preserve
+- Overall structure: 5 scalar params, single `policy(obs, params)` signature.
+- Intercept-based targeting when ball approaches.
+- Wall-folding for predicted Y.
+- FIRE-combo action selection scaffold (it's a known win in this run).
+- Dead-zone gating concept and clamped aim within playfield.
+
+## 5. What to change next
+- **Receding-ball behavior**: instead of fixed `idle_y`, track the current ball Y (or a blend of ball Y and screen mid) so the paddle stays near the action and reduces reaction time.
+- **Velocity smoothing**: blend `dy` (and optionally `dx`) toward 0 only when very small; avoid `safe_dx = max(dx, 0.5)` — instead gate prediction on `dx > eps` and otherwise fall back to ball Y.
+- **Aim offset stability**: gate `aim_gain` to apply only when ball is close (e.g., `PLAYER_X - bx < ~30`), and use `sign(dy)` with a magnitude threshold rather than `tanh(dy)`, so the offset doesn't flip every frame far from the paddle.
+- **Larger effective dead zone near interception**: raise `dead_zone` floor (≥3–4) or make it scale with distance to ball; current 1.84 is below aim noise.
+- **FIRE gating**: keep, but consider widening `fire_dist` slightly and ensure it requires `approaching`.
+- **Parameter ranges**: allow `dead_zone` up to ~6, `aim_gain` 0–1.5, add an `idle_track_gain` blending ball Y vs screen mid when receding.
+- Avoid wholesale rewrites (prior 10.12 candidate); keep the same five-knob shape and only refine target selection + smoothing.

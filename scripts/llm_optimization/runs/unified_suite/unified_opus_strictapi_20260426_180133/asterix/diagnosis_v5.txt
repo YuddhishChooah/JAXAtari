@@ -1,0 +1,39 @@
+# Diagnosis
+
+## 1. Root cause
+The policy commits to a target lane and then under-collects because (a) lane selection is dominated by a stay/lane-distance bias that suppresses pursuit of distant high-value items, and (b) the horizontal interception logic is weak — once on the target lane, the agent often drifts to NOOP/patrol instead of aggressively closing on the projected collectible x. Danger weighting is also miscalibrated: `danger_w ≈ 2…4` against a normalized value of at most 1.0 means even moderate graded danger (~0.3) overwhelms a 300-pt item, biasing the agent toward empty/safe lanes.
+
+## 2. Evidence from metrics
+- Score 2009 with 100% win rate → agent survives easily but collects far below DQN (6012). Classic over-cautious / under-harvesting profile.
+- Best params: `value_w=1.23`, `lane_dist_w=0.85`, `stay_bias=0.64`, `intercept_w=0.30`. With `norm_value` capped at 1.0, a 50-pt item scores ~0.20 while a one-lane move costs 0.85·0.3=0.26 plus stay loss 0.64 — i.e., 50-pt items are nearly always rejected, and even 100-pt items lose to staying put.
+- `danger_thresh=0.82` (very high) combined with `danger_w≈3.6` means the graded danger term dominates scoring well before the hard veto fires.
+- High `intercept_w=0.30` makes far-x items (even on the same lane) look unattractive, so the agent doesn't chase items already moving toward it.
+
+## 3. Policy logic causing it
+- `norm_value = values/300` compresses the value signal; combined with `stay_bias` added only to current lane and a steep piecewise `lane_cost`, the score function structurally prefers the current lane unless a 300-pt item sits ≤1 lane away with low danger.
+- Graded-danger scale (`2..4`) is on the same axis as normalized value (max 1.0). One scale unit of danger ≈ 3 units of value → over-penalization.
+- `transit_steps = lane_dist*4` is likely too pessimistic for projection; it inflates `intercept_dist` for far lanes and inflates danger horizon mask, double-penalizing distant lanes.
+- Fallback patrol fires whenever `action==NOOP`, but the in-lane horizontal controller already returns NOOP within ±1.5 px of target — so when the agent is "close enough" it switches to a different best-any-item heuristic and oscillates rather than collecting.
+- Emergency escape uses `cur_dangerous = danger > 0.82`, very rarely triggered; meanwhile non-emergency `transit_safe` uses 0.7 abort thresh — mid-range danger blocks transitions but doesn't trigger escape, so the agent freezes.
+- `_path_danger` includes the current lane's own danger in the path max, which can block legitimate moves even when the destination and intervening lanes are safe.
+
+## 4. What to preserve
+- Two-frame dx estimation for both enemies and collectibles.
+- Lane-indexed object arrays (don't rediscover lanes from y).
+- Value table use via `visual_id`.
+- Diagonal action selection (UPRIGHT/UPLEFT/DOWNRIGHT/DOWNLEFT) for vertical moves.
+- Separate item-targeting score vs safe-fallback score structure.
+- Reachability/lane-distance penalty concept (just rebalance it).
+
+## 5. What to change next
+- **Rescale value vs danger on a common axis.** Use raw point values (50/100/200/300) or value/100, and make `danger_w` comparable so a 200-pt item beats moderate danger. Keep a hard veto only at very high closeness (e.g., >0.85) and let mid-danger be a soft cost.
+- **Drop or shrink `stay_bias`.** A persistent stay bonus is the textbook cause of "passive in starting lane." Either remove it or tie it only to "current lane has an active item now."
+- **Flatten `lane_cost`.** Adjacent moves should be near-free; the steep piecewise penalty is excluding 2–3 lane jumps that are essential for harvesting. Use a single small linear coefficient.
+- **Reduce `intercept_w` or replace with time-to-meet.** Compute signed time to interception using `c_dx` and pick lanes where the item is moving toward the player; penalize only items moving away faster than the player can chase.
+- **Fix path danger.** Exclude the current lane from `_path_danger` so the emergency-escape lane and item-pursuit lane are not blocked by the very lane being fled.
+- **Tighten the NOOP fallback.** The "anti-idle patrol" can override deliberate in-lane waiting on a moving item; gate it so it only fires when no active item exists on the current lane and no vertical move was chosen.
+- **Scale transit_steps more realistically** (player vertical speed ≈ 2 px/frame ⇒ ~8 steps per lane, but many lanes are crossed during diagonal moves which also progress horizontally). Consider a smaller multiplier or a separate `transit_speed` parameter.
+- **Add lane-search breadth.** Currently the agent picks one best lane per tick; add hysteresis or a small commitment bonus toward the previously chosen item lane (via projected x of last item) to avoid oscillation between two equally scored lanes — but implement this without recurrent state by using item identity (visual_id+lane) as a tiebreaker on score.
+- **Recalibrate `danger_thresh`** to a realistic operating point (~0.5–0.6) so emergency escape actually triggers, and pair it with a lower `abort_thresh` for transits.
+
+Net effect: more aggressive multi-lane harvesting of mid-value items, fewer freezes, and the same survival floor.

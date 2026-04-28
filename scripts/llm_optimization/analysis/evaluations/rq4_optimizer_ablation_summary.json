@@ -1,0 +1,57 @@
+{
+  "canonical_dir": "C:\\Users\\yuddh\\OneDrive\\Desktop\\Msc AI and ML\\SoSe 2025\\Practical Lab 2\\JAXAtari\\scripts\\llm_optimization\\runs\\best_10000_steps",
+  "llm_only_dir": "C:\\Users\\yuddh\\OneDrive\\Desktop\\Msc AI and ML\\SoSe 2025\\Practical Lab 2\\JAXAtari\\scripts\\llm_optimization\\runs\\unified_suite\\rq4_llm_only_20260427",
+  "interpretation": "Full LeGPS uses the LLM to generate policy code and CMA-ES to tune numeric parameters. LLM-only uses the same unified outer loop but optimizer=none, so init_params() values are evaluated directly.",
+  "games": [
+    {
+      "game": "pong",
+      "full_legps_score": 20.96875,
+      "llm_only_score": 16.1875,
+      "score_delta_full_minus_llm_only": 4.78125,
+      "full_legps_human_normalized": 138.89583333333334,
+      "llm_only_human_normalized": 122.95833333333334,
+      "human_normalized_delta_full_minus_llm_only": 15.9375,
+      "dqn_score": 18.9
+    },
+    {
+      "game": "freeway",
+      "full_legps_score": 27.15625,
+      "llm_only_score": 24.9375,
+      "score_delta_full_minus_llm_only": 2.21875,
+      "full_legps_human_normalized": 91.74408783783782,
+      "llm_only_human_normalized": 84.2483108108108,
+      "human_normalized_delta_full_minus_llm_only": 7.495777027027017,
+      "dqn_score": 30.3
+    },
+    {
+      "game": "asterix",
+      "full_legps_score": 9850.0,
+      "llm_only_score": 1990.625,
+      "score_delta_full_minus_llm_only": 7859.375,
+      "full_legps_human_normalized": 116.24261425298445,
+      "llm_only_human_normalized": 21.47142168093573,
+      "human_normalized_delta_full_minus_llm_only": 94.77119257204872,
+      "dqn_score": 6012.0
+    },
+    {
+      "game": "breakout",
+      "full_legps_score": 205.8125,
+      "llm_only_score": 166.0,
+      "score_delta_full_minus_llm_only": 39.8125,
+      "full_legps_human_normalized": 678.1146179401993,
+      "llm_only_human_normalized": 545.8471760797343,
+      "human_normalized_delta_full_minus_llm_only": 132.26744186046506,
+      "dqn_score": 401.2
+    },
+    {
+      "game": "skiing",
+      "full_legps_score": -3537.875,
+      "llm_only_score": -3567.8125,
+      "score_delta_full_minus_llm_only": 29.9375,
+      "full_legps_human_normalized": 106.2613625677836,
+      "llm_only_human_normalized": 106.0267647243206,
+      "human_normalized_delta_full_minus_llm_only": 0.23459784346300694,
+      "dqn_score": -13062.3
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+## 1. Root cause
+The policy uses a fixed lane offset of 16 px to look "one lane ahead" and a single symmetric `lane_radius`, but Freeway lane spacing is ~16 with chicken height 8, so the "next lane" probe frequently aliases either the current lane or skips into the lane after. Combined with a too-small `lookahead` horizon relative to fast lanes and a hard `near_top` override that disables all safety checks, the chicken eats avoidable hits and stalls mid-board.
+
+## 2. Evidence from metrics
+- `collision_rate = 0.64` per crossing and `collision_count ≈ 21.7` per episode — extremely high; safety check is failing, not over-triggering.
+- `near_miss_count ≈ 887` — chicken is constantly grazing cars, consistent with under-inflated gap on fast lanes.
+- `avg_crossing_time ≈ 311` frames vs `min ≈ 209` — large variance implies frequent stalls/knockbacks, not consistent flow.
+- `avg_y_position ≈ 120` — chicken spends most time in lower half; upper lanes (fast traffic + `near_top` UP-forcing) are where collisions likely concentrate.
+- `up_rate 0.74`, `noop 0.23`, `down 0.02` — action mix is reasonable; problem is *when* UP fires, not how often.
+- `time_efficiency 3.08` crossings/1000f — middling; matches "okay flow but punished by collisions."
+
+## 3. Policy logic causing it
+- `y_up = chicken_y - 16` is a guess; actual next lane center depends on which `LANE_Y` you're in. Probe lands between lanes → `in_lane = |car_y - y_ref| < lane_radius` either misses cars or double-counts.
+- Single `lane_radius ≈ 7` is used for both lane membership and is independent of car height; cars in adjacent lanes can leak in/out.
+- `lookahead ≈ 5` frames with `vel_scale ≈ 0.7` only probes ~5 frames ahead. Fast right-moving lanes traverse the chicken column in far fewer frames, but slow lanes need longer horizons — one scalar can't cover both.
+- Direction-aware gap inflates only the *approaching* side by `gap`, but the non-approach side uses gap `1.0` — too tight; a car already overlapping x is flagged late.
+- `near_top` forces UP unconditionally for the last ~24 px, removing collision checks exactly in the fast-lane band where collisions are most expensive.
+- Emergency DOWN requires `danger_curr & danger_up`; when only `danger_up` triggers, the chicken NOOPs in a dangerous current lane instead of stepping back.
+
+## 4. What to preserve
+- Overall structure: UP-default, NOOP-wait, rare DOWN.
+- Two-frame velocity estimation via prev/curr.
+- Projected-overlap-at-multiple-times check on current + next lane only (do not expand to multi-lane trees).
+- Compact ~5-parameter footprint and JAX-friendly `jnp.where` action selection.
+- Direction-aware asymmetric gap idea.
+
+## 5. What to change next
+- Snap the next-lane probe to actual lane centers: find nearest `LANE_Y` index from `chicken_y`, then probe `LANE_Y[idx-1]` (and current `LANE_Y[idx]`) instead of `y - 16`.
+- Decouple lane-membership radius (small, ~5) from safety gap (larger, learned).
+- Replace single `lookahead` with two horizons: a short one (~3–4 frames) for current lane, a longer one (~8–12) for the next lane, since you'll occupy it longer.
+- Apply a minimum gap on *both* sides of the car (e.g., gap_min ~2) and only inflate further on the approaching side; this fixes the `1.0` non-approach leak.
+- Remove or soften the unconditional `near_top` UP override — keep collision check active; near-top cars are real.
+- Broaden emergency DOWN: trigger when `danger_curr & safe_down` (don't also require `danger_up`), so chicken can retreat from a current-lane hit even if up is merely unknown.
+- Consider scaling `lookahead` by |car_dx| (faster lane → look more frames in absolute time) rather than a single `vel_scale` multiplier on time.

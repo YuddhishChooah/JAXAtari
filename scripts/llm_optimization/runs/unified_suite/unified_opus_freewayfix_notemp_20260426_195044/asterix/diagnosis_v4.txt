@@ -1,0 +1,40 @@
+# Diagnosis
+
+## 1. Root cause
+The policy dies from collisions during diagonal lane transitions because danger is evaluated only at the *destination's collectible-intercept x* and at a single short horizon, not along the player's actual transit path. Combined with a mis-scaled danger value, the `safe_threshold` veto rarely triggers and the agent walks into enemies while changing lanes.
+
+## 2. Evidence from metrics
+- `hits_taken=3`, `hit_rate_per_1000=0.89`, `terminal_game_over=1` — every episode ends by life exhaustion.
+- `hit_diagonal_fraction=1.0`, `hit_horizontal_fraction=0` — 100% of life-losing hits occur on diagonal moves, i.e. during lane transitions.
+- `avg_hit_enemy_gap≈41` — enemies are still ~41 px away when collisions are scored, meaning the danger model isn't flagging enemies that close the gap during the 2–4 frame transit.
+- `item_pickup_rate_per_1000=9.96` and `score_rate_per_1000≈498` are decent when alive — survival, not routing, is the bottleneck.
+- `avg_collectibles_visible=0.56` — lanes are often empty, so the fallback path (which ignores danger weighting properly) drives much of the behavior.
+
+## 3. Policy logic causing it
+- **Danger scale mismatch.** `_lane_danger_at` returns `exp(-d/r) * active * approach_mul * radius`. Max value ≈ `1.5 * radius ≈ 39`, but `safe_threshold≈40.6`. The veto is essentially unreachable, so no lane is ever rejected as unsafe. `danger_weight * danger` in `score` is also dwarfed by `lane_dist_penalty=15` per lane.
+- **Reference x for danger is the *collectible's* projected x, not the player's transit corridor.** An enemy that will cross the player's current x mid-transition is invisible to the danger term.
+- **Single-step horizon.** Diagonal moves take multiple frames; danger is sampled at horizons {1, 2, 4} but always relative to one ref_x. Enemies entering the lane during transit aren't modeled.
+- **Fallback ignores value/danger balance.** When no active+positive lane passes, `fallback_score = -2*danger - 3*lane_dist + 5*collect_active` can pick a lane with a 0-value (vid=4) collectible and override safety.
+- **Escape logic is gated by `no_vert` (`lane_diff==0`).** If the policy already chose a vertical move toward a target, it never re-evaluates whether the *destination* lane became dangerous; it commits to the diagonal.
+- **Stay bonus (`switch_bonus=8.6`) is added to the current lane's score** but `lane_dist_penalty=15` already heavily favors staying — double-counted inertia, then suddenly broken by a distant high-value item, producing long unsafe diagonals.
+- **`approach_mul` only scales up to 1.5×** and uses sign of dx; a fast approaching enemy isn't penalized more than a slow one.
+
+## 4. What to preserve
+- Two-frame dx estimation for enemies and collectibles.
+- Lane-indexed object arrays (no lane re-derivation).
+- Value-weighted collectible scoring via `VALUE_TABLE`.
+- Compact parametric structure and the action-construction pattern (diagonal vs horizontal).
+- Current ~1647 baseline parameters as a starting region.
+
+## 5. What to change next
+- **Fix danger scale vs. threshold.** Either normalize danger to [0,1] (drop the `* radius` factor) and set `safe_threshold` in that scale, or keep raw scale but make `safe_threshold` a learnable fraction of max danger. Ensure the veto actually fires.
+- **Evaluate transit danger, not just destination danger.** For a candidate target lane, compute danger at (a) current player x in the *destination* lane over horizons 1..T (T ≈ |lane_diff|·k), and (b) at the destination's intercept x. Take the max. This directly addresses the diagonal-hit failure mode.
+- **Add a per-step "lane-entry clearance" check.** Before committing to UPRIGHT/UPLEFT/DOWNRIGHT/DOWNLEFT, require the adjacent lane's projected enemy x to be outside a clearance window around the player's x at arrival time. Add a learnable `entry_clearance` parameter.
+- **Allow danger-driven abort during vertical transitions.** Remove the `no_vert` gate on escape; re-check destination danger every frame and switch horizontal-only or reverse vertical direction if the destination becomes unsafe.
+- **Strengthen approach scaling.** Use a multiplier proportional to `|enemy_dx|` and to closing speed, not just sign. A capped factor like `1 + k * max(closing_speed, 0)` will distinguish fast threats.
+- **Repair the fallback.** Mask `collect_active` by `collect_value > 0` before the `+5*collect_active` term, and apply the same veto. Otherwise null-value items (vid=4) attract the agent into danger.
+- **Decouple stay-bonus from lane_dist.** Either remove `switch_bonus` (lane_dist already encodes inertia) or remove the redundancy by reducing `lane_dist_penalty` and letting `switch_bonus` be the sole stickiness term — current parameters double-count and produce brittle commitment.
+- **Add a small "abort to horizontal" action when both adjacent lanes are dangerous,** instead of forcing a diagonal pick. This should reduce `hit_diagonal_fraction` directly.
+- **Tune priors:** raise `danger_weight` relative to `value_weight`, lower `safe_threshold` once danger is rescaled, and introduce a transit-horizon parameter (e.g., 2–6 frames) as a learnable scalar.
+
+Expected effect: fewer terminal game-overs, lower `hit_rate_per_1000`, similar or better `item_pickup_rate_per_1000`, and longer episodes — pushing total return well past 1646 toward the 3k–6k regime.

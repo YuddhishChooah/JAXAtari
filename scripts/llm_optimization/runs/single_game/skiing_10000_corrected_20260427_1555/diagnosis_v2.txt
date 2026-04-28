@@ -1,0 +1,33 @@
+## 1. Root cause
+The policy is too passive on the downhill axis. It successfully steers through all 20 gates with zero collisions, but spends 92.7% of frames in NOOP and only 4% in DOWN, so average vertical speed is just 1.18 and the episode runs ~2126 steps. Since reward is a per-frame time penalty, the dominant loss is *episode length*, not gate misses or crashes.
+
+## 2. Evidence from metrics
+- gates_passed=20, gate_pass_rate=1.0, missed_gates=0, all collision counters=0 → control quality is already good.
+- noop_rate=0.927, down_action_rate=0.040, turn_rate=0.032 → almost no tucking.
+- average_speed_y=1.18, average_steps=2126 → very slow descent dominates the −13541 reward (≈ −6.4/step).
+- average_gate_center_error=8.77 → reasonably aligned, well within a 32-px gate, so DOWN should be safe far more often.
+
+## 3. Policy logic causing it
+- `aligned = |dx| < tuck_thresh` with `tuck_thresh≈3.6` requires sub-pixel alignment before issuing DOWN. With a typical dx of ~8–9 px (matches gate_center_error), the condition is rarely true → fallback is NOOP.
+- The action cascade prefers NOOP whenever steering isn't needed and alignment isn't tight, instead of preferring DOWN by default.
+- `desired_idx` is clipped to [2,5], but `ori_dead≈0.57` plus small `steer_gain≈0.079` means the policy frequently sits in NOOP rather than committing to DOWN; NOOP doesn't accelerate, only DOWN does.
+- Gate selection uses `fy >= sy - 4` which is fine, but no logic distinguishes "far gate, plenty of time → tuck" from "near gate, must steer".
+- Tree avoidance threshold is unused in practice (no trees triggered) but still preempts DOWN unnecessarily when `threat` is true.
+
+## 4. What to preserve
+- Gate selection logic and `flag_x + 16` targeting.
+- Heading-index abstraction and clipping to [2,5] (prevents speed collapse).
+- Short-correction steering pattern (turn_rate ~3% is healthy).
+- Tree-threat structure (zero collisions confirms the safety envelope).
+- The five existing scalar parameters — they're learnable and compact.
+
+## 5. What to change next
+- Make DOWN the default whenever steering is not required, instead of NOOP. NOOP should be reserved for cases where heading is already correct *and* the skier is mid-turn recovery, or near a tree threat.
+- Replace the strict `aligned` gate for DOWN with a much looser one (e.g., a separate `tuck_align` parameter ~12–20 px), or drop the alignment requirement entirely and tuck whenever `|idx_err| < ori_dead`.
+- Add a "time-to-gate" notion using `flag_dy = curr_flag_y - prev_flag_y` (frame stack is available but unused). When the active gate is far / approaching slowly, prefer DOWN even with moderate dx; only steer aggressively when the gate is close in y.
+- Introduce a parameter for "steer urgency vs y-distance" so steering is triggered by predicted arrival, not by current dx alone. This will reduce premature NOOP idling.
+- Consider a parameter that biases action selection toward DOWN proportionally to remaining_gates or to gate_y distance, to avoid the long flat tails after the last gate.
+- Tighten `ori_dead` slightly or raise `steer_gain` so corrections complete in fewer frames, returning to DOWN sooner.
+- Keep the LEFT/RIGHT clipping to [2,5]; do not loosen it, or speed will collapse.
+
+Expected effect: cutting average_steps from ~2126 toward ~1200–1500 by raising down_action_rate from 4% to 60–80% should move return from −13.5k toward the −5k to −8k range without sacrificing the perfect gate pass rate.

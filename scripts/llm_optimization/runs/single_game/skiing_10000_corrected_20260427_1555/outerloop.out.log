@@ -1,0 +1,188 @@
+
+============================================================
+Game: SKIING
+Optimizer: cma-es
+Search Horizon: 10000 steps
+Evaluation Horizon: 10000 steps
+Output: scripts\llm_optimization\runs\single_game\skiing_10000_corrected_20260427_1555
+============================================================
+
+Logger initialized for skiing
+============================================================
+LLM Policy Optimization Loop for JAXAtari SKIING
+============================================================
+
+============================================================
+Outer-loop step 1/5 (policy v1)
+============================================================
+Requesting initial policy from LLM...
+Saved policy to: scripts\llm_optimization\runs\single_game\skiing_10000_corrected_20260427_1555\policy_v1.py
+Successfully loaded policy module
+
+Searching for optimal parameters (16 samples)...
+  CMA-ES: n=6 params, λ=16 population, 5 generations
+    Gen 1: best=-3544.12, mean=-8148.81, σ=0.285, overall_best=-3544.12
+    Gen 2: best=-3541.12, mean=-5650.98, σ=0.302, overall_best=-3541.12
+    Gen 3: best=-3535.00, mean=-5114.78, σ=0.299, overall_best=-3535.00
+    Gen 4: best=-3559.50, mean=-6371.08, σ=0.289, overall_best=-3535.00
+    Gen 5: best=-3556.12, mean=-6635.55, σ=0.253, overall_best=-3535.00
+
+Results for iteration 1:
+  Search Return (10000 steps): -3535.00
+  Average Return: -3538.44
+  Player Score: -3538.44
+  Enemy Score: 0.00
+  Win Rate: 0.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 18 metrics
+    gates_passed: 20.000
+    missed_gates: 0.000
+    gates_seen: 19.000
+    gate_pass_rate: 1.000
+    collision_count: 0.000
+  >>> New best overall!
+Checkpoint saved to: scripts\llm_optimization\runs\single_game\skiing_10000_corrected_20260427_1555\optimization_checkpoint.json
+
+============================================================
+Outer-loop step 2/5 (policy v2)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts\llm_optimization\runs\single_game\skiing_10000_corrected_20260427_1555\diagnosis_v2.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts\llm_optimization\runs\single_game\skiing_10000_corrected_20260427_1555\policy_v2.py
+Successfully loaded policy module
+
+Searching for optimal parameters (16 samples)...
+  CMA-ES will use policy defaults because resumed params are incompatible (missing=['far_dx_tol', 'urgency_y'], extra=['dead_zone', 'tuck_thresh']).
+  CMA-ES: n=6 params, λ=16 population, 5 generations
+    Gen 1: best=-8981.50, mean=-10994.64, σ=0.283, overall_best=-8981.50
+    Gen 2: best=-8934.50, mean=-9951.84, σ=0.303, overall_best=-8934.50
+    Gen 3: best=-8991.50, mean=-9722.40, σ=0.320, overall_best=-8934.50
+    Gen 4: best=-8992.00, mean=-9080.13, σ=0.370, overall_best=-8934.50
+    Gen 5: best=-8995.00, mean=-9169.12, σ=0.438, overall_best=-8934.50
+
+Results for iteration 2:
+  Search Return (10000 steps): -8934.50
+  Average Return: -9001.12
+  Player Score: -9001.12
+  Enemy Score: 0.00
+  Win Rate: 0.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 18 metrics
+    gates_passed: 9.000
+    missed_gates: 11.000
+    gates_seen: 19.000
+    gate_pass_rate: 0.474
+    collision_count: 0.000
+Checkpoint saved to: scripts\llm_optimization\runs\single_game\skiing_10000_corrected_20260427_1555\optimization_checkpoint.json
+
+============================================================
+Outer-loop step 3/5 (policy v3)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts\llm_optimization\runs\single_game\skiing_10000_corrected_20260427_1555\diagnosis_v3.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts\llm_optimization\runs\single_game\skiing_10000_corrected_20260427_1555\policy_v3.py
+Successfully loaded policy module
+
+Searching for optimal parameters (16 samples)...
+  CMA-ES will use policy defaults because resumed params are incompatible (missing=['far_gate_dy'], extra=['tuck_thresh']).
+  CMA-ES: n=6 params, λ=16 population, 5 generations
+    Gen 1: best=-8125.00, mean=-11102.33, σ=0.292, overall_best=-8125.00
+    Gen 2: best=-8114.38, mean=-10236.92, σ=0.305, overall_best=-8114.38
+    Gen 3: best=-7950.50, mean=-9096.14, σ=0.276, overall_best=-7950.50
+    Gen 4: best=-8188.62, mean=-9192.41, σ=0.245, overall_best=-7950.50
+    Gen 5: best=-8362.25, mean=-9751.12, σ=0.238, overall_best=-7950.50
+
+Results for iteration 3:
+  Search Return (10000 steps): -7950.50
+  Average Return: -8092.38
+  Player Score: -8092.38
+  Enemy Score: 0.00
+  Win Rate: 0.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 18 metrics
+    gates_passed: 12.000
+    missed_gates: 8.000
+    gates_seen: 19.000
+    gate_pass_rate: 0.632
+    collision_count: 3.667
+Checkpoint saved to: scripts\llm_optimization\runs\single_game\skiing_10000_corrected_20260427_1555\optimization_checkpoint.json
+
+============================================================
+Outer-loop step 4/5 (policy v4)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts\llm_optimization\runs\single_game\skiing_10000_corrected_20260427_1555\diagnosis_v4.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts\llm_optimization\runs\single_game\skiing_10000_corrected_20260427_1555\policy_v4.py
+Successfully loaded policy module
+
+Searching for optimal parameters (16 samples)...
+  CMA-ES will use policy defaults because resumed params are incompatible (missing=['turn_commit'], extra=['tuck_thresh']).
+  CMA-ES: n=6 params, λ=16 population, 5 generations
+    Gen 1: best=-3561.75, mean=-9126.89, σ=0.272, overall_best=-3561.75
+    Gen 2: best=-3561.88, mean=-8282.58, σ=0.267, overall_best=-3561.75
+    Gen 3: best=-3554.12, mean=-6252.47, σ=0.273, overall_best=-3554.12
+    Gen 4: best=-3551.75, mean=-6263.27, σ=0.299, overall_best=-3551.75
+    Gen 5: best=-3556.25, mean=-6051.87, σ=0.290, overall_best=-3551.75
+
+Results for iteration 4:
+  Search Return (10000 steps): -3551.75
+  Average Return: -3557.69
+  Player Score: -3557.69
+  Enemy Score: 0.00
+  Win Rate: 0.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 18 metrics
+    gates_passed: 20.000
+    missed_gates: 0.000
+    gates_seen: 19.000
+    gate_pass_rate: 1.000
+    collision_count: 0.000
+Checkpoint saved to: scripts\llm_optimization\runs\single_game\skiing_10000_corrected_20260427_1555\optimization_checkpoint.json
+
+============================================================
+Outer-loop step 5/5 (policy v5)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts\llm_optimization\runs\single_game\skiing_10000_corrected_20260427_1555\diagnosis_v5.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts\llm_optimization\runs\single_game\skiing_10000_corrected_20260427_1555\policy_v5.py
+Successfully loaded policy module
+
+Searching for optimal parameters (16 samples)...
+  CMA-ES will use policy defaults because resumed params are incompatible (missing=['far_gate_y'], extra=['tuck_thresh']).
+  CMA-ES: n=6 params, λ=16 population, 5 generations
+    Gen 1: best=-7376.38, mean=-8768.52, σ=0.310, overall_best=-7376.38
+    Gen 2: best=-7034.50, mean=-8493.03, σ=0.338, overall_best=-7034.50
+    Gen 3: best=-7030.88, mean=-8224.19, σ=0.348, overall_best=-7030.88
+    Gen 4: best=-7075.75, mean=-8865.70, σ=0.391, overall_best=-7030.88
+    Gen 5: best=-7151.62, mean=-9904.48, σ=0.406, overall_best=-7030.88
+
+Results for iteration 5:
+  Search Return (10000 steps): -7030.88
+  Average Return: -7324.25
+  Player Score: -7324.25
+  Enemy Score: 0.00
+  Win Rate: 0.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 18 metrics
+    gates_passed: 13.667
+    missed_gates: 6.333
+    gates_seen: 19.000
+    gate_pass_rate: 0.719
+    collision_count: 3.000
+Checkpoint saved to: scripts\llm_optimization\runs\single_game\skiing_10000_corrected_20260427_1555\optimization_checkpoint.json
+
+============================================================
+Optimization Complete!
+============================================================
+Best Score Achieved: -3538.44
+Total Iterations: 5
+Results saved to: scripts\llm_optimization\runs\single_game\skiing_10000_corrected_20260427_1555\optimization_results.json

@@ -1,0 +1,34 @@
+## 1. Root cause
+The policy is *too passive in steering and too slow downhill*. It successfully passes all 20 gates with zero collisions, but it spends 2126 steps doing it (average y-speed 1.18) because it almost never tucks (DOWN 4%) and almost never commits to a turn (turn rate 3.2%, NOOP 92.7%). The reward is dominated by per-frame time penalty, not by gate misses.
+
+## 2. Evidence from metrics
+- gates_passed = 20, gate_pass_rate = 1.0, all collision counters = 0 → safety/targeting are solved.
+- average_steps = 2126 with average_speed_y = 1.18 → episode length is the dominant cost.
+- down_action_rate = 0.040, noop_rate = 0.927 → the skier coasts in NOOP instead of tucking.
+- average_gate_center_error = 8.77 px → alignment is fine (well inside the 16 px gate half-width); there is plenty of slack to tuck more aggressively.
+- turn_rate = 0.032 split nearly evenly L/R → corrections are tiny and infrequent, consistent with the heading being clamped near straight.
+
+## 3. Policy logic causing it
+- `desired_idx` is clipped to [2.0, 5.0] and `steer_gain = 0.079`, so for typical dx ~10–20 px the desired index moves only ±0.8–1.6 from 3.5. Combined with `ori_dead = 0.57`, the policy issues a single LEFT/RIGHT, then sits in NOOP until orientation drifts.
+- The DOWN branch fires only when `|dx| < tuck_thresh ≈ 3.6`. Because gate-center error averages ~8.8 px, the aligned condition is rarely true → DOWN almost never triggers, even when heading is already straight (ori index 3 or 4).
+- NOOP is the default whenever `idx_err` is inside `ori_dead` and `|dx| ≥ tuck_thresh`. NOOP does not accelerate; DOWN does. So the policy chooses the slower of the two "do nothing about steering" actions most of the time.
+- Tree avoidance pushes `dx = ±30` only on threat, but threat never fires here (0 tree collisions, sparse trees), so this branch is inert.
+- Gate selection uses `fy >= sy - 4`; fine, but there is no lookahead to pre-aim at the *next* gate once the current one is essentially aligned, which would let the skier tuck through the current gate.
+
+## 4. What to preserve
+- Action set usage and the orientation→index mapping.
+- Gate selection logic and `flag_x + 16` centering.
+- Tree-threat structure (keep as cheap insurance even if currently inactive).
+- Heading clamp that forbids extreme angles (2.0–5.0) — this is what keeps speed from collapsing and is likely why the policy is already at -3538.
+- The small parametric form with the existing 6 knobs.
+
+## 5. What to change next
+- Decouple "tuck" from "aligned to gate center". Tuck whenever the *heading* is already near straight (ori_idx ∈ {3,4} or |ori_idx − 3.5| < ori_dead), regardless of dx. This converts most of the 92% NOOPs into DOWN and directly attacks the time penalty.
+- Make NOOP the rare fallback; default to DOWN when no steering correction is needed.
+- Add a small "pre-aim at next gate" behavior: when the current gate is already centered (|dx| < dead_zone) and there is a second active gate, switch target to it so the skier keeps steering early instead of coasting.
+- Introduce an asymmetry between "issue a turn" and "let it settle": require a slightly larger `idx_err` to *start* a turn than to *continue* tucking, to avoid oscillation while still permitting commits. A second threshold parameter (e.g., `turn_commit`) > `ori_dead` would do this without adding state.
+- Consider widening the heading clamp to [1.5, 5.5] only when |dx| is large and the gate is still far (large fy − sy), then re-tightening near the gate. This gives faster lateral correction budget without horizontal stalls. Keep it gated on dy to avoid speed collapse.
+- Reduce `dead_zone`'s effective influence on tucking: today alignment within `tuck_thresh = 3.6` is required for DOWN; raise the effective tuck tolerance (or remove the dx condition entirely) since gate half-width is 16 px.
+- Keep `steer_gain` modest but raise it slightly (≈0.10–0.12) so typical dx produces a desired index that actually exits the `ori_dead` band on the correct side, ensuring corrections are issued earlier and only briefly.
+
+Net effect target: push DOWN rate from ~4% toward 40–60%, drop NOOP below 50%, keep turn rate similar (~3–6%), shorten episodes substantially while retaining 20/20 gates and zero collisions.

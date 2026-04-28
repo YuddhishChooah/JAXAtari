@@ -88,6 +88,44 @@ class Logger(ABC):
             reward: Optional reward received
         """
         pass
+
+    def log_terminal(
+        self,
+        state: Any,
+        obs: Any = None,
+        action: int = None,
+        reward: float = None,
+        info: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Log a terminal transition when wrappers may have autoreset next_state.
+
+        By default, fall back to logging the provided state. Game-specific loggers
+        can override this to avoid reading reset state after SAME_STEP autoreset.
+        """
+        self.log_state(state, obs=obs, action=action, reward=reward)
+
+    def log_transition(
+        self,
+        prev_state: Any,
+        next_state: Any,
+        obs: Any = None,
+        action: int = None,
+        reward: float = None,
+        terminated: bool = False,
+        truncated: bool = False,
+        info: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Log one environment transition.
+
+        The default implementation preserves the existing next-state logging.
+        Game-specific loggers can override this when pre-step state is needed
+        to interpret terminal/autoreset transitions correctly.
+        """
+        env_done = bool(info.get("env_done", False)) if isinstance(info, dict) else False
+        if env_done:
+            self.log_terminal(prev_state, obs=obs, action=action, reward=reward, info=info)
+        else:
+            self.log_state(next_state, obs=obs, action=action, reward=reward)
     
     @abstractmethod
     def return_metrics(self) -> Dict[str, float]:
@@ -173,6 +211,13 @@ class PongLogger(Logger):
     def reset(self):
         super().reset()
         self._reset_episode_stats()
+
+    def _unwrap_state(self, state: Any) -> Any:
+        while hasattr(state, 'atari_state'):
+            state = state.atari_state
+        while hasattr(state, 'env_state'):
+            state = state.env_state
+        return state
     
     def log_state(self, state: Any, obs: Any = None, action: int = None, reward: float = None) -> None:
         """Log Pong state for metric computation.
@@ -180,9 +225,8 @@ class PongLogger(Logger):
         Args:
             state: PongState NamedTuple with full game state, or AtariState containing it
         """
-        # Extract inner game state if wrapped
-        if hasattr(state, 'env_state'):
-            state = state.env_state
+        # Extract inner game state if wrapped.
+        state = self._unwrap_state(state)
         
         # Extract state fields
         player_y = float(state.player_y)
@@ -391,6 +435,13 @@ class FreewayLogger(Logger):
     def reset(self):
         super().reset()
         self._reset_episode_stats()
+
+    def _unwrap_state(self, state: Any) -> Any:
+        while hasattr(state, 'atari_state'):
+            state = state.atari_state
+        while hasattr(state, 'env_state'):
+            state = state.env_state
+        return state
     
     def log_state(self, state: Any, obs: Any = None, action: int = None, reward: float = None) -> None:
         """Log Freeway state for metric computation.
@@ -398,9 +449,8 @@ class FreewayLogger(Logger):
         Args:
             state: FreewayState NamedTuple with full game state, or AtariState containing it
         """
-        # Extract inner game state if wrapped
-        if hasattr(state, 'env_state'):
-            state = state.env_state
+        # Extract inner game state if wrapped.
+        state = self._unwrap_state(state)
         
         chicken_y = float(state.chicken_y)
         cars = np.array(state.cars)  # Shape: (num_lanes, 2)
@@ -503,8 +553,9 @@ class FreewayLogger(Logger):
         if self._actions:
             noop_count = sum(1 for a in self._actions if a == 0)
             metrics['hesitation_rate'] = noop_count / len(self._actions)
-            metrics['up_action_rate'] = sum(1 for a in self._actions if a == 2) / len(self._actions)
-            metrics['down_action_rate'] = sum(1 for a in self._actions if a == 5) / len(self._actions)
+            # Current optimizer-facing Freeway mapping is compact: 0=NOOP, 1=UP, 2=DOWN.
+            metrics['up_action_rate'] = sum(1 for a in self._actions if a == 1) / len(self._actions)
+            metrics['down_action_rate'] = sum(1 for a in self._actions if a == 2) / len(self._actions)
         else:
             metrics['hesitation_rate'] = 0.0
             metrics['up_action_rate'] = 0.0
@@ -538,8 +589,8 @@ class FreewayLogger(Logger):
             'avg_crossing_time': 'Average frames to complete one crossing',
             'min_crossing_time': 'Fastest crossing in frames',
             'hesitation_rate': 'Proportion of NOOP (no movement) actions',
-            'up_action_rate': 'Proportion of UP actions (JAXAtari action id 2)',
-            'down_action_rate': 'Proportion of DOWN actions (JAXAtari action id 5)',
+            'up_action_rate': 'Proportion of UP actions in the optimizer-facing mapping (action id 1)',
+            'down_action_rate': 'Proportion of DOWN actions in the optimizer-facing mapping (action id 2)',
             'episode_length': 'Total frames in episode',
             'min_y_reached': 'Lowest Y position reached (lower = closer to goal)',
             'avg_y_position': 'Average chicken Y position during episode',
@@ -565,9 +616,9 @@ class AsterixLogger(Logger):
         1. final_score: Final episode score
         2. lives_remaining: Remaining lives at end
         3. hits_taken: Number of enemy hits
-        4. max_stage_reached: Highest lane reached (top lanes are better)
+        4. topmost_stage_index: Smallest lane index reached (top lanes are better)
         5. item_pickups: Number of positive reward events
-        6. noop_rate: Fraction of NOOP/FIRE actions
+        6. noop_rate: Fraction of NOOP actions
         7. diagonal_rate: Fraction of diagonal movement actions
         8. respawn_rate: Fraction of frames spent respawning
     """
@@ -586,14 +637,56 @@ class AsterixLogger(Logger):
         self._respawn_frames = 0
         self._collectible_frames = 0
         self._reward_total = 0.0
+        self._terminal_game_over = False
+        self._terminal_hit_logged = False
+        self._hit_actions: List[int] = []
+        self._hit_lanes: List[int] = []
+        self._hit_enemy_gaps: List[float] = []
+        self._hit_diagonal_count = 0
+        self._hit_horizontal_count = 0
+
+    def _unwrap_state(self, state: Any) -> Any:
+        if hasattr(state, 'atari_state'):
+            state = state.atari_state
+        if hasattr(state, 'env_state'):
+            state = state.env_state
+        return state
+
+    def _lane_index_from_y(self, player_y: float) -> int:
+        stage_positions = np.array([23, 39, 55, 71, 87, 103, 119, 135, 151], dtype=float)
+        return int(np.argmin(np.abs(stage_positions - player_y)))
+
+    def _record_hit_context(self, state: Any, action: Optional[int]) -> None:
+        """Record action/lane context for a life-loss transition."""
+        state = self._unwrap_state(state)
+        action_int = int(action) if action is not None else -1
+        player_y = float(state.player_y)
+        player_x = float(state.player_x)
+        lane = self._lane_index_from_y(player_y)
+
+        enemies_alive = np.array(state.enemies.alive, dtype=bool)
+        enemies_x = np.array(state.enemies.x, dtype=float)
+        if 0 <= lane < enemies_x.shape[0] and enemies_alive[lane]:
+            enemy_gap = float(abs(enemies_x[lane] - player_x))
+        elif np.any(enemies_alive):
+            enemy_gap = float(np.min(np.abs(enemies_x[enemies_alive] - player_x)))
+        else:
+            enemy_gap = float("nan")
+
+        self._hit_actions.append(action_int)
+        self._hit_lanes.append(lane)
+        self._hit_enemy_gaps.append(enemy_gap)
+        if action_int in [4, 5, 6, 7, 8]:
+            self._hit_diagonal_count += 1
+        if action_int in [1, 2]:
+            self._hit_horizontal_count += 1
 
     def reset(self):
         super().reset()
         self._reset_episode_stats()
 
     def log_state(self, state: Any, obs: Any = None, action: int = None, reward: float = None) -> None:
-        if hasattr(state, 'env_state'):
-            state = state.env_state
+        state = self._unwrap_state(state)
 
         score = float(state.score)
         lives = int(state.lives)
@@ -628,6 +721,87 @@ class AsterixLogger(Logger):
             'reward': reward,
         })
 
+    def log_transition(
+        self,
+        prev_state: Any,
+        next_state: Any,
+        obs: Any = None,
+        action: int = None,
+        reward: float = None,
+        terminated: bool = False,
+        truncated: bool = False,
+        info: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        prev_game_state = self._unwrap_state(prev_state)
+        next_game_state = self._unwrap_state(next_state)
+        env_done = bool(info.get("env_done", False)) if isinstance(info, dict) else False
+
+        if env_done:
+            self.log_terminal(prev_game_state, obs=obs, action=action, reward=reward, info=info)
+            return
+
+        prev_lives = int(prev_game_state.lives)
+        next_lives = int(next_game_state.lives)
+        if next_lives < prev_lives:
+            self._record_hit_context(prev_game_state, action)
+
+        self.log_state(next_game_state, obs=obs, action=action, reward=reward)
+
+    def log_terminal(
+        self,
+        state: Any,
+        obs: Any = None,
+        action: int = None,
+        reward: float = None,
+        info: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Log terminal Asterix step from the pre-step state.
+
+        ObjectCentricWrapper autoresets after env_done, so the next_state returned
+        to Python can already be a fresh reset state. For terminal game-over steps,
+        use the pre-step state and explicitly record the final life loss.
+        """
+        state = self._unwrap_state(state)
+
+        score = float(state.score)
+        previous_lives = int(state.lives)
+        player_y = float(state.player_y)
+        collectible_count = int(np.sum(np.array(state.collectibles.alive)))
+
+        if reward is not None and reward > 0:
+            self._item_pickups += 1
+        if reward is not None:
+            self._reward_total += float(reward)
+
+        # Asterix game_over is caused by the final enemy collision. Non-terminal
+        # life losses are observed normally in log_state; the terminal one would
+        # otherwise be hidden by wrapper autoreset.
+        if not self._terminal_hit_logged:
+            self._hits_taken += 1
+            self._terminal_hit_logged = True
+            self._record_hit_context(state, action)
+
+        self._terminal_game_over = True
+        self._scores.append(score)
+        self._lives.append(0)
+        self._player_y.append(player_y)
+        self._collectible_frames += collectible_count
+        if action is not None:
+            self._actions.append(int(action))
+
+        self._episode_data.append({
+            'step': len(self._episode_data),
+            'score': score,
+            'lives': 0,
+            'previous_lives': previous_lives,
+            'player_y': player_y,
+            'respawn_timer': 0,
+            'collectible_count': collectible_count,
+            'action': action,
+            'reward': reward,
+            'terminal_game_over': True,
+        })
+
     def return_metrics(self) -> Dict[str, float]:
         episode_length = max(len(self._episode_data), 1)
         # Use cumulative reward as the robust episode score because wrapped
@@ -639,20 +813,38 @@ class AsterixLogger(Logger):
             'final_score': final_score,
             'lives_remaining': lives_remaining,
             'hits_taken': float(self._hits_taken),
+            'terminal_game_over': float(self._terminal_game_over),
             'item_pickups': float(self._item_pickups),
+            'item_pickup_rate_per_1000': (self._item_pickups / episode_length) * 1000.0,
+            'score_rate_per_1000': (final_score / episode_length) * 1000.0,
+            'hit_rate_per_1000': (self._hits_taken / episode_length) * 1000.0,
+            'hit_diagonal_fraction': self._hit_diagonal_count / max(self._hits_taken, 1),
+            'hit_horizontal_fraction': self._hit_horizontal_count / max(self._hits_taken, 1),
             'respawn_rate': self._respawn_frames / episode_length,
             'episode_length': float(episode_length),
             'avg_collectibles_visible': self._collectible_frames / episode_length,
         }
 
+        if self._hit_lanes:
+            metrics['avg_hit_lane_index'] = float(np.mean(self._hit_lanes))
+            finite_gaps = [gap for gap in self._hit_enemy_gaps if np.isfinite(gap)]
+            metrics['avg_hit_enemy_gap'] = float(np.mean(finite_gaps)) if finite_gaps else float("nan")
+        else:
+            metrics['avg_hit_lane_index'] = 0.0
+            metrics['avg_hit_enemy_gap'] = float("nan")
+
         if self._player_y:
             stage_positions = np.array([23, 39, 55, 71, 87, 103, 119, 135, 151], dtype=float)
             player_y = np.array(self._player_y, dtype=float)
             nearest_stage = np.argmin(np.abs(stage_positions[None, :] - player_y[:, None]), axis=1)
+            metrics['topmost_stage_index'] = float(np.min(nearest_stage))
+            metrics['bottommost_stage_index'] = float(np.max(nearest_stage))
             metrics['max_stage_reached'] = float(np.max(nearest_stage))
             metrics['avg_stage_index'] = float(np.mean(nearest_stage))
             metrics['min_y_reached'] = float(np.min(player_y))
         else:
+            metrics['topmost_stage_index'] = 0.0
+            metrics['bottommost_stage_index'] = 0.0
             metrics['max_stage_reached'] = 0.0
             metrics['avg_stage_index'] = 0.0
             metrics['min_y_reached'] = 0.0
@@ -660,9 +852,9 @@ class AsterixLogger(Logger):
         if self._actions:
             actions = np.array(self._actions, dtype=int)
             metrics['noop_rate'] = float(np.mean(actions == 0))
-            metrics['vertical_rate'] = float(np.mean(np.isin(actions, [1, 4])))
-            metrics['horizontal_rate'] = float(np.mean(np.isin(actions, [2, 3])))
-            metrics['diagonal_rate'] = float(np.mean(np.isin(actions, [5, 6, 7, 8])))
+            metrics['vertical_rate'] = float(np.mean(actions == 3))
+            metrics['horizontal_rate'] = float(np.mean(np.isin(actions, [1, 2])))
+            metrics['diagonal_rate'] = float(np.mean(np.isin(actions, [4, 5, 6, 7, 8])))
         else:
             metrics['noop_rate'] = 0.0
             metrics['vertical_rate'] = 0.0
@@ -676,17 +868,27 @@ class AsterixLogger(Logger):
             'final_score': 'Final Asterix score at episode end',
             'lives_remaining': 'Lives remaining at episode end',
             'hits_taken': 'Number of times an enemy collision cost a life',
+            'terminal_game_over': '1 if the episode ended by game over, else 0',
             'item_pickups': 'Count of positive reward events from collecting items',
+            'item_pickup_rate_per_1000': 'Item pickups per 1000 frames',
+            'score_rate_per_1000': 'Score points per 1000 frames',
+            'hit_rate_per_1000': 'Life-losing hits per 1000 frames',
+            'hit_diagonal_fraction': 'Fraction of life-losing hits where the chosen action was diagonal',
+            'hit_horizontal_fraction': 'Fraction of life-losing hits where the chosen action was pure horizontal',
+            'avg_hit_lane_index': 'Average lane index where life-losing hits occurred',
+            'avg_hit_enemy_gap': 'Average absolute x-gap to the relevant enemy before life-losing hits',
             'respawn_rate': 'Fraction of frames spent in respawn recovery',
             'episode_length': 'Total frames in episode',
             'avg_collectibles_visible': 'Average number of visible collectibles on screen',
-            'max_stage_reached': 'Highest lane index reached during the episode',
-            'avg_stage_index': 'Average lane index occupied during the episode',
+            'topmost_stage_index': 'Smallest lane index reached; 0 is top lane, 7 is bottom lane',
+            'bottommost_stage_index': 'Largest lane index reached; 7 is bottom lane',
+            'max_stage_reached': 'Backward-compatible alias for bottommost_stage_index',
+            'avg_stage_index': 'Average lane index occupied; lower means more time in upper lanes',
             'min_y_reached': 'Lowest player Y reached (higher progress upward)',
-            'noop_rate': 'Fraction of NOOP/FIRE actions',
-            'vertical_rate': 'Fraction of pure vertical actions',
-            'horizontal_rate': 'Fraction of pure horizontal actions',
-            'diagonal_rate': 'Fraction of diagonal actions',
+            'noop_rate': 'Fraction of NOOP actions',
+            'vertical_rate': 'Fraction of pure DOWN actions in the wrapped optimizer-facing mapping (action=3)',
+            'horizontal_rate': 'Fraction of pure horizontal actions in the wrapped mapping (RIGHT=1 or LEFT=2)',
+            'diagonal_rate': 'Fraction of diagonal actions in the wrapped mapping (4-8)',
         }
 
 
@@ -747,7 +949,10 @@ class BreakoutLogger(Logger):
         Args:
             state: BreakoutState NamedTuple with full game state, or AtariState containing it
         """
-        # Extract inner game state if wrapped
+        # Extract inner game state if wrapped. The current unified path passes
+        # ObjectCentricState -> AtariState -> BreakoutState.
+        if hasattr(state, 'atari_state'):
+            state = state.atari_state
         if hasattr(state, 'env_state'):
             state = state.env_state
         
@@ -890,6 +1095,155 @@ class BreakoutLogger(Logger):
 
 
 # =============================================================================
+# SKIING LOGGER (A1_B1)
+# =============================================================================
+
+class SkiingLogger(Logger):
+    """Logger for Skiing with full-state metrics."""
+
+    def __init__(self, ablation_config: Optional[AblationConfig] = None):
+        super().__init__(ablation_config)
+        self._reset_episode_stats()
+
+    def _reset_episode_stats(self) -> None:
+        self._actions: List[int] = []
+        self._rewards: List[float] = []
+        self._gates_passed: List[int] = []
+        self._gates_seen: List[int] = []
+        self._remaining_gates: List[int] = []
+        self._speed_y: List[float] = []
+        self._gate_center_errors: List[float] = []
+        self._collision_count = 0
+        self._tree_collisions = 0
+        self._mogul_collisions = 0
+        self._flag_collisions = 0
+        self._previous_fell = 0
+
+    def reset(self):
+        super().reset()
+        self._reset_episode_stats()
+
+    def _unwrap_state(self, state: Any) -> Any:
+        if hasattr(state, 'atari_state'):
+            state = state.atari_state
+        if hasattr(state, 'env_state'):
+            state = state.env_state
+        return state
+
+    def _next_gate_error(self, state: Any) -> float:
+        flags = np.array(state.flags, dtype=float)
+        skier_x = float(state.skier_x)
+        skier_y = 46.0
+        visible = flags[:, 1] < 210.0
+        ahead = np.logical_and(visible, flags[:, 1] >= skier_y - 8.0)
+        if np.any(ahead):
+            candidates = np.where(ahead)[0]
+            idx = int(candidates[np.argmin(flags[candidates, 1])])
+        elif np.any(visible):
+            candidates = np.where(visible)[0]
+            idx = int(candidates[np.argmin(np.abs(flags[candidates, 1] - skier_y))])
+        else:
+            return float("nan")
+        gate_center = float(flags[idx, 0] + 16.0)
+        return abs(skier_x - gate_center)
+
+    def log_state(self, state: Any, obs: Any = None, action: int = None, reward: float = None) -> None:
+        state = self._unwrap_state(state)
+
+        remaining = int(state.successful_gates)
+        gates_passed = int(20 - remaining)
+        gates_seen = int(state.gates_seen)
+        skier_fell = int(state.skier_fell)
+        collision_type = int(state.collision_type)
+
+        if self._previous_fell == 0 and skier_fell > 0:
+            self._collision_count += 1
+            if collision_type == 1:
+                self._tree_collisions += 1
+            elif collision_type == 2:
+                self._mogul_collisions += 1
+            elif collision_type == 3:
+                self._flag_collisions += 1
+        self._previous_fell = skier_fell
+
+        self._gates_passed.append(gates_passed)
+        self._gates_seen.append(gates_seen)
+        self._remaining_gates.append(remaining)
+        self._speed_y.append(float(state.skier_y_speed))
+        self._gate_center_errors.append(self._next_gate_error(state))
+
+        if action is not None:
+            self._actions.append(int(action))
+        if reward is not None:
+            self._rewards.append(float(reward))
+
+        self._episode_data.append({
+            'step': len(self._episode_data),
+            'gates_passed': gates_passed,
+            'gates_seen': gates_seen,
+            'remaining_gates': remaining,
+            'skier_x': float(state.skier_x),
+            'skier_pos': int(state.skier_pos),
+            'skier_fell': skier_fell,
+            'collision_type': collision_type,
+            'skier_y_speed': float(state.skier_y_speed),
+            'action': action,
+            'reward': reward,
+        })
+
+    def return_metrics(self) -> Dict[str, float]:
+        actions = np.asarray(self._actions, dtype=int) if self._actions else np.asarray([], dtype=int)
+        final_remaining = float(self._remaining_gates[-1]) if self._remaining_gates else 20.0
+        final_seen = float(self._gates_seen[-1]) if self._gates_seen else 0.0
+        final_passed = float(self._gates_passed[-1]) if self._gates_passed else 0.0
+        gate_errors = np.asarray(self._gate_center_errors, dtype=float)
+        finite_gate_errors = gate_errors[np.isfinite(gate_errors)]
+
+        return {
+            'gates_passed': final_passed,
+            'missed_gates': final_remaining,
+            'gates_seen': final_seen,
+            'gate_pass_rate': final_passed / max(final_seen, final_passed, 1.0),
+            'collision_count': float(self._collision_count),
+            'tree_collisions': float(self._tree_collisions),
+            'mogul_collisions': float(self._mogul_collisions),
+            'flag_collisions': float(self._flag_collisions),
+            'average_gate_center_error': float(np.mean(finite_gate_errors)) if finite_gate_errors.size else float("nan"),
+            'average_speed_y': float(np.mean(self._speed_y)) if self._speed_y else 0.0,
+            'reward_total': float(np.sum(self._rewards)) if self._rewards else 0.0,
+            'noop_rate': float(np.mean(actions == 0)) if actions.size else 0.0,
+            'right_action_rate': float(np.mean(actions == 1)) if actions.size else 0.0,
+            'left_action_rate': float(np.mean(actions == 2)) if actions.size else 0.0,
+            'fire_action_rate': float(np.mean(actions == 3)) if actions.size else 0.0,
+            'down_action_rate': float(np.mean(actions == 4)) if actions.size else 0.0,
+            'turn_rate': float(np.mean(np.isin(actions, [1, 2]))) if actions.size else 0.0,
+            'average_steps': float(len(self._episode_data)),
+        }
+
+    def get_metric_descriptions(self) -> Dict[str, str]:
+        return {
+            'gates_passed': 'Number of gates successfully passed. Higher is better; maximum is 20.',
+            'missed_gates': 'Remaining missed-gate counter at episode end. Lower is better.',
+            'gates_seen': 'Number of gates processed by the environment.',
+            'gate_pass_rate': 'Fraction of processed gates that were passed successfully.',
+            'collision_count': 'Number of recovery-triggering collisions.',
+            'tree_collisions': 'Number of collisions with trees.',
+            'mogul_collisions': 'Number of collisions with moguls.',
+            'flag_collisions': 'Number of collisions with flag poles.',
+            'average_gate_center_error': 'Average absolute distance from skier_x to the next gate center.',
+            'average_speed_y': 'Average downhill speed; higher usually finishes faster if gate alignment is safe.',
+            'reward_total': 'Total logged negative ALE-style reward; less negative is better.',
+            'noop_rate': 'Fraction of NOOP actions.',
+            'right_action_rate': 'Fraction of RIGHT steering actions.',
+            'left_action_rate': 'Fraction of LEFT steering actions.',
+            'fire_action_rate': 'Fraction of FIRE/jump actions.',
+            'down_action_rate': 'Fraction of DOWN/tuck actions.',
+            'turn_rate': 'Fraction of LEFT or RIGHT actions.',
+            'average_steps': 'Number of logged steps before episode end or evaluation truncation.',
+        }
+
+
+# =============================================================================
 # FACTORY FUNCTIONS
 # =============================================================================
 
@@ -907,6 +1261,8 @@ def create_logger(game_name: str, ablation_config: Optional[AblationConfig] = No
         'pong': PongLogger,
         'freeway': FreewayLogger,
         'asterix': AsterixLogger,
+        'breakout': BreakoutLogger,
+        'skiing': SkiingLogger,
     }
     
     if game_name.lower() not in loggers:

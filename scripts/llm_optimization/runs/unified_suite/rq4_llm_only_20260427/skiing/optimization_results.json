@@ -1,0 +1,265 @@
+{
+  "best_score": -3567.8125,
+  "seed": 20260474,
+  "config": {
+    "llm_provider": "anthropic",
+    "llm_model": "claude-opus-4-7",
+    "api_key": "<redacted>",
+    "max_tokens": 8192,
+    "temperature": null,
+    "num_parallel_envs": 8,
+    "max_steps_per_episode": 10000,
+    "num_eval_episodes": 16,
+    "frame_stack_size": 0,
+    "search_max_steps": 10000,
+    "optimizer": "none",
+    "num_param_samples": 16,
+    "param_perturbation_scale": 0.3,
+    "cma_es_generations": 4,
+    "max_iterations": 5,
+    "target_score": 1000000000.0,
+    "diagnostic_refinement": true,
+    "resume_from_results": false,
+    "resume_best_params_for_cma": true,
+    "refresh_resume_metrics": true,
+    "stop_on_strong_best": false,
+    "output_dir": "scripts\\llm_optimization\\runs\\unified_suite\\rq4_llm_only_20260427\\skiing",
+    "verbose": true,
+    "save_intermediate": true,
+    "seed": 20260474
+  },
+  "runtime": {
+    "timestamp": "2026-04-27 17:53:55",
+    "python_version": "3.12.8 (tags/v3.12.8:2dc476b, Dec  3 2024, 19:30:04) [MSC v.1942 64 bit (AMD64)]",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "numpy_version": "1.26.4",
+    "jax_version": "0.6.0",
+    "git_commit": "0e949a9cca8e23eacac343f1c2272d333138b19f"
+  },
+  "best_params": {
+    "dead_zone": 6.0,
+    "lookahead_y": 55.0,
+    "tree_danger_y": 22.0,
+    "tree_danger_x": 14.0,
+    "ori_release": 1.6,
+    "tuck_dx": 3.0
+  },
+  "best_metrics": {
+    "avg_return": -3567.8125,
+    "avg_player_score": -3567.8125,
+    "avg_enemy_score": 0.0,
+    "win_rate": 0.0,
+    "total_rewards": [
+      -3550.0,
+      -3553.0,
+      -3553.0,
+      -3539.0,
+      -3583.0,
+      -3586.0,
+      -3581.0,
+      -3565.0,
+      -3578.0,
+      -3559.0,
+      -3565.0,
+      -3588.0,
+      -3554.0,
+      -3573.0,
+      -3583.0,
+      -3575.0
+    ],
+    "player_scores": [
+      -3550.0,
+      -3553.0,
+      -3553.0,
+      -3539.0,
+      -3583.0,
+      -3586.0,
+      -3581.0,
+      -3565.0,
+      -3578.0,
+      -3559.0,
+      -3565.0,
+      -3588.0,
+      -3554.0,
+      -3573.0,
+      -3583.0,
+      -3575.0
+    ],
+    "enemy_scores": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "search_avg_return": -3556.25,
+    "search_avg_player_score": -3556.25,
+    "search_avg_enemy_score": 0.0,
+    "search_win_rate": 0.0,
+    "logger_metrics": {
+      "gates_passed": 20.0,
+      "missed_gates": 0.0,
+      "gates_seen": 19.0,
+      "gate_pass_rate": 1.0,
+      "collision_count": 0.0,
+      "tree_collisions": 0.0,
+      "mogul_collisions": 0.0,
+      "flag_collisions": 0.0,
+      "average_gate_center_error": 6.663175043235082,
+      "average_speed_y": 1.179149526297393,
+      "reward_total": -13547.333333333334,
+      "noop_rate": 0.3695969437952842,
+      "right_action_rate": 0.019723705335174355,
+      "left_action_rate": 0.019255542809421794,
+      "fire_action_rate": 0.0,
+      "down_action_rate": 0.5914238080601196,
+      "turn_rate": 0.03897924814459615,
+      "average_steps": 2129.3333333333335
+    }
+  },
+  "history": [
+    {
+      "iteration": 1,
+      "metrics": {
+        "avg_return": -3567.8125,
+        "avg_player_score": -3567.8125,
+        "avg_enemy_score": 0.0,
+        "win_rate": 0.0,
+        "search_avg_return": -3556.25,
+        "search_avg_player_score": -3556.25,
+        "search_avg_enemy_score": 0.0,
+        "search_win_rate": 0.0,
+        "logger_metrics": {
+          "gates_passed": 20.0,
+          "missed_gates": 0.0,
+          "gates_seen": 19.0,
+          "gate_pass_rate": 1.0,
+          "collision_count": 0.0,
+          "tree_collisions": 0.0,
+          "mogul_collisions": 0.0,
+          "flag_collisions": 0.0,
+          "average_gate_center_error": 6.663175043235082,
+          "average_speed_y": 1.179149526297393,
+          "reward_total": -13547.333333333334,
+          "noop_rate": 0.3695969437952842,
+          "right_action_rate": 0.019723705335174355,
+          "left_action_rate": 0.019255542809421794,
+          "fire_action_rate": 0.0,
+          "down_action_rate": 0.5914238080601196,
+          "turn_rate": 0.03897924814459615,
+          "average_steps": 2129.3333333333335
+        }
+      },
+      "best_params": {
+        "dead_zone": 6.0,
+        "lookahead_y": 55.0,
+        "tree_danger_y": 22.0,
+        "tree_danger_x": 14.0,
+        "ori_release": 1.6,
+        "tuck_dx": 3.0
+      },
+      "filepath": "scripts\\llm_optimization\\runs\\unified_suite\\rq4_llm_only_20260427\\skiing\\policy_v1.py"
+    },
+    {
+      "iteration": 2,
+      "metrics": {
+        "avg_return": -9056.75,
+        "avg_player_score": -9056.75,
+        "avg_enemy_score": 0.0,
+        "win_rate": 0.0,
+        "search_avg_return": -9160.0,
+        "search_avg_player_score": -9160.0,
+        "search_avg_enemy_score": 0.0,
+        "search_win_rate": 0.0
+      },
+      "best_params": {
+        "dead_zone": 3.0,
+        "tuck_margin": 11.0,
+        "ori_release": 1.0,
+        "ori_target": 0.6,
+        "tree_danger_y": 22.0,
+        "tree_danger_x": 14.0,
+        "far_gate_y": 40.0
+      },
+      "filepath": "scripts\\llm_optimization\\runs\\unified_suite\\rq4_llm_only_20260427\\skiing\\policy_v2.py"
+    },
+    {
+      "iteration": 3,
+      "metrics": {
+        "avg_return": -9090.0,
+        "avg_player_score": -9090.0,
+        "avg_enemy_score": 0.0,
+        "win_rate": 0.0,
+        "search_avg_return": -9147.5,
+        "search_avg_player_score": -9147.5,
+        "search_avg_enemy_score": 0.0,
+        "search_win_rate": 0.0
+      },
+      "best_params": {
+        "dead_zone": 3.0,
+        "lookahead_y": 80.0,
+        "ori_release": 0.9,
+        "ori_recenter": 0.6,
+        "tree_danger_x": 16.0,
+        "tree_danger_y": 24.0
+      },
+      "filepath": "scripts\\llm_optimization\\runs\\unified_suite\\rq4_llm_only_20260427\\skiing\\policy_v3.py"
+    },
+    {
+      "iteration": 4,
+      "metrics": {
+        "avg_return": -9004.8125,
+        "avg_player_score": -9004.8125,
+        "avg_enemy_score": 0.0,
+        "win_rate": 0.0,
+        "search_avg_return": -9005.125,
+        "search_avg_player_score": -9005.125,
+        "search_avg_enemy_score": 0.0,
+        "search_win_rate": 0.0
+      },
+      "best_params": {
+        "dead_zone": 3.5,
+        "ori_release": 0.8,
+        "ori_recover": 1.3,
+        "tree_danger_y": 24.0,
+        "tree_danger_x": 14.0,
+        "preaim_dy": 35.0
+      },
+      "filepath": "scripts\\llm_optimization\\runs\\unified_suite\\rq4_llm_only_20260427\\skiing\\policy_v4.py"
+    },
+    {
+      "iteration": 5,
+      "metrics": {
+        "avg_return": -7850.8125,
+        "avg_player_score": -7850.8125,
+        "avg_enemy_score": 0.0,
+        "win_rate": 0.0,
+        "search_avg_return": -7783.75,
+        "search_avg_player_score": -7783.75,
+        "search_avg_enemy_score": 0.0,
+        "search_win_rate": 0.0
+      },
+      "best_params": {
+        "dead_zone": 6.0,
+        "lookahead_y": 30.0,
+        "tree_danger_y": 20.0,
+        "tree_danger_x": 12.0,
+        "ori_release": 1.6,
+        "tuck_ori": 1.6
+      },
+      "filepath": "scripts\\llm_optimization\\runs\\unified_suite\\rq4_llm_only_20260427\\skiing\\policy_v5.py"
+    }
+  ],
+  "best_policy_path": "scripts\\llm_optimization\\runs\\unified_suite\\rq4_llm_only_20260427\\skiing\\policy_v1.py"
+}

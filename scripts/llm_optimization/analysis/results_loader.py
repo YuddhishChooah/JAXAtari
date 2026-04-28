@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 
 
-ACTIVE_GAMES = ["pong", "freeway", "asterix"]
+ACTIVE_GAMES = ["pong", "freeway", "asterix", "breakout", "skiing"]
 
 
 @dataclass
@@ -58,25 +58,55 @@ class ExperimentResult:
 
 
 class ResultsLoader:
-    """Load only the active unified thesis experiments."""
+    """Load active LeGPS experiments from canonical best-policy or run folders."""
 
-    def __init__(self, base_path: Optional[str] = None):
+    def __init__(self, base_path: Optional[str] = None, unified_path: Optional[str] = None):
         self.base_path = Path(base_path) if base_path else Path(__file__).parent.parent
-        self.unified_path = self.base_path / "unified_prompt_main"
+        self.project_root = self.base_path.parents[1]
+        self.unified_path = Path(unified_path) if unified_path else self.base_path / "runs" / "best_10000_steps"
+        if not self.unified_path.is_absolute():
+            self.unified_path = self.project_root / self.unified_path
 
     def discover_experiments(self) -> List[str]:
         available: List[str] = []
         for game in ACTIVE_GAMES:
-            if (self.unified_path / game / "optimization_results.json").exists():
+            game_dir = self.unified_path / game
+            if (game_dir / "best_policy.json").exists() or (game_dir / "optimization_results.json").exists():
                 available.append(game)
         return available
 
     def load_experiment(self, game: str) -> Optional[ExperimentResult]:
+        canonical_file = self.unified_path / game / "best_policy.json"
+        if canonical_file.exists():
+            data = json.loads(canonical_file.read_text(encoding="utf-8-sig"))
+            rewards = list(data.get("total_rewards_10000", []))
+            best_metrics = {
+                "avg_return": float(data.get("avg_return_10000", 0.0)),
+                "avg_player_score": float(data.get("avg_player_score_10000", data.get("avg_return_10000", 0.0))),
+                "avg_enemy_score": float(data.get("avg_enemy_score_10000", 0.0)),
+                "win_rate": float(data.get("win_rate_10000", 0.0)),
+                "total_rewards": rewards,
+            }
+            return ExperimentResult(
+                game=game,
+                best_score=float(data.get("avg_return_10000", 0.0)),
+                best_metrics=best_metrics,
+                best_params={k: float(v) for k, v in data.get("best_params", {}).items()},
+                best_policy_path=data.get("canonical_policy_path", ""),
+                config={
+                    "max_steps_per_episode": int(data.get("max_steps", 0)),
+                    "num_eval_episodes": int(data.get("num_episodes", 0)),
+                    "source": data.get("source", ""),
+                },
+                runtime={},
+                iterations=[],
+            )
+
         results_file = self.unified_path / game / "optimization_results.json"
         if not results_file.exists():
             return None
 
-        data = json.loads(results_file.read_text(encoding="utf-8"))
+        data = json.loads(results_file.read_text(encoding="utf-8-sig"))
         iterations = [
             IterationResult(
                 iteration=int(entry["iteration"]),

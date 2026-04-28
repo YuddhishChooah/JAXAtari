@@ -1,0 +1,165 @@
+{
+  "milestone_id": "2026-04-27_project_status_after_rq4_first_pass",
+  "created_at": "2026-04-27",
+  "project": {
+    "method_name": "LeGPS",
+    "method_expansion": "Language Guided Policy Search",
+    "core_idea": "Use an LLM to generate interpretable policy code and CMA-ES to optimize low-level numeric parameters."
+  },
+  "why_this_milestone_exists": {
+    "purpose": "Freeze the current thesis-level interpretation in time so future work can compare progress against this state instead of relying on chat history.",
+    "trigger": "After implementing canonical reproducibility support and completing a first RQ4 LLM-only ablation run."
+  },
+  "global_project_goal_from_discussion": {
+    "interpretable_agents": "The thesis wants RL agents represented as readable code, not opaque neural policies.",
+    "competitive_performance": "The code agents should be pushed as close as possible to neural baselines while preserving interpretability.",
+    "environment_coverage": "The method should cover an increasing set of Atari object-centric environments, not only one hand-tuned game.",
+    "algorithm_understanding": "The work must identify what succeeds and what fails: LLM hallucinations, broken metrics, wrong action mappings, objective bugs, brittle heuristics, and optimizer limitations.",
+    "reproducibility": "The setup must be reproducible and should not depend on spending many hours manually crafting different prompts for each game.",
+    "unified_method_requirement": "The final method should look like a single reusable protocol: shared system instructions plus structured game context, not a collection of unrelated prompt-engineering tricks."
+  },
+  "current_answer_to_are_we_there_yet": {
+    "short_answer": "No. The project is substantially improved, but it is not yet thesis-solid by the full target standard.",
+    "honest_status": "We have a working method prototype, strong results on several games, reproducible canonical evaluation, and first evidence for the optimizer ablation. We still need more games, seeded reruns, robustness tests, and cleaner evidence that the unified process generalizes."
+  },
+  "current_strengths": [
+    {
+      "area": "Interpretable policies",
+      "status": "mostly_achieved_for_current_games",
+      "details": "The current agents are Python/JAX policies with small parameter dictionaries. This satisfies the interpretability direction better than neural network baselines because policy logic and numeric constants are inspectable."
+    },
+    {
+      "area": "Canonical reproducibility",
+      "status": "strong_for_current_best_policies",
+      "details": "The canonical 10000-step policies for Pong, Freeway, Asterix, Breakout, and Skiing reproduced exactly with zero score delta under the stored seeds and evaluation protocol."
+    },
+    {
+      "area": "Performance evidence",
+      "status": "promising_but_not_general_claim_yet",
+      "details": "Pong, Freeway, Asterix, Breakout, and Skiing have canonical best policies. Several are near or above human-normalized baselines, but not every game is competitive with DQN and some results need careful interpretation."
+    },
+    {
+      "area": "RQ4 evidence",
+      "status": "first_pass_completed",
+      "details": "The optimizer=none ablation shows CMA-ES is especially important for Asterix and Breakout, moderately useful for Pong and Freeway, and nearly neutral on the current Skiing policy."
+    },
+    {
+      "area": "Unified infrastructure",
+      "status": "present",
+      "details": "The project now has a unified suite runner, canonical policy evaluation, benchmark normalization support, and a thesis goal tracker."
+    }
+  ],
+  "current_gaps": [
+    {
+      "area": "Generality across games",
+      "status": "not_proven",
+      "details": "The covered games are Pong, Freeway, Asterix, Breakout, and Skiing. This is a useful set but not enough to claim broad generality. Candidate next games are Seaquest and Kangaroo."
+    },
+    {
+      "area": "Robustness and shortcut learning",
+      "status": "not_implemented_systematically",
+      "details": "RQ2 still needs formal tests checking whether policies solve the intended task or exploit brittle simplifications, wrapper artifacts, opponent weaknesses, or object-centric shortcuts."
+    },
+    {
+      "area": "Seeded evidence",
+      "status": "missing",
+      "details": "Canonical policies reproduce under stored seeds, but multiple seeded reruns are still needed before making strong claims about robustness of the method."
+    },
+    {
+      "area": "Manual tuning risk",
+      "status": "methodological_risk",
+      "details": "Asterix required significant diagnosis and Skiing required objective analysis. These can be valid infrastructure fixes, but they must be documented so they do not become hidden hand-engineering."
+    },
+    {
+      "area": "Neural baseline competitiveness",
+      "status": "partial",
+      "details": "Some games look strong, but Breakout remains below DQN and Skiing needs special caution because reward/objective semantics are unusual."
+    }
+  ],
+  "current_game_status": {
+    "pong": {
+      "status": "strong",
+      "interpretation": "Near maximal game performance. Useful evidence that LeGPS can produce a successful interpretable agent."
+    },
+    "freeway": {
+      "status": "strong",
+      "interpretation": "Close to human/DQN range. Good current evidence for RQ1."
+    },
+    "asterix": {
+      "status": "strong_after_debugging",
+      "interpretation": "Performance became strong after evaluation horizon and policy issues were addressed. Important case study for why metric/video audits matter."
+    },
+    "breakout": {
+      "status": "good_but_below_dqn",
+      "interpretation": "Human-normalized score is strong, but the raw score is still meaningfully below DQN. This remains an improvement target."
+    },
+    "skiing": {
+      "status": "requires_caution",
+      "interpretation": "Numerically strong after optimizer-facing objective correction, but this game needs careful validation because less-negative reward and gate penalties make interpretation subtle."
+    }
+  },
+  "current_rq_status": {
+    "RQ1": {
+      "question": "Can LeGPS produce successful RL agents?",
+      "status": "partially_supported",
+      "reason": "Strong policies exist for multiple current games, but broader coverage and seeded reruns are still needed."
+    },
+    "RQ2": {
+      "question": "Do LeGPS policies solve the intended task, or do they rely on brittle shortcuts?",
+      "status": "not_yet_answered",
+      "reason": "Some video/mod inspections exist informally, but no systematic shortcut/robustness suite exists yet."
+    },
+    "RQ3": {
+      "question": "Can LeGPS policies be adapted efficiently to task variations?",
+      "status": "not_yet_answered",
+      "reason": "Task-variation adaptation protocol is not implemented yet."
+    },
+    "RQ4": {
+      "question": "How much performance comes from CMA-ES numeric optimization?",
+      "status": "first_pass_supported",
+      "reason": "The optimizer=none suite completed and shows clear score gaps, especially for Asterix and Breakout."
+    }
+  },
+  "methodological_rules_going_forward": [
+    "Do not hide objective fixes, metric bugs, action-mapping bugs, prompt changes, failed policies, or performance regressions.",
+    "Separate infrastructure/context fixes from final policy-search evidence.",
+    "Avoid game-specific prompt engineering unless it is clearly structured game context that would be allowed for every game.",
+    "After meaningful pipeline changes, rerun the unified suite on all covered games.",
+    "Promote policies to canonical best only after standardized reevaluation.",
+    "Every new result should map explicitly to RQ1, RQ2, RQ3, or RQ4."
+  ],
+  "recommended_next_steps_from_this_milestone": [
+    {
+      "priority": 1,
+      "step": "Run multiple seeded reruns for the current five games.",
+      "why": "This turns single-run success into evidence about method stability."
+    },
+    {
+      "priority": 2,
+      "step": "Define and implement RQ2 shortcut/robustness probes.",
+      "why": "This tests whether policies are aligned with the intended task or exploiting brittle artifacts."
+    },
+    {
+      "priority": 3,
+      "step": "Add the next game through the documented onboarding protocol.",
+      "why": "This expands environment coverage while testing whether the unified method generalizes."
+    },
+    {
+      "priority": 4,
+      "step": "Continue improving weak or uncertain games only through documented, method-valid changes.",
+      "why": "This avoids turning the thesis into hidden manual policy engineering."
+    },
+    {
+      "priority": 5,
+      "step": "Maintain milestone snapshots after major evidence changes.",
+      "why": "This preserves a chronological record of what was known, what was missing, and why decisions were made."
+    }
+  ],
+  "linked_artifacts": {
+    "thesis_goals": "scripts/llm_optimization/thesis_goals.json",
+    "canonical_best_policies": "scripts/llm_optimization/runs/best_10000_steps",
+    "canonical_reproducibility_result": "scripts/llm_optimization/analysis/evaluations/canonical_reproducibility/latest_canonical_evaluation.json",
+    "rq4_summary": "scripts/llm_optimization/analysis/evaluations/rq4_optimizer_ablation_summary.json",
+    "rq4_run": "scripts/llm_optimization/runs/unified_suite/rq4_llm_only_20260427"
+  }
+}

@@ -1,0 +1,37 @@
+# Diagnosis
+
+## 1. Root cause
+The policy treats the chicken as if it sits exactly on a lane center and checks danger in lane "bands". This causes two coupled failures: (a) it under-detects collisions while the chicken is between lanes (during an UP transition), and (b) it triggers DOWN escapes too aggressively because `danger_curr` is inflated by the straddle-OR-with-up rule. Net effect: many collisions AND wasted backwards motion, both of which crush time efficiency.
+
+## 2. Evidence from metrics
+- `collision_rate` 0.61 and `near_miss_count` ~699: lane-overlap projection is not catching real conflicts on the lane the chicken is actually entering.
+- `down_action_rate` 0.111 (≈11%) is far too high for Freeway; spec says DOWN should be rare. This directly explains low `avg_upward_progress` (0.021) and low `time_efficiency` (2.92 vs. DQN ~30).
+- `avg_crossing_time` 328 frames vs `min_crossing_time` 204: the policy *can* cross fast, but average is dominated by long stalls and backtracks.
+- `hesitation_rate` 0.167 plus heavy DOWN means ~28% of frames make no upward progress.
+- `lane_transitions` only 11.67 per episode for 11.67 crossings — i.e. about 1 lane transition logged per crossing, suggesting the metric counts band changes; combined with high near-miss count, the chicken is spending long times mid-band where danger checks are weakest.
+
+## 3. Policy logic causing it
+- `_lane_danger` uses a single `y_ref` lane center with `lane_radius` ~8, so cars are filtered by `|car_y - y_ref| < 8`. During UP transit the chicken straddles two lanes; the check on `y_curr` (nearest center) can miss the lane being entered.
+- The `straddle` branch ORs `danger_up` into `danger_curr`, which then feeds the `emergency` rule — so any time the next lane is dangerous AND chicken hasn't fully snapped to a center, DOWN can fire. That is the source of the 11% DOWN rate.
+- `gap_curr` (9.0) is large and symmetric; combined with horizon `L*horizon_mult ≈ 7.5` frames at 4 sample points, the "current lane" is almost always flagged as unsafe when straddling, encouraging emergency DOWN rather than committing UP.
+- `gap_left/gap_right` only inflate the side the car is approaching from — fine — but `gap=9` for `gap_curr` is much wider than `gap_up=5.2`, which is backwards: the lane you are *entering* needs the larger margin, not the one you are leaving.
+- DOWN target is computed via `_nearest_lane_below`, but its safety is checked with `gap_up` (small), so DOWN looks "safe" too easily.
+- No commitment/hysteresis: once an UP is started, the policy can flip to NOOP/DOWN mid-transition, prolonging exposure inside a lane.
+
+## 4. What to preserve
+- The compact 5-parameter shape and projected-overlap structure with multiple time samples.
+- UP-as-default, NOOP-as-wait skeleton.
+- Per-lane dx estimation from prev/curr.
+- Asymmetric `gap_left`/`gap_right` based on car direction sign.
+- The simple "current + immediate next lane" scope (do not expand to multi-lane lookahead trees).
+
+## 5. What to change next
+- Decouple gating: action = UP iff `next-lane` is safe; only consider DOWN if `current-lane` is *imminently* unsafe (small horizon, e.g. ≤3 frames) AND lower lane is safe with a strict margin. Remove the straddle-OR into `danger_curr`.
+- Make `gap_up` ≥ `gap_curr`, not the reverse; the entering lane deserves the larger safety gap. Re-seed search around `gap_up≈7`, `gap_curr≈4`.
+- Use a separate, larger `gap_down` (or reuse `gap_curr` strictly) so DOWN requires clearly empty lower lane; this should drop DOWN rate below ~2%.
+- Evaluate next-lane danger at the chicken's *projected* y after the UP step (a small fixed step like 2–3 px), not at the lane center; this fixes the straddle blind spot without adding state.
+- Shorten the horizon sampling to 2 points (e.g. t=0 and t=L) for the next-lane gate to reduce false positives that cause stalls; keep 3–4 points only for the emergency current-lane check.
+- Add a soft commitment: if `chicken_y` is between two lane centers (mid-transition), forbid DOWN entirely and prefer UP unless next-lane danger is very high. This is stateless (derived from y) and removes oscillation.
+- Consider a parameter for "imminence" (small TTC threshold) used only for the DOWN trigger, instead of reusing the same `lookahead`.
+
+Expected effect: down_action_rate → ~1–2%, collision_rate down via correct entering-lane gating, hesitation roughly unchanged or lower, time_efficiency lifting toward 4–6 crossings/1000 frames.
