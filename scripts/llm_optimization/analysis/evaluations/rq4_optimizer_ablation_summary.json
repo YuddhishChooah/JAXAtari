@@ -1,6 +1,6 @@
 {
-  "canonical_dir": "C:\\Users\\yuddh\\OneDrive\\Desktop\\Msc AI and ML\\SoSe 2025\\Practical Lab 2\\JAXAtari\\scripts\\llm_optimization\\runs\\best_10000_steps",
-  "llm_only_dir": "C:\\Users\\yuddh\\OneDrive\\Desktop\\Msc AI and ML\\SoSe 2025\\Practical Lab 2\\JAXAtari\\scripts\\llm_optimization\\runs\\unified_suite\\rq4_llm_only_20260427",
+  "canonical_dir": "scripts/llm_optimization/runs/best_10000_steps",
+  "llm_only_dir": "scripts/llm_optimization/runs/unified_suite/rq4_llm_only_20260427",
   "interpretation": "Full LeGPS uses the LLM to generate policy code and CMA-ES to tune numeric parameters. LLM-only uses the same unified outer loop but optimizer=none, so init_params() values are evaluated directly.",
   "games": [
     {

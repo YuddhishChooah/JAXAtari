@@ -48,6 +48,14 @@ GAME_COLORS = {
 }
 
 
+def repo_relative_path(path: Path) -> str:
+    resolved = path.resolve()
+    try:
+        return resolved.relative_to(PROJECT_ROOT).as_posix()
+    except ValueError:
+        return str(resolved)
+
+
 def load_scores(results_dir: Path) -> dict[str, float]:
     loader = ResultsLoader(unified_path=str(results_dir))
     scores: dict[str, float] = {}
@@ -92,8 +100,8 @@ def build_summary(
         )
 
     return {
-        "canonical_dir": str(canonical_dir),
-        "llm_only_dir": str(llm_only_dir),
+        "canonical_dir": repo_relative_path(canonical_dir),
+        "llm_only_dir": repo_relative_path(llm_only_dir),
         "interpretation": (
             "Full LeGPS uses the LLM to generate policy code and CMA-ES to tune numeric "
             "parameters. LLM-only uses the same unified outer loop but optimizer=none, "
