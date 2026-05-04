@@ -8,9 +8,14 @@ import importlib.util
 import json
 import math
 import platform
+import sys
 import time
 from pathlib import Path
 from typing import Any
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 import jax
 import jax.numpy as jnp
@@ -19,7 +24,6 @@ import numpy as np
 from scripts.llm_optimization.llm_optimization_loop import OptimizationConfig, ParallelEvaluator
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_MANIFEST = PROJECT_ROOT / "scripts/llm_optimization/runs/best_10000_steps/manifest.json"
 DEFAULT_OUTPUT = PROJECT_ROOT / "scripts/llm_optimization/analysis/evaluations/canonical_reproducibility/latest_canonical_evaluation.json"
 

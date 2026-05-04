@@ -1,0 +1,34 @@
+## 1. Root cause
+The intercept predictor is unreliable in the small windows where it matters, while the fallback (tracking raw ball y when the ball moves away) wastes time chasing the ball away from the optimal idle position. Combined with a too-aggressive `predict_gain` (~2.04) that overshoots, the paddle ends up mispositioned for most of the rally and only reacts late, causing high tracking error and many small jitter corrections near the contact point.
+
+## 2. Evidence from metrics
+- `avg_ball_tracking_error` 27.8 px and `max` 142 px — paddle is far from the ball most of the time.
+- `interception_rate` 0.185 — paddle rarely in line with the ball.
+- `avg_reaction_time` 15 frames — significant lag responding to incoming balls.
+- `paddle_jitter_count` 204 with `avg_paddle_movement` 1.9 px/frame — frequent direction reversals despite a fairly large `dead_zone` (~4.1).
+- `predict_gain` 2.04 (>>1) inflates predicted dy*t, so the folded intercept is often on the wrong reflection branch.
+- Despite all this, win rate is 98%+ — defense is "good enough" but not optimal; score margin is capped near 21–0/21–1.
+
+## 3. Policy logic causing it
+- `predict_gain` multiplies `dy * t` *after* the time computation; gain ≠ 1 distorts the geometry and the wall-reflection folding, so the intercept Y is biased and sometimes lands on the wrong branch.
+- `vy_damp` > 1 (1.10) further amplifies vertical velocity, compounding the prediction error.
+- When `dx <= 0` (ball moving toward enemy) the policy chases `ball_y`. The ball's Y at the far side is a poor idle target; the paddle drifts, then has to traverse far when the ball returns → high reaction time and tracking error.
+- Dead zone is symmetric and fixed; near contact the paddle still flips between MOVE_UP/MOVE_DOWN frame-to-frame because `error` oscillates around ±dz as ball moves — hence jitter count 204.
+- FIRE gating uses `params["fire_bias"] > 0` as a hard switch, not a probability/threshold tied to alignment quality; FIRE-combo is either always on near contact or never, providing no graded benefit.
+- Aim offset is applied uniformly; it doesn't exploit hitting off-center deliberately (no dependence on ball dy sign or score state).
+
+## 4. What to preserve
+- Two-frame velocity estimation via prev/curr indices.
+- Intercept-time computation `t = (PLAYER_X - bx)/dx` with wall-reflection folding.
+- Dead-zone gating to suppress micro-corrections.
+- FIRE-combo action selection structure (it helps per the run notes).
+- Compact 5-parameter shape and the `policy(obs_flat, params)` signature.
+
+## 5. What to change next
+- Remove or constrain `predict_gain` to 1.0 (or apply it only as a small additive lookahead, not a multiplicative time scaler). The geometry is already exact; gain mainly injects bias.
+- Constrain `vy_damp` to (0, 1]; values >1 destabilize the wall-folding branch.
+- Replace the "track ball_y when moving away" fallback with an idle target near the screen midline (or the predicted intercept assuming one enemy bounce). This drastically reduces reaction time when the ball returns.
+- Add hysteresis: use two thresholds (enter/exit dead zone) or compare `error` against `dead_zone` plus a small term proportional to |dy| to suppress jitter near contact.
+- Make `aim_offset` sign-dependent on ball `dy` (or on paddle contact point) so off-center hits are intentional and produce spiky returns; consider a second parameter for offset magnitude vs. direction.
+- Turn FIRE gating into a graded condition: require `close & aligned & moving_toward`, and let `fire_bias` modulate the alignment threshold rather than act as a binary switch.
+- Optionally clamp the predicted intercept into `[PLAYFIELD_TOP + PADDLE_HEIGHT/2, PLAYFIELD_BOTTOM - PADDLE_HEIGHT/2]` to avoid commanding unreachable targets that cause sustained max-speed travel and overshoot jitter.

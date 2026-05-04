@@ -1,0 +1,122 @@
+{
+  "milestone_id": "2026-04-28_rq1_seeded_rerun_first_pass",
+  "created_at": "2026-04-28",
+  "project": {
+    "method_name": "LeGPS",
+    "method_expansion": "Language Guided Policy Search"
+  },
+  "why_this_milestone_exists": {
+    "purpose": "Record the first completed five-game seeded RQ1 rerun suite and its interpretation against canonical best-policy scores.",
+    "trigger": "The rq1_seeded_20260428_s20260480 unified-suite run completed for Pong, Freeway, Asterix, Breakout, and Skiing."
+  },
+  "run": {
+    "run_id": "rq1_seeded_20260428_s20260480",
+    "manifest": "scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/manifest.json",
+    "summary": "scripts/llm_optimization/analysis/evaluations/rq1_seeded_reruns_summary.json",
+    "protocol": {
+      "provider": "anthropic",
+      "model": "claude-opus-4-7",
+      "max_iters": 5,
+      "num_envs": 8,
+      "num_episodes": 16,
+      "max_steps": 10000,
+      "search_max_steps": 10000,
+      "optimizer": "cma-es",
+      "param_samples": 16,
+      "cma_generations": 5,
+      "seed": 20260480
+    },
+    "total_elapsed_seconds": 23672.537396907806,
+    "total_elapsed_hours": 6.575704832474391
+  },
+  "results_vs_canonical": [
+    {
+      "game": "pong",
+      "seed": 20260480,
+      "rerun_score": 21.0,
+      "canonical_score": 20.96875,
+      "delta_vs_canonical": 0.03125,
+      "interpretation": "Stable strong rerun, effectively matching the canonical best policy."
+    },
+    {
+      "game": "freeway",
+      "seed": 20260481,
+      "rerun_score": 23.9375,
+      "canonical_score": 27.15625,
+      "delta_vs_canonical": -3.21875,
+      "interpretation": "Successful but below the canonical best, showing some seed-to-seed variability."
+    },
+    {
+      "game": "asterix",
+      "seed": 20260482,
+      "rerun_score": 1871.875,
+      "canonical_score": 9850.0,
+      "delta_vs_canonical": -7978.125,
+      "interpretation": "Completed but did not rediscover the strong canonical Asterix behavior in this seed. This is important negative stability evidence."
+    },
+    {
+      "game": "breakout",
+      "seed": 20260483,
+      "rerun_score": 293.0625,
+      "canonical_score": 205.8125,
+      "delta_vs_canonical": 87.25,
+      "interpretation": "Rerun exceeded the current canonical Breakout score and should be considered for canonical promotion only after standardized reevaluation."
+    },
+    {
+      "game": "skiing",
+      "seed": 20260484,
+      "rerun_score": -3716.25,
+      "canonical_score": -3537.875,
+      "delta_vs_canonical": -178.375,
+      "interpretation": "Completed but below the canonical Skiing score. Because Skiing returns are negative, the more negative rerun score is worse."
+    }
+  ],
+  "rq_status_update": {
+    "RQ1": {
+      "status": "stronger_but_not_complete",
+      "reason": "One full seeded rerun suite now exists. It supports stability for Pong, gives a new strong Breakout candidate, and exposes weaker reruns for Freeway, Asterix, and Skiing. Additional seeds are still needed before estimating variance confidently."
+    },
+    "RQ2": {
+      "status": "unchanged",
+      "reason": "No shortcut or robustness probes were run."
+    },
+    "RQ3": {
+      "status": "unchanged",
+      "reason": "No task-variation adaptation experiment was run."
+    },
+    "RQ4": {
+      "status": "unchanged",
+      "reason": "No new optimizer-ablation experiment was run."
+    }
+  },
+  "interpretation": {
+    "main_takeaway": "The first RQ1 seeded rerun is scientifically useful because it is mixed rather than uniformly positive: LeGPS can still produce strong policies, but Asterix especially appears unstable under this seed/protocol.",
+    "positive_evidence": [
+      "All five games completed under the same five-game unified-suite command.",
+      "Pong reproduced near-perfect performance.",
+      "Breakout exceeded the current canonical score and may be a candidate improvement after standardized reevaluation."
+    ],
+    "risk_evidence": [
+      "Asterix did not reproduce its canonical strength.",
+      "Freeway and Skiing completed below canonical scores.",
+      "One rerun is not enough to estimate variance; it is only the first stability sample."
+    ]
+  },
+  "next_steps": [
+    {
+      "priority": 1,
+      "step": "Run at least two additional seeded RQ1 suites with new base seeds.",
+      "why": "Three or more seeded suites would make the variance and failure-rate discussion much more defensible."
+    },
+    {
+      "priority": 2,
+      "step": "Standardize reevaluate the new Breakout rerun policy before promoting it to canonical best.",
+      "why": "The rerun score is higher than the current canonical score, but canonical promotion requires a separate saved-policy evaluation under the canonical protocol."
+    },
+    {
+      "priority": 3,
+      "step": "Inspect Asterix policy/log differences to classify the stability failure.",
+      "why": "The Asterix drop is the largest result and matters directly for the method-stability claim."
+    }
+  ]
+}

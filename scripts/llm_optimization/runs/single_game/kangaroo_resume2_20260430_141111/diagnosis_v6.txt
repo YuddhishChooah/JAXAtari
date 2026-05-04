@@ -1,0 +1,35 @@
+1. Root cause
+The policy successfully executes the first ladder climb on the starting platform but fails to chain a second climb. After dismounting near the top of the first ladder, `_select_ladder` rarely finds a "valid" next ladder because the reach test (`|lby - pby| < reach_tol≈15.7`) is evaluated immediately while the player is still transitioning off the ladder (player_bottom_y not yet equal to the new platform's surface). It then falls back to a fixed sweep target (pcx±40 toward x=80) that drifts the player away from the next ladder's x and never re-evaluates a useful candidate. The 200-point return corresponds to a single ladder + small bonus, then the agent plateaus and eventually dies.
+
+2. Evidence from metrics
+- final_player_y=124, min_player_y=124, max_upward_progress=24: only one platform of vertical gain.
+- climb_rate=0.24 but y_range=25: lots of "climbing-state" frames produce only one platform's worth of altitude (likely re-climbing or stalling on the same ladder).
+- horizontal_action_rate=0.73, x_range=109: heavy horizontal sweeping consistent with the fallback sweep dominating after the first climb.
+- score_events=1: exactly one scoring event (the first ladder/fruit), confirming a plateau.
+- lives_lost=1 with crash_rate≈0: death likely from a hazard during sweep, not a fall.
+- 87.5% win rate at 175 average: consistently reaches the first checkpoint, never beyond.
+
+3. Policy logic causing it
+- `not_current` excludes any ladder whose column currently contains the player. Just after dismount the player is still inside the just-climbed column for several frames, so the only nearby ladder gets filtered out and `has_valid` stays false.
+- `near_top` triggers a forced dismount using `dx_to_target`, but `target_x` at that moment is the sweep fallback (since no valid ladder selected), so dismount direction is arbitrary, not toward the next ladder.
+- Reach test is symmetric and tight (`reach_tol≈15.7`); the second platform's next ladder bottom may differ from player_bottom_y by more than that during the post-dismount transient, so it never qualifies.
+- Sweep fallback uses a hard-coded pivot at x=80 unrelated to the actual next-ladder geometry, pulling the agent away from candidate ladders on the upper platform.
+- `height_weight` rewards tall ladders globally; combined with the exclusion bug, when a faraway tall ladder briefly qualifies it can lure the agent off course.
+- FIRE-jump path is gated on `aligned`, which requires `has_valid | has_jump`; if selection fails it never tries to bridge.
+
+4. What to preserve
+- The overall structure: ladder selection → align → climb → dismount → threat overrides.
+- The ladder reachability concept using player_bottom_y vs ladder_bottom_y (correctly fixes the start-state failure).
+- Punch-monkey override and thrown-coconut FIRE override.
+- Current best parameters (reach_tol≈15.7, align_tol≈6.3, height_weight≈1.06, punch_dx≈19.8) — they solve platform 1.
+- The `on_column` detection and "keep climbing until near top" behavior.
+
+5. What to change next
+- Fix the exclusion logic: only exclude the just-climbed ladder for a brief post-dismount window, or exclude based on ladder identity (e.g., the ladder whose top the player is currently near) rather than any column containing pcx. Allow re-selection as soon as player has stepped horizontally off.
+- Asymmetric reach test: allow larger tolerance above feet than below (e.g., lby in [pby - reach_tol, pby + reach_tol*2]) to absorb post-dismount transients and small platform-height differences.
+- Replace the hard-coded sweep fallback (pivot x=80) with a geometry-driven fallback: when no strictly reachable upward ladder exists, target the x of the nearest active ladder whose top is above py, regardless of bottom-reach, so the agent walks toward it and the reach test passes once on the new platform.
+- Add a "platform-relative" reach: snap player_bottom_y to the nearest platform top before comparing to ladder_bottom_y, eliminating transient mismatch.
+- Strengthen dismount: when near_top, step in the direction of the next-best ladder's lcx (compute a second selection that ignores the on_column filter), not the sweep target.
+- Add a child-direction tiebreaker (sign of child_x - pcx) to dismount and sweep so progress biases toward the child rather than a fixed pivot.
+- Tighten danger handling on ladders: if any_thrown or overhead_fc while on_column and not near_top, allow a brief pause/punch instead of continuing UP into the hazard (addresses the lost life).
+- Keep parameter count small: add at most 2 new scalars (e.g., `reach_tol_up` asymmetry, `dismount_steps`) so CMA-ES can tune without blowing up dimensionality.

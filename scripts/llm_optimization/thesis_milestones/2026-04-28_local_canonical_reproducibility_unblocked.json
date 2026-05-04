@@ -1,0 +1,116 @@
+{
+  "milestone_id": "2026-04-28_local_canonical_reproducibility_unblocked",
+  "created_at": "2026-04-28",
+  "project": {
+    "method_name": "LeGPS",
+    "method_expansion": "Language Guided Policy Search"
+  },
+  "why_this_milestone_exists": {
+    "purpose": "Record that the canonical reproducibility path was made runnable from a fresh local setup and reproduced all stored five-game scores exactly.",
+    "trigger": "The documented canonical evaluation command initially failed in a fresh local environment due to script import path and eager LLM-client imports, then passed after narrow reproducibility-path fixes and asset installation."
+  },
+  "changes_made": [
+    {
+      "area": "API-free canonical evaluation",
+      "details": "scripts/llm_optimization/evaluate_canonical_policies.py now inserts the repository root into sys.path before importing scripts.llm_optimization modules, so the documented direct script command works from the repository root."
+    },
+    {
+      "area": "Optional LLM dependency isolation",
+      "details": "scripts/llm_optimization/core/__init__.py now exposes LLMClient, LLMConfig, and create_llm_client lazily, and scripts/llm_optimization/core/llm_client.py only imports anthropic when constructing a client. API-free evaluation no longer requires provider packages."
+    },
+    {
+      "area": "Local runtime setup",
+      "details": "A repo-local editable install was created and JAXAtari sprites/states were installed outside the repository via the documented install-sprites path."
+    },
+    {
+      "area": "RQ1 seeded-rerun aggregation",
+      "details": "scripts/llm_optimization/analysis/summarize_seeded_rq1_reruns.py was added to turn one or more unified-suite manifests into per-game completion counts, score distributions, deltas against canonical policies, and human-normalized summaries where available."
+    },
+    {
+      "area": "Secure RQ1 launch path",
+      "details": "scripts/llm_optimization/run_rq1_seeded_rerun.sh was added to launch the five-game seeded RQ1 suite while prompting for provider API keys at runtime instead of storing credentials in repository artifacts."
+    }
+  ],
+  "evidence": {
+    "artifact": "scripts/llm_optimization/analysis/evaluations/canonical_reproducibility/latest_canonical_evaluation.json",
+    "command": "python scripts/llm_optimization/evaluate_canonical_policies.py --num-episodes 32 --max-steps 10000 --use-manifest-seeds",
+    "protocol": {
+      "num_episodes": 32,
+      "max_steps": 10000,
+      "use_manifest_seeds": true
+    },
+    "runtime": {
+      "platform": "macOS-26.2-arm64-arm-64bit",
+      "python_version": "3.12.7",
+      "jax_version": "0.10.0",
+      "numpy_version": "2.4.4",
+      "elapsed_seconds": 109.50645399093628
+    },
+    "results": [
+      {
+        "game": "asterix",
+        "seed": 20260438,
+        "stored_avg_return": 9850.0,
+        "observed_avg_return": 9850.0,
+        "delta_vs_stored": 0.0
+      },
+      {
+        "game": "breakout",
+        "seed": 20260434,
+        "stored_avg_return": 205.8125,
+        "observed_avg_return": 205.8125,
+        "delta_vs_stored": 0.0
+      },
+      {
+        "game": "freeway",
+        "seed": 20260435,
+        "stored_avg_return": 27.15625,
+        "observed_avg_return": 27.15625,
+        "delta_vs_stored": 0.0
+      },
+      {
+        "game": "pong",
+        "seed": 20260432,
+        "stored_avg_return": 20.96875,
+        "observed_avg_return": 20.96875,
+        "delta_vs_stored": 0.0
+      },
+      {
+        "game": "skiing",
+        "seed": 20260439,
+        "stored_avg_return": -3537.875,
+        "observed_avg_return": -3537.875,
+        "delta_vs_stored": 0.0
+      }
+    ]
+  },
+  "current_interpretation": {
+    "RQ1": "Canonical saved policies remain exactly reproducible under the stored seeds and 10000-step protocol on this local macOS setup. This supports the reliability of existing saved-policy evidence but does not replace new multi-seed LeGPS reruns.",
+    "RQ2": "No new shortcut or robustness evidence was added.",
+    "RQ3": "No new task-variation adaptation evidence was added.",
+    "RQ4": "No new optimizer-ablation evidence was added."
+  },
+  "remaining_gaps": [
+    "Multiple seeded LeGPS reruns for RQ1 stability are still missing.",
+    "Systematic RQ2 shortcut and robustness probes are still missing.",
+    "RQ3 task-variation adaptation experiments are still missing.",
+    "Environment coverage is still limited to the current five canonical games."
+  ],
+  "next_steps": [
+    {
+      "priority": 1,
+      "step": "Run bash scripts/llm_optimization/run_rq1_seeded_rerun.sh for Pong, Freeway, Asterix, Breakout, and Skiing with a rotated provider key.",
+      "why": "This is still the main missing evidence for method stability across random seeds."
+    },
+    {
+      "priority": 2,
+      "step": "Run the seeded-rerun summarizer after each RQ1 batch and commit the resulting summary JSON as thesis evidence.",
+      "why": "The thesis needs variance summaries, failure counts, and comparison against canonical scores rather than raw folders only."
+    },
+    {
+      "priority": 3,
+      "step": "Start the RQ2 shortcut-probe design after the seeded-rerun result schema is settled.",
+      "why": "Shortcut probes need a stable reporting format to avoid becoming ad hoc videos or notes."
+    }
+  ]
+}

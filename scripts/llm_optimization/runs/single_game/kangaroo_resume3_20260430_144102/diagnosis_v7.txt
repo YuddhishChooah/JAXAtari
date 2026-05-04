@@ -1,0 +1,35 @@
+# Kangaroo Policy Diagnosis
+
+## 1. Root cause
+After collecting the first 200-point reward at x≈132, y≈148 (RIGHTFIRE jump), the policy enters the ladder column at x≈132 and gets stuck oscillating between "on_column → climb UP" and "near_top → dismount", then dies to a falling coconut while still in that column. The dismount logic re-selects the same ladder column it just climbed because `_select_best` excludes by x-overlap with `pcx`, but once the player nudges off the ladder horizontally, that column is no longer "in_col" and becomes the nearest valid target again — producing a loop. Falling-coconut response on-column is NOOP, which is exactly the wrong action when a coconut is descending the same column.
+
+## 2. Evidence from metrics
+- `min_player_y=132`, `final_player_y≈142`, `y_range=17`, `net_upward_progress=5.3` → only one platform of climb, then drift back down.
+- `climb_rate=0.069` vs `horizontal_action_rate=0.693` → very little time actually climbing; most steps spent shuffling horizontally near the same band.
+- `score_events=1`, `final_score=200` → exactly the known single reward event, no progression past it.
+- `lives_lost=1`, `crash_rate=0.0014` → death consistent with the traced coconut hit at x≈133, y≈129.
+- `x_range=105` with `y_range=17` → wide horizontal sweeping at near-constant height = the dismount/re-select oscillation.
+
+## 3. Policy logic causing it
+- **Dismount selector is identical to primary selector.** `d_lcx,...= _select_best(..., on_pad)` with the same `exclude_pad` means after the player steps slightly off the top, the just-climbed column becomes selectable again → ping-pong.
+- **`near_top` threshold (`py - on_top_y < 8`) is fragile.** Combined with `on_column` requiring `lty < py+2`, the player can flicker between "on_column & climbing" and "near_top & dismounting" each frame.
+- **`_on_ladder_column` does not require feet to be near the ladder body.** `bottom_below = lby >= pby - 4` is true for any ladder whose bottom is at or below the feet, so after climbing one ladder the player is still flagged as "on" it for many frames at the top platform.
+- **On-ladder coconut response is NOOP.** When `any_thrown & on_column & ~near_top`, holding still in the same x as the coconut guarantees a hit. There is no "exit ladder" action.
+- **Overhead falling-coconut handling on-column is also NOOP**, same failure mode as the traced death.
+- **Fallback target ignores reachability** but still excludes only the current x-column; once dismounted it can re-target the same ladder.
+- **No notion of "current platform"**, so the policy cannot tell that it has *finished* a climb and should commit to horizontal traversal on the new platform before re-evaluating ladders.
+
+## 4. What to preserve
+- The successful first-reward path: horizontal traverse from start → RIGHTFIRE jump near x≈132, y≈148. Do not alter the early-state behavior or the reach asymmetry (`reach_up`, `reach_tol`) that enables this.
+- Compact parameter set and CMA-ES-tunable thresholds; keep `align_tol`, `reach_tol`, `reach_up`, `on_pad`, `danger_r`, `punch_dx`, `height_weight`.
+- Monkey punch logic (it is not implicated in the failure).
+- Asymmetric ladder-bottom reach test (it is what enables the first ladder selection at x=132).
+
+## 5. What to change next
+- **Differentiate dismount target from primary target.** The dismount selector must hard-exclude the ladder the player just climbed (track it via the current column's `lcx` and require the next selection's `|lcx - current_col_cx| > some_min_dx` parameter). Add a tunable `min_next_ladder_dx`.
+- **Latch a "finished climbing" state via geometry, not memory.** Use `py < starting_band - threshold` together with "no active ladder bottom near current pby" to mean "on a higher platform, traverse horizontally". Without this, the policy keeps re-entering the same column.
+- **Replace on-ladder NOOP under coconut threat with active evasion.** If `any_thrown` or `overhead_fc` while on column and not near top, choose DOWN or DOWNLEFT/DOWNRIGHT to leave the column; if near top, choose dismount direction immediately rather than NOOP.
+- **Tighten `_on_ladder_column`** so it requires `lby > pby` (ladder extends below feet) AND `pcx` strictly inside `[lx, lx+lw]` without `on_pad` slack, to prevent the "still on ladder" flicker after reaching a platform.
+- **Add a small commit-to-horizontal counter via geometry**: only re-enable ladder selection when `|pcx - last_ladder_cx| > horizontal_commit_dx` (new param). This breaks the oscillation purely from observation.
+- **Use child_x bias more strongly on upper platforms.** Once `py < some_y_threshold`, weight selection toward ladders whose `lcx` lies on the child's side of the player so the route makes net progress instead of zig-zagging.
+- **Do not widen the rewrite scope.** Keep the early-game branch (start → first ladder → first reward) byte-identical; only add a post-climb branch gated on `py <= first_platform_y_threshold`.

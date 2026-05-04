@@ -1,0 +1,35 @@
+# Kangaroo Policy Diagnosis
+
+## 1. Root cause
+The policy reliably earns the first 200-point reward via RIGHTFIRE near x≈132, y≈148, then enters the ladder column at x≈132 and stalls there. The "near_top" dismount branch never fires because `min_player_y=132` corresponds to the ladder top region but `(py - on_top_y) < 8.0` is evaluated against `on_top_y = ladder_top_y`, which on this ladder may be several pixels above py=132, so the policy keeps issuing UP/horizontal in the column until a falling coconut kills it. In effect, the policy reaches the top of the first ladder but cannot commit to a dismount and a next-ladder selection from the new platform.
+
+## 2. Evidence from metrics
+- `min_player_y=132`, `final_player_y=137.33`, `max_upward_progress=16`, `y_range=17`: player did climb the first ladder once but never advanced to a higher tier.
+- `score_events=1`, `reward_total=200`: single reward event consistent with the known x≈132 RIGHTFIRE punch, not climb-derived scoring.
+- `climb_rate=0.1742` with `up_action_rate=0.2797`: meaningful UP usage, so not an UP-only or horizontal-only failure, but climbing is short-lived.
+- `lives_lost=1`, `crash_rate=0.0013`: death is a discrete hazard event (matches the falling-coconut trace at x≈133, y≈129).
+- `x_range=108` with shallow `y_range=17`: lots of horizontal sweeping at one tier, classic "found ladder, didn't progress past it."
+- `unique_action_count=4`: action repertoire is narrow; dismount/next-ladder branch effectively never executes.
+
+## 3. Policy logic causing it
+- `near_top` threshold `(py - on_top_y) < 8.0` is brittle. `on_top_y` is the ladder's top-of-bbox; the player's `py` after a successful climb may not reach within 8 px before the column-keep-climbing branch (`on_column & ~near_top -> UP`) reasserts and pushes into the falling coconut.
+- `_select_best` for the dismount target is called with the **same arguments** as the primary selection (including `exclude_pad=on_pad`), so dismount target == primary target. There is no genuinely different "from new platform" selection; the player effectively targets the same column it's standing on once it dismounts laterally by a pixel.
+- `_on_ladder_column` uses `in_x = (pcx >= lx - pad) & (pcx <= lx + lw + pad)`. With `on_pad≈3.2` and ladder widths ~4–8 px, a 1-px x-overlap counts as "on ladder" (matches insight #12). This causes premature UP commitments while still on the platform near a column edge.
+- Hazard handling on-ladder is NOOP (`any_thrown & on_column & ~near_top -> NOOP`), which freezes the player in the coconut's path rather than retreating downward or dismounting sideways.
+- No use of `player_orientation` or differentiation of "on ladder mid-climb" vs "standing on top platform near ladder." Once py≈132 the policy has no signal that it has *finished* the climb and should commit to traversal.
+- `_threats` overhead-coconut window `py - fcy < danger_r * 2.5` is large vertically but uses `< danger_r` horizontally; on a narrow ladder the player can't sidestep, and the on-ladder branch suppresses the sidestep anyway.
+
+## 4. What to preserve
+- The 7-parameter compact schema and CMA-ES tunability.
+- The first-reward route: horizontal traversal toward x≈132 and the RIGHTFIRE punch logic (`punch_in_range`) that yields the stable 200.
+- Asymmetric reach test (`reach_up`/`reach_tol`) and `_select_best` structure.
+- Threat detection plumbing for monkeys, thrown coconuts, falling coconuts.
+
+## 5. What to change next
+- **Distinguish "climbing" vs "topped out."** Add a parameter `top_dismount_tol` and define topped-out as `on_column & (pby <= on_top_y + tol)` (feet at/above ladder top), then force horizontal commit for several steps. Consider a small hysteresis using `player_orientation` or a derived "just-climbed" signal via `pby` proximity to a known platform y.
+- **Make the dismount selector actually different.** Pass an exclusion that removes the *current* ladder column more aggressively (e.g., `exclude_pad = ladder_w + margin`) so the dismount target is a genuinely different ladder, not the one just climbed.
+- **Tighten on-column test.** Replace the `pad`-based x-overlap with a parametric center-band: `abs(pcx - lcx) < align_tol * k` (insight #12). This prevents 1-px overlaps from triggering UP.
+- **Replace on-ladder NOOP-under-threat** with a parametric retreat: when overhead/thrown coconut threatens on-ladder, descend (DOWN) or dismount toward `dismount_dir` rather than freezing in the column where the trace shows death.
+- **Add a "leave x≈132 column after first reward" bias.** A small parametric horizontal-bias term keyed on `pby` being on the second tier (e.g., `py < start_y - threshold`) that pushes toward the next ladder's lcx, ensuring the post-200 transition uses a fresh ladder selection.
+- **Parameterize the near-top window** (`near_top_tol`) instead of hardcoding 8.0, and let CMA-ES tune it together with `on_pad` and the new dismount-exclusion width.
+- Keep changes local to the post-climb branch; do not restructure the punch/horizontal pre-climb logic that produces the reliable 200.

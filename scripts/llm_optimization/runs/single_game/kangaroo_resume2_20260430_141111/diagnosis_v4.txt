@@ -1,0 +1,39 @@
+# Kangaroo Policy Diagnosis
+
+## 1. Root cause
+The policy successfully climbs the first ladder once but fails to chain a second climb. After dismounting at the top of ladder #1, it cannot identify a valid next ladder from the new platform, so it falls back to a horizontal sweep, burns steps, and eventually dies. Net upward progress (24 px) corresponds to roughly one ladder height.
+
+## 2. Evidence from metrics
+- `min_player_y = 124`, `max_upward_progress = 24`: only one platform climbed (start ≈148).
+- `climb_rate = 0.24` with `up_action_rate = 0.27`: climbing happens, but only briefly.
+- `horizontal_action_rate = 0.73`, `x_range ≈ 109`: lots of horizontal sweeping after the first climb — consistent with the sweep fallback firing because no ladder qualifies as "reachable + useful".
+- `lives_lost = 1`, `crash_rate > 0`: time spent wandering on a mid platform exposes the agent to monkeys/coconuts.
+- `score_events = 1`, `final_score = 200`: a single reward (likely the first ladder/landmark), no further progression.
+- `fire_action_rate = 0.11`: FIRE-jump and punch fire but don't translate into vertical gain.
+
+## 3. Policy logic causing it
+- **`useful = lty < (py - 4.0)`** uses `py` (top of player). Right after dismount, the player's `py` on the upper platform makes the *next* ladder's top barely above it, or the next ladder's bottom is more than `reach_tol` (≈16) from the new `pby`. The candidate set becomes empty → sweep fallback.
+- **`reach_tol` is symmetric and small (~16)**. Platform spacing in Kangaroo can exceed this, so `bottom_diff < reach_tol` rejects the legitimate next ladder. The borderline (`*1.5`) path requires alignment first, but alignment never happens because horizontal action targets `sweep_target` instead of any ladder.
+- **`not_current` exclusion** uses `in_col & on_column`. After dismount, `on_column` becomes False, so this isn't the bug — but right at dismount, `near_top` forces a single horizontal step that often re-enters the same column on the next frame, oscillating.
+- **Dismount logic** uses `dx_to_target` from a target that may be the sweep fallback (since no valid ladder exists), so the kangaroo dismounts in an arbitrary direction.
+- **Sweep fallback** anchored at `pcx < 80` is coarse and not state-aware per platform; it does not correlate with where the next ladder actually is.
+- **Height/cost tradeoff**: `cost = dx - height_weight * height_gap` with `height_weight ≈ 1.06` can make a far ladder look cheaper than a near one once height_gap differs by a few pixels — fine when both are reachable, harmful when the reachability filter has already eliminated good candidates.
+- **Hazard handling on ladders**: only thrown coconuts trigger off-column FIRE; on-column the agent keeps climbing into monkeys/coconuts above (no abort/descend behavior).
+
+## 4. What to preserve
+- Compact parametric structure with CMA-tunable thresholds.
+- Ladder-bottom vs `player_bottom_y` reachability concept.
+- Column detection + climb-until-near-top + dismount pattern.
+- Punch logic against monkeys with directional FIRE.
+- Exclusion of the just-used ladder column.
+- The 200-point baseline shows the first-ladder selection (avoiding the x≈20 trap) is correct — keep the height-weighted cost and the `useful = lty < py` filter idea.
+
+## 5. What to change next
+1. **Asymmetric, larger reach window**: allow `lby` to sit *below* `pby` by a generous margin (platform thickness + tolerance, ~24–32 px) but tightly above. Parameterize `reach_below` and `reach_above` separately.
+2. **Persistent ladder targeting after dismount**: when `has_valid` is false, do not sweep blindly. Instead, relax the reach filter progressively (use the borderline set) and still steer toward the closest *active, useful* ladder by x. Sweep should be the last resort.
+3. **Use `pby` (feet) consistently for both reach and "useful" tests**: replace `useful = lty < py - 4` with `useful = lty < pby - ladder_min_progress` so dismount frames don't disqualify the next ladder.
+4. **Stronger dismount commitment**: after `near_top`, latch a short horizontal bias by selecting the dismount direction from the *next* candidate ladder's `lcx` rather than the current target; if none exists, pick the side with more horizontal room on the platform.
+5. **On-ladder hazard response**: if a monkey or coconut is within `danger_r` while `on_column`, allow descending one step (DOWN) or pausing (NOOP) rather than blindly UP. Add a small parameter for hazard-on-ladder behavior.
+6. **FIRE-jump gating**: currently fires whenever borderline-aligned; require `has_valid == False` AND aligned within `align_tol` AND no hazard, which it already partly does — but also require height_gap > 0 to avoid wasted jumps sideways.
+7. **Reduce `height_weight`** or clip `height_gap` so cost ranking among reachable ladders prefers the *closest* reachable upward ladder, not a distant tall one.
+8. **Add a child-direction tiebreaker** for horizontal sweep target: bias toward `sign(child_x - pcx)` instead of a fixed pivot at x=80, so once high enough the agent funnels toward the goal column.

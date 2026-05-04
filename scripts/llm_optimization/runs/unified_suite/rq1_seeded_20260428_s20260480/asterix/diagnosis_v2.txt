@@ -1,0 +1,39 @@
+## 1. Root cause
+The policy dies repeatedly because its danger model is too narrow and time-blind: it only checks current/next-step enemy x-distance in a lane, ignores enemy approach direction, and treats lateral transitions as instantaneous. As a result, it commits to UPRIGHT/UPLEFT into lanes whose enemies will arrive during the transition, and it under-weights danger relative to the very large `lane_dist_w=39.9` and `switch_bias=15.1`, which jointly bias the agent toward staying near the current lane and toward lanes it cannot safely enter.
+
+## 2. Evidence from metrics
+- `hits_taken=3`, `hit_rate_per_1000=1.63`, `terminal_game_over=1`, `lives_remaining=0`: deaths are the binding constraint.
+- `hit_diagonal_fraction=0.667`: most hits occur on UPRIGHT/UPLEFT/DOWN* — i.e., during lane transitions.
+- `avg_hit_enemy_gap=8.22`: enemies are extremely close at the moment of collision, meaning the danger function is firing too late or the buffer is too small relative to enemy speed.
+- `avg_collectibles_visible=0.43` but `item_pickup_rate=8.89/1000` and `score_rate=444/1000`: when items appear the agent does collect, so routing isn't the bottleneck — survival is.
+- `avg_stage_index=3.0`, `topmost_stage_index=0`, `bottommost=7`: the agent already covers all lanes; an upper-lane bias is not the missing piece.
+- `horizontal_rate=0.84`, `diagonal_rate=0.16`, `vertical_rate=0`: very few transitions, but a disproportionate share of them kill the agent → transition safety is poor.
+- `respawn_rate=0.13`: ~13% of frames wasted post-hit, directly suppressing score density.
+
+## 3. Policy logic causing it
+- `_lane_danger` uses `min(dist_now, dist_pred)` with a single 2-frame extrapolation and `exp(-d/radius)`; it ignores enemy `orientation`/sign of `dx`, so an enemy moving toward the player and one moving away score similarly when current distance is equal.
+- Danger is evaluated only at the player's current x, not along the trajectory swept during a lane change, so a lane that is "safe now at px" can be entered just as an enemy crosses px.
+- Only the destination lane's danger is checked; intermediate/adjacent-lane danger during a diagonal step is never considered.
+- Scale mismatch: `danger_w * danger * 300 ≈ 1.47·1·300 = 442`, but `lane_dist_w=39.9` per lane and `switch_bias=15` make staying put very attractive; meanwhile `danger_thresh=0.88` is extremely permissive (exp falls below 0.88 only when closeness > ~3 px), so `safe_mask` rarely excludes anything.
+- `danger_thresh` is compared against raw `danger` (range 0–1), but elsewhere danger is multiplied by 300 in scoring — inconsistent scaling makes the threshold effectively non-binding.
+- The "dangerous-now" escape branch picks UP whenever `cur_lane>0`, regardless of whether the up-lane is safer; this directly produces the diagonal-hit pattern.
+- No hysteresis or abort: once a vertical action is chosen, the next frame can re-enter the same dangerous lane because there's no commitment/abort logic when projected danger spikes.
+- Patrol fallback (`patrol_x = 20 or 140`) sends the agent to screen edges even when no collectible exists, increasing exposure time in occupied lanes.
+
+## 4. What to preserve
+- Two-frame dx estimation for enemies and collectibles.
+- Lane-indexed array layout (no y-based lane rediscovery).
+- Value table via `visual_id` and value-weighted lane scoring.
+- Reachability/lane-distance penalty as a structural term.
+- Compact parameter set and the overall "score lanes → pick best safe lane → move toward target_x" skeleton.
+
+## 5. What to change next
+- Make danger directional and time-aware: incorporate sign of `enemy_dx` and `orientation` so an enemy moving toward the player's x is much more dangerous than one moving away; project enemy x several frames ahead (e.g., 4–8 steps) and take the minimum clearance over that horizon, not just t+2.
+- Add a transition-safety check: for any candidate lane change, evaluate danger in the destination lane at the arrival time (a few frames later) AND the current lane during the transition window. Disallow diagonals when either is unsafe.
+- Use a meaningful collision buffer: replace the soft `exp(-d/radius)` gating with a hard "time-to-collision" or "min projected gap < buffer" test (buffer parameter in pixels), since `avg_hit_enemy_gap≈8` shows the current soft penalty doesn't prevent close passes.
+- Fix scale consistency: compare `danger_thresh` against the same danger quantity used in scoring, and lower `danger_thresh` so it actually prunes lanes. Reduce `lane_dist_w` and `switch_bias` so danger can dominate; currently a 1-lane move costs 40 points, more than a 50-point pickup.
+- Remove or shrink unconditional `stay_bonus`; only grant it when current lane is both active-collectible and safe, otherwise it suppresses needed transitions.
+- Smarter escape: when current lane is dangerous, choose the vertical direction by comparing up-lane vs down-lane danger (and reachability of items), not by a hard "prefer up" rule. This directly addresses the 67% diagonal-hit rate.
+- Add abort/hysteresis: if a planned vertical move's destination danger rises above threshold this frame, fall back to a pure horizontal dodge away from the projected enemy x rather than committing to the diagonal.
+- Replace edge-seeking patrol with a "hold near safest x in current lane" behavior when no safe valued collectible exists, to cut unnecessary exposure and respawn time.
+- Value-weight pickup pursuit: scale the value term so 200/300-point items overcome 1–2 lanes of `lane_dist_w`, but 50-point items only overcome ~1 lane, preventing long risky chases for low-value items while still chasing high-value ones (addresses low score density without sacrificing survival).

@@ -1,0 +1,32 @@
+## 1. Root cause
+The lane-threat function uses a buggy "current overlap" term and a fixed lookahead, so projected-overlap checks are noisy. Combined with an asymmetric UP gate (`cur_margin > 0` AND `next_margin > -safe_gap`), the policy waits at lane boundaries when current-lane projection is marginal, accumulating frames per crossing while still taking many side-swipes.
+
+## 2. Evidence from metrics
+- `time_efficiency = 2.45` crossings/1000f and `avg_crossing_time = 405` frames — very slow vs DQN-level (~10–15 c/1000f).
+- `collision_rate = 0.78` and `near_miss_count ≈ 988` — frequent contact, so caution is not actually preventing hits.
+- `up_action_rate = 0.96`, `hesitation_rate = 0.04`, `down_action_rate = 0` — already an UP/NOOP controller, so gains must come from better gating, not action redistribution.
+- `lane_transitions = 20` equals `crossings = 20` — chicken effectively crosses lane-by-lane with no oscillation; pure forward motion timing is the bottleneck.
+- `min_crossing_time = 200` ≫ theoretical minimum (~80–100 frames) — significant idle waiting in the middle of the board.
+
+## 3. Policy logic causing it
+- `_lane_threat` computes `cur_gap = |car_center - dx*lookahead - chicken_center| - …` — that subtracts `dx*lookahead` from an already-projected center, effectively giving a *backward*-projected gap. This is not "current overlap"; it is noise that randomly lowers `min_gap`.
+- `lane_match` uses `|cy - target_y| < 8` with `lane_y_offset = -16`, but lanes are ~16 px apart and chicken_y is not always lane-aligned during transit; the next-lane band can miss the relevant lane or pick two lanes inconsistently.
+- The UP gate requires `cur_margin > 0` (strict) but allows `next_margin > -safe_gap` (slack). Asymmetry favors stalling when the chicken is straddling lanes.
+- Single fixed `lookahead = 3.7` ignores car speed — fast lanes need longer horizon, slow lanes shorter. One value over- or under-projects depending on lane.
+- No use of car direction (`LANE_DIRECTION` / sign of dx): a car moving away should never block UP, but the absolute-value gap treats it as a threat near x=44.
+- Emergency DOWN is unreachable in practice (`down_action_rate = 0`), wasting two parameters.
+
+## 4. What to preserve
+- Overall UP/NOOP structure and `near_top` shortcut.
+- Two-frame velocity estimation via prev/curr.
+- Compact parameter set and projected-overlap concept.
+- Checking only current + immediate next lane (per insight 12).
+
+## 5. What to change next
+- Fix the spurious `cur_gap` term: use one clean projected gap (car x at +k frames vs chicken x), drop the malformed second term.
+- Make threat direction-aware: if `sign(dx)` moves the car away from chicken_x, ignore it or heavily discount it. This alone removes many false positives in lanes where the car already passed.
+- Replace fixed `lookahead` with a speed-scaled horizon: time-to-reach computed from `dx`, capped. Equivalently, threshold on time-to-collision (gap/|dx|) rather than gap.
+- Use lane *index* matching rather than y-band matching: pick the lane whose `LANE_Y` is closest to chicken_y for "current", and the one above for "next". Removes the 8-px band ambiguity.
+- Symmetrize the UP gate: same threshold style on current and next lane, both in TTC units. Lower `safe_gap` so UP triggers more often; the data shows caution isn't reducing collisions anyway.
+- Drop or sharply simplify DOWN logic (it never fires); free those params for tuning UP gating (e.g., separate thresholds for slow vs fast lanes, or a small `noop_penalty` that biases UP when margins are borderline).
+- Add a "commit" rule: once chicken_y is between two lanes (mid-transit), force UP regardless of next-lane margin — waiting mid-lane is the worst position and inflates crossing time.

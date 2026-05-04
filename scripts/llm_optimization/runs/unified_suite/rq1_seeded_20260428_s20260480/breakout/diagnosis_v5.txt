@@ -1,0 +1,31 @@
+# Diagnosis
+
+## 1. Root cause
+The "lead" term in `_target_x` is multiplied by `ball_x * 0.0`, making it identically zero. The policy is effectively a pure proportional tracker on the ball's current x with a dead zone — no lead prediction, no use of ball y for urgency, and no use of ball velocity. The four "smart" parameters (`lead_gain`, `urgency_y`, `urgency_scale`) are dead weights that CMA-ES cannot use, so only `dead_zone` and `paddle_offset` actually drive behavior. The negative `lead_gain` value found by CMA-ES confirms it — the optimizer is wandering in an unidentifiable subspace.
+
+## 2. Evidence from metrics
+- `avg_ball_tracking_error = 2.62` ≈ `dead_zone = 2.63`: paddle is parked exactly at the dead-zone boundary, consistent with reactive (not predictive) tracking.
+- `max_ball_tracking_error = 76`: large transient lags during fast diagonal trajectories — exactly when lead/prediction would help.
+- `block_clear_percentage = 0.38` with only `1` life lost: the agent survives easily but stalls clearing the upper rows, where shallow ricochets demand anticipation, not reaction.
+- `avg_hit_streak = 41` then dies: a single failure mode (likely a fast cross-screen ball) ends the run.
+- `lead_gain = -0.27` after optimization: nonsense sign, evidence the parameter has zero gradient signal (the `* 0.0` bug).
+
+## 3. Policy logic causing it
+- `_target_x` returns `ball_x + lead * ball_x * 0.0` → always `ball_x`.
+- No state retention is allowed, but ball velocity can be inferred only via a finite-difference proxy; current code uses neither velocity nor a y-based urgency multiplier on the dead zone or on responsiveness.
+- FIRE is only issued when `ball_active < 0.5`, but on life reset the ball may briefly be marked active near top — fine here, but no re-centering before launch (paddle could be at edge when ball spawns).
+- Single dead zone applied uniformly: same threshold whether ball is descending fast near paddle or drifting high. This causes both jitter when ball is far and lag when ball is close.
+
+## 4. What to preserve
+- 5-parameter compact shape and CMA-ES friendliness.
+- Dead-zone hysteresis idea (prevents per-frame oscillation; `avg_paddle_movement = 1.65` is healthy).
+- FIRE-on-inactive launch logic.
+- `paddle_offset ≈ 8` (matches the documented paddle half-width).
+
+## 5. What to change next
+- **Fix the lead term**: make target depend on a real predictive quantity. Without recurrent state, use ball y as a proxy for "time-to-paddle" and bias the target toward the screen center or toward `ball_x` shifted by a sign derived from `ball_x` vs paddle (a crude velocity proxy). Better: have the target be `ball_x + lead_gain * (ball_x - paddle_center) * urgency(ball_y)` so lead grows with both displacement and descent.
+- **Make urgency actually modulate behavior**: scale the *dead zone* inversely with urgency (tight when ball is low, loose when high) instead of (or in addition to) shifting the target. This directly addresses the 76-pixel max tracking error.
+- **Remove redundant parameters**: collapse `urgency_scale` and `lead_gain` into one gain; keep `urgency_y` as the normalization. 5 parameters max, all identifiable.
+- **Pre-launch centering**: when ball inactive, move paddle toward screen center (~76) before/while issuing FIRE so launches start from a consistent state.
+- **Asymmetric response near bottom**: when `ball_y` is very high (close to paddle), prioritize closing distance over dead-zone stability — this is where lives are lost and where the tail of `max_ball_tracking_error` lives.
+- Avoid the prior failed rewrite direction (broad multi-term restructuring that scored 167); keep changes minimal and each parameter must have a clear, non-degenerate effect on action.

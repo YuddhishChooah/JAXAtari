@@ -1,0 +1,33 @@
+## 1. Root cause
+The lane-matching and projection logic mis-identifies which car is the real threat in the current and next lane, so the policy simultaneously collides too often (collision_rate 0.78) and waits unnecessarily, capping crossings at ~20 over 8175 frames. The "next lane" is hard-coded as `chicken_y - 16`, but lane spacing in `LANE_Y` is ~16 with a different offset depending on direction of travel, and the projection ignores sign of `dx`, so cars moving away are treated as equally threatening as cars approaching.
+
+## 2. Evidence from metrics
+- `avg_crossing_time` 405 frames vs `min_crossing_time` 200: more than half the time is spent stalled or recovering.
+- `collision_rate` 0.78 and `near_miss_count` 988: gating is letting the chicken step into occupied lanes.
+- `hesitation_rate` 0.041 is low, yet `time_efficiency` is only 2.45 — so waits are not from NOOP bursts but from collision-induced resets/timeouts.
+- `up_action_rate` 0.96, `down_action_rate` 0: DOWN escape never fires, meaning the "in_danger & down_ok" branch is effectively dead code.
+- `avg_y_position` 121 (well below mid-screen) confirms the chicken spends most time in the lower half being knocked back.
+
+## 3. Policy logic causing it
+- `_lane_threat` uses `jnp.abs(car_center - chicken_center)`: a car that has already passed the chicken contributes the same gap as one approaching, so the policy treats safely-departed lanes as dangerous and recently-arriving cars as safe after they cross x=44.
+- `cur_gap` line subtracts `dx * lookahead` from an already-projected center — this is not a current-frame gap, it doubles the projection and is mathematically inconsistent.
+- Lane match window is ±8 px around `chicken_y + offset`, but lanes are 16 px apart and chicken_y can be between lanes during transitions, so two lanes can both match or none match.
+- `next_margin > -safe_gap` allows UP even when next-lane overlap is *negative* up to `safe_gap`, i.e. it explicitly permits stepping into a car.
+- DOWN gate requires `down_margin > 16` AND `cur_margin < -8` simultaneously; with the broken margin computation, both rarely co-occur.
+- No use of `LANE_DIRECTION` or sign of `dx` to compute time-to-arrival.
+
+## 4. What to preserve
+- Compact UP/NOOP-dominant structure with a small DOWN escape.
+- Two-frame dx estimation from prev/curr.
+- Parameter set roughly the same size (safe_gap, lookahead, danger, up_bias) — current best=19.81 came from this skeleton.
+- `near_top` forced-UP finisher.
+- Lane-offset based threat queries for current and one next lane only (rule 8).
+
+## 5. What to change next
+- Replace symmetric `abs` gap with a **signed time-to-collision**: only count cars whose projected path will cross x=44 within the lookahead window, using `dx` sign and distance to chicken's x. Cars already past chicken in their direction of motion should be treated as safe.
+- Fix the `cur_gap` formula: compute one true current gap (no projection) and one projected gap; use the *minimum across the lookahead horizon*, not a second projection of the projection.
+- Tighten lane-match window to ~6 px and key it off the discrete next-lane y (chicken_y - 16 for UP, +16 for DOWN), but also evaluate the lane the chicken is currently straddling.
+- Require `next_margin > 0` (strictly positive) for UP, not `> -safe_gap`; let `safe_gap` instead control how much positive margin is demanded so the gate isn't permissive of overlap.
+- Make DOWN escape easier to trigger: drop the joint condition, allow DOWN when `cur_margin` is strongly negative regardless of `down_margin` magnitude beyond a small positive threshold; current 16 px is unrealistically large.
+- Add an explicit "imminent contact in current lane → NOOP" branch separate from UP gating, so the policy can hold position one frame instead of being forced to choose UP-or-DOWN.
+- Consider scaling `lookahead` by per-lane |dx| (faster lanes need shorter horizon in frames but longer in pixels) — even a single multiplicative parameter on `dx*lookahead` would help.

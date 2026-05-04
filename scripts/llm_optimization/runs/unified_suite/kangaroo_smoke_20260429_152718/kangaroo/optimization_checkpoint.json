@@ -1,0 +1,102 @@
+{
+  "best_score": 0.0,
+  "seed": 20260480,
+  "config": {
+    "llm_provider": "anthropic",
+    "llm_model": "claude-opus-4-7",
+    "api_key": "<redacted>",
+    "max_tokens": 8192,
+    "temperature": null,
+    "num_parallel_envs": 4,
+    "max_steps_per_episode": 1000,
+    "num_eval_episodes": 4,
+    "frame_stack_size": 0,
+    "search_max_steps": 1000,
+    "optimizer": "cma-es",
+    "num_param_samples": 4,
+    "param_perturbation_scale": 0.3,
+    "cma_es_generations": 1,
+    "max_iterations": 1,
+    "target_score": 1000000000.0,
+    "diagnostic_refinement": true,
+    "resume_from_results": false,
+    "resume_best_params_for_cma": true,
+    "refresh_resume_metrics": true,
+    "stop_on_strong_best": false,
+    "output_dir": "scripts/llm_optimization/runs/unified_suite/kangaroo_smoke_20260429_152718/kangaroo",
+    "verbose": true,
+    "save_intermediate": true,
+    "seed": 20260480
+  },
+  "runtime": {
+    "timestamp": "2026-04-29 15:29:15",
+    "python_version": "3.12.7 (v3.12.7:0b05ead877f, Sep 30 2024, 23:18:00) [Clang 13.0.0 (clang-1300.0.29.30)]",
+    "platform": "macOS-26.2-arm64-arm-64bit",
+    "numpy_version": "2.4.4",
+    "jax_version": "0.10.0",
+    "git_commit": "4a89eee554f2005fdb40a0c1292a3ba80bc87ffe"
+  },
+  "best_params": {
+    "climb_y_margin": 4.243370056152344,
+    "danger_x": 19.899015426635742,
+    "danger_y": 16.331241607666016,
+    "ladder_align_tol": 8.086297988891602,
+    "ladder_y_bias": 1.5231276750564575,
+    "punch_dist": 17.188852310180664
+  },
+  "best_metrics": {
+    "avg_return": 0.0,
+    "avg_player_score": 0.0,
+    "avg_enemy_score": 0.0,
+    "win_rate": 0.0,
+    "total_rewards": [
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "player_scores": [
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "enemy_scores": [
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "search_avg_return": 0.0,
+    "search_avg_player_score": 0.0,
+    "search_avg_enemy_score": 0.0,
+    "search_win_rate": 0.0,
+    "logger_metrics": null
+  },
+  "history": [
+    {
+      "iteration": 1,
+      "metrics": {
+        "avg_return": 0.0,
+        "avg_player_score": 0.0,
+        "avg_enemy_score": 0.0,
+        "win_rate": 0.0,
+        "search_avg_return": 0.0,
+        "search_avg_player_score": 0.0,
+        "search_avg_enemy_score": 0.0,
+        "search_win_rate": 0.0,
+        "logger_metrics": null
+      },
+      "best_params": {
+        "climb_y_margin": 4.243370056152344,
+        "danger_x": 19.899015426635742,
+        "danger_y": 16.331241607666016,
+        "ladder_align_tol": 8.086297988891602,
+        "ladder_y_bias": 1.5231276750564575,
+        "punch_dist": 17.188852310180664
+      },
+      "filepath": "scripts/llm_optimization/runs/unified_suite/kangaroo_smoke_20260429_152718/kangaroo/policy_v1.py"
+    }
+  ],
+  "best_policy_path": "scripts/llm_optimization/runs/unified_suite/kangaroo_smoke_20260429_152718/kangaroo/policy_v1.py"
+}

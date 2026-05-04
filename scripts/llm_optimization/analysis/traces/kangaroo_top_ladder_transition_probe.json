@@ -1,0 +1,3668 @@
+{
+  "created_at": "2026-05-03 17:28:48",
+  "policy": "scripts/llm_optimization/experiments/kangaroo/policy_shaped_v2_post200_guard_dodge.py",
+  "seed": 20260501,
+  "start": {
+    "step": 610,
+    "score": 200,
+    "lives": 3,
+    "total_reward": 200.0,
+    "player_x": 132.0,
+    "player_y": 140.0,
+    "player_w": 8.0,
+    "player_h": 24.0,
+    "falling_x": 111.0,
+    "falling_y": 9.0,
+    "falling_active": 1.0
+  },
+  "search": {
+    "action_set": [
+      "NOOP",
+      "UP",
+      "RIGHT",
+      "LEFT",
+      "DOWN",
+      "DOWNRIGHT",
+      "DOWNLEFT",
+      "RIGHTFIRE",
+      "LEFTFIRE",
+      "DOWNFIRE",
+      "DOWNRIGHTFIRE",
+      "DOWNLEFTFIRE"
+    ],
+    "hold_set": [
+      2,
+      4,
+      8,
+      12,
+      16,
+      24
+    ],
+    "second_action_set": [
+      "UP",
+      "RIGHT",
+      "LEFT",
+      "DOWN",
+      "DOWNRIGHT",
+      "DOWNLEFT",
+      "DOWNFIRE",
+      "DOWNRIGHTFIRE",
+      "DOWNLEFTFIRE"
+    ],
+    "second_hold_set": [
+      4,
+      8,
+      12,
+      16
+    ],
+    "continue_steps": 40,
+    "beam_size": 4,
+    "elapsed_seconds": 49.43456220626831
+  },
+  "summary": {
+    "single_candidates": 72,
+    "second_candidates": 144,
+    "total_candidates": 216,
+    "above_200_count": 0,
+    "alive_count": 216,
+    "best_total_reward": 200.0,
+    "best_score": 200
+  },
+  "top_by_objective": [
+    {
+      "blocks": [
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 24
+        },
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 125.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 9.0,
+      "action_counts": {
+        "DOWNRIGHT": 24,
+        "DOWNLEFT": 16,
+        "UP": 24,
+        "LEFT": 9,
+        "RIGHT": 7
+      },
+      "objective": 705.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 24
+        },
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 125.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 9.0,
+      "action_counts": {
+        "DOWNRIGHT": 24,
+        "DOWNLEFTFIRE": 16,
+        "UP": 24,
+        "LEFT": 9,
+        "RIGHT": 7
+      },
+      "objective": 705.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 16,
+          "action_name": "DOWNRIGHTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 125.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 9.0,
+      "action_counts": {
+        "DOWNRIGHTFIRE": 24,
+        "DOWNLEFT": 16,
+        "UP": 24,
+        "LEFT": 9,
+        "RIGHT": 7
+      },
+      "objective": 705.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 16,
+          "action_name": "DOWNRIGHTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 125.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 9.0,
+      "action_counts": {
+        "DOWNRIGHTFIRE": 24,
+        "DOWNLEFTFIRE": 16,
+        "UP": 24,
+        "LEFT": 9,
+        "RIGHT": 7
+      },
+      "objective": 705.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 4,
+          "action_name": "LEFT",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 126.0,
+      "final_y": 140.0,
+      "min_y": 132.0,
+      "x_range": 8.0,
+      "action_counts": {
+        "DOWNLEFT": 24,
+        "LEFT": 25,
+        "RIGHT": 6,
+        "UP": 25
+      },
+      "objective": 708.8
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 126.0,
+      "final_y": 140.0,
+      "min_y": 132.0,
+      "x_range": 8.0,
+      "action_counts": {
+        "DOWNLEFT": 40,
+        "RIGHT": 6,
+        "UP": 25,
+        "LEFT": 9
+      },
+      "objective": 708.8
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 126.0,
+      "final_y": 140.0,
+      "min_y": 132.0,
+      "x_range": 8.0,
+      "action_counts": {
+        "DOWNLEFT": 24,
+        "DOWNLEFTFIRE": 16,
+        "RIGHT": 6,
+        "UP": 25,
+        "LEFT": 9
+      },
+      "objective": 708.8
+    },
+    {
+      "blocks": [
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 4,
+          "action_name": "LEFT",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 126.0,
+      "final_y": 140.0,
+      "min_y": 132.0,
+      "x_range": 8.0,
+      "action_counts": {
+        "DOWNLEFTFIRE": 24,
+        "LEFT": 25,
+        "RIGHT": 6,
+        "UP": 25
+      },
+      "objective": 708.8
+    },
+    {
+      "blocks": [
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 126.0,
+      "final_y": 140.0,
+      "min_y": 132.0,
+      "x_range": 8.0,
+      "action_counts": {
+        "DOWNLEFTFIRE": 24,
+        "DOWNLEFT": 16,
+        "RIGHT": 6,
+        "UP": 25,
+        "LEFT": 9
+      },
+      "objective": 708.8
+    },
+    {
+      "blocks": [
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 126.0,
+      "final_y": 140.0,
+      "min_y": 132.0,
+      "x_range": 8.0,
+      "action_counts": {
+        "DOWNLEFTFIRE": 40,
+        "RIGHT": 6,
+        "UP": 25,
+        "LEFT": 9
+      },
+      "objective": 708.8
+    },
+    {
+      "blocks": [
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 24
+        },
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 7.0,
+      "action_counts": {
+        "DOWNRIGHT": 24,
+        "DOWNLEFT": 12,
+        "UP": 31,
+        "LEFT": 9
+      },
+      "objective": 705.2
+    },
+    {
+      "blocks": [
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 24
+        },
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 7.0,
+      "action_counts": {
+        "DOWNRIGHT": 24,
+        "DOWNLEFTFIRE": 12,
+        "UP": 31,
+        "LEFT": 9
+      },
+      "objective": 705.2
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 4,
+          "action_name": "LEFT",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 125.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 7.0,
+      "action_counts": {
+        "DOWNLEFT": 24,
+        "LEFT": 13,
+        "UP": 24,
+        "RIGHT": 15
+      },
+      "objective": 705.2
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 125.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 7.0,
+      "action_counts": {
+        "DOWNLEFT": 36,
+        "UP": 24,
+        "LEFT": 1,
+        "RIGHT": 15
+      },
+      "objective": 705.2
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 125.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 7.0,
+      "action_counts": {
+        "DOWNLEFT": 24,
+        "DOWNLEFTFIRE": 12,
+        "UP": 24,
+        "LEFT": 1,
+        "RIGHT": 15
+      },
+      "objective": 705.2
+    },
+    {
+      "blocks": [
+        {
+          "action": 16,
+          "action_name": "DOWNRIGHTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 7.0,
+      "action_counts": {
+        "DOWNRIGHTFIRE": 24,
+        "DOWNLEFT": 12,
+        "UP": 31,
+        "LEFT": 9
+      },
+      "objective": 705.2
+    },
+    {
+      "blocks": [
+        {
+          "action": 16,
+          "action_name": "DOWNRIGHTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 7.0,
+      "action_counts": {
+        "DOWNRIGHTFIRE": 24,
+        "DOWNLEFTFIRE": 12,
+        "UP": 31,
+        "LEFT": 9
+      },
+      "objective": 705.2
+    },
+    {
+      "blocks": [
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 4,
+          "action_name": "LEFT",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 125.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 7.0,
+      "action_counts": {
+        "DOWNLEFTFIRE": 24,
+        "LEFT": 13,
+        "UP": 24,
+        "RIGHT": 15
+      },
+      "objective": 705.2
+    },
+    {
+      "blocks": [
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 125.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 7.0,
+      "action_counts": {
+        "DOWNLEFTFIRE": 24,
+        "DOWNLEFT": 12,
+        "UP": 24,
+        "LEFT": 1,
+        "RIGHT": 15
+      },
+      "objective": 705.2
+    },
+    {
+      "blocks": [
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 125.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 7.0,
+      "action_counts": {
+        "DOWNLEFTFIRE": 36,
+        "UP": 24,
+        "LEFT": 1,
+        "RIGHT": 15
+      },
+      "objective": 705.2
+    },
+    {
+      "blocks": [
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 24
+        },
+        {
+          "action": 4,
+          "action_name": "LEFT",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 128.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 6.0,
+      "action_counts": {
+        "DOWNRIGHT": 24,
+        "LEFT": 37,
+        "UP": 19
+      },
+      "objective": 708.6
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 3,
+          "action_name": "RIGHT",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 6.0,
+      "action_counts": {
+        "DOWNLEFT": 24,
+        "RIGHT": 16,
+        "UP": 19,
+        "LEFT": 21
+      },
+      "objective": 708.6
+    },
+    {
+      "blocks": [
+        {
+          "action": 16,
+          "action_name": "DOWNRIGHTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 4,
+          "action_name": "LEFT",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 128.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 6.0,
+      "action_counts": {
+        "DOWNRIGHTFIRE": 24,
+        "LEFT": 37,
+        "UP": 19
+      },
+      "objective": 708.6
+    },
+    {
+      "blocks": [
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 3,
+          "action_name": "RIGHT",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 6.0,
+      "action_counts": {
+        "DOWNLEFTFIRE": 24,
+        "RIGHT": 16,
+        "UP": 19,
+        "LEFT": 21
+      },
+      "objective": 708.6
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 6.0,
+      "action_counts": {
+        "DOWNLEFT": 24,
+        "DOWNRIGHT": 16,
+        "UP": 31,
+        "LEFT": 9
+      },
+      "objective": 705.1
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 16,
+          "action_name": "DOWNRIGHTFIRE",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 6.0,
+      "action_counts": {
+        "DOWNLEFT": 24,
+        "DOWNRIGHTFIRE": 16,
+        "UP": 31,
+        "LEFT": 9
+      },
+      "objective": 705.1
+    },
+    {
+      "blocks": [
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 6.0,
+      "action_counts": {
+        "DOWNLEFTFIRE": 24,
+        "DOWNRIGHT": 16,
+        "UP": 31,
+        "LEFT": 9
+      },
+      "objective": 705.1
+    },
+    {
+      "blocks": [
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 16,
+          "action_name": "DOWNRIGHTFIRE",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 6.0,
+      "action_counts": {
+        "DOWNLEFTFIRE": 24,
+        "DOWNRIGHTFIRE": 16,
+        "UP": 31,
+        "LEFT": 9
+      },
+      "objective": 705.1
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 4,
+          "action_name": "LEFT",
+          "hold": 8
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 5.0,
+      "action_counts": {
+        "DOWNLEFT": 24,
+        "LEFT": 28,
+        "UP": 20
+      },
+      "objective": 708.5
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 8
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 5.0,
+      "action_counts": {
+        "DOWNLEFT": 32,
+        "UP": 20,
+        "LEFT": 20
+      },
+      "objective": 708.5
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 8
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 5.0,
+      "action_counts": {
+        "DOWNLEFT": 24,
+        "DOWNLEFTFIRE": 8,
+        "UP": 20,
+        "LEFT": 20
+      },
+      "objective": 708.5
+    },
+    {
+      "blocks": [
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 4,
+          "action_name": "LEFT",
+          "hold": 8
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 5.0,
+      "action_counts": {
+        "DOWNLEFTFIRE": 24,
+        "LEFT": 28,
+        "UP": 20
+      },
+      "objective": 708.5
+    },
+    {
+      "blocks": [
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 8
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 5.0,
+      "action_counts": {
+        "DOWNLEFTFIRE": 24,
+        "DOWNLEFT": 8,
+        "UP": 20,
+        "LEFT": 20
+      },
+      "objective": 708.5
+    },
+    {
+      "blocks": [
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 8
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 5.0,
+      "action_counts": {
+        "DOWNLEFTFIRE": 32,
+        "UP": 20,
+        "LEFT": 20
+      },
+      "objective": 708.5
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 5,
+          "action_name": "DOWN",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 5.0,
+      "action_counts": {
+        "DOWNLEFT": 24,
+        "DOWN": 12,
+        "UP": 31,
+        "LEFT": 9
+      },
+      "objective": 705.0
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 5,
+          "action_name": "DOWN",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 5.0,
+      "action_counts": {
+        "DOWNLEFT": 24,
+        "DOWN": 16,
+        "UP": 31,
+        "LEFT": 9
+      },
+      "objective": 705.0
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 13,
+          "action_name": "DOWNFIRE",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 5.0,
+      "action_counts": {
+        "DOWNLEFT": 24,
+        "DOWNFIRE": 12,
+        "UP": 31,
+        "LEFT": 9
+      },
+      "objective": 705.0
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 13,
+          "action_name": "DOWNFIRE",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 5.0,
+      "action_counts": {
+        "DOWNLEFT": 24,
+        "DOWNFIRE": 16,
+        "UP": 31,
+        "LEFT": 9
+      },
+      "objective": 705.0
+    },
+    {
+      "blocks": [
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 5,
+          "action_name": "DOWN",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 5.0,
+      "action_counts": {
+        "DOWNLEFTFIRE": 24,
+        "DOWN": 12,
+        "UP": 31,
+        "LEFT": 9
+      },
+      "objective": 705.0
+    },
+    {
+      "blocks": [
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 5,
+          "action_name": "DOWN",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 5.0,
+      "action_counts": {
+        "DOWNLEFTFIRE": 24,
+        "DOWN": 16,
+        "UP": 31,
+        "LEFT": 9
+      },
+      "objective": 705.0
+    },
+    {
+      "blocks": [
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 13,
+          "action_name": "DOWNFIRE",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 5.0,
+      "action_counts": {
+        "DOWNLEFTFIRE": 24,
+        "DOWNFIRE": 12,
+        "UP": 31,
+        "LEFT": 9
+      },
+      "objective": 705.0
+    },
+    {
+      "blocks": [
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 13,
+          "action_name": "DOWNFIRE",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 5.0,
+      "action_counts": {
+        "DOWNLEFTFIRE": 24,
+        "DOWNFIRE": 16,
+        "UP": 31,
+        "LEFT": 9
+      },
+      "objective": 705.0
+    },
+    {
+      "blocks": [
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 24
+        },
+        {
+          "action": 3,
+          "action_name": "RIGHT",
+          "hold": 4
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNRIGHT": 24,
+        "RIGHT": 4,
+        "UP": 24,
+        "LEFT": 16
+      },
+      "objective": 708.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 24
+        },
+        {
+          "action": 3,
+          "action_name": "RIGHT",
+          "hold": 8
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNRIGHT": 24,
+        "RIGHT": 8,
+        "UP": 20,
+        "LEFT": 20
+      },
+      "objective": 708.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 24
+        },
+        {
+          "action": 3,
+          "action_name": "RIGHT",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNRIGHT": 24,
+        "RIGHT": 12,
+        "UP": 19,
+        "LEFT": 21
+      },
+      "objective": 708.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 24
+        },
+        {
+          "action": 3,
+          "action_name": "RIGHT",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNRIGHT": 24,
+        "RIGHT": 16,
+        "UP": 19,
+        "LEFT": 21
+      },
+      "objective": 708.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 24
+        },
+        {
+          "action": 4,
+          "action_name": "LEFT",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 130.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNRIGHT": 24,
+        "LEFT": 33,
+        "UP": 19
+      },
+      "objective": 708.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 24
+        },
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 4
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNRIGHT": 28,
+        "UP": 24,
+        "LEFT": 16
+      },
+      "objective": 708.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 24
+        },
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 8
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNRIGHT": 32,
+        "UP": 20,
+        "LEFT": 20
+      },
+      "objective": 708.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 24
+        },
+        {
+          "action": 16,
+          "action_name": "DOWNRIGHTFIRE",
+          "hold": 4
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNRIGHT": 24,
+        "DOWNRIGHTFIRE": 4,
+        "UP": 24,
+        "LEFT": 16
+      },
+      "objective": 708.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 24
+        },
+        {
+          "action": 16,
+          "action_name": "DOWNRIGHTFIRE",
+          "hold": 8
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNRIGHT": 24,
+        "DOWNRIGHTFIRE": 8,
+        "UP": 20,
+        "LEFT": 20
+      },
+      "objective": 708.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 3,
+          "action_name": "RIGHT",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 134.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNLEFT": 24,
+        "RIGHT": 12,
+        "UP": 19,
+        "LEFT": 21
+      },
+      "objective": 708.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 4,
+          "action_name": "LEFT",
+          "hold": 4
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 128.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNLEFT": 24,
+        "LEFT": 20,
+        "UP": 24
+      },
+      "objective": 708.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 4
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 128.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNLEFT": 28,
+        "UP": 24,
+        "LEFT": 16
+      },
+      "objective": 708.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 4
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 128.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNLEFT": 24,
+        "DOWNLEFTFIRE": 4,
+        "UP": 24,
+        "LEFT": 16
+      },
+      "objective": 708.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 16,
+          "action_name": "DOWNRIGHTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 3,
+          "action_name": "RIGHT",
+          "hold": 4
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNRIGHTFIRE": 24,
+        "RIGHT": 4,
+        "UP": 24,
+        "LEFT": 16
+      },
+      "objective": 708.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 16,
+          "action_name": "DOWNRIGHTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 3,
+          "action_name": "RIGHT",
+          "hold": 8
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNRIGHTFIRE": 24,
+        "RIGHT": 8,
+        "UP": 20,
+        "LEFT": 20
+      },
+      "objective": 708.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 16,
+          "action_name": "DOWNRIGHTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 3,
+          "action_name": "RIGHT",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNRIGHTFIRE": 24,
+        "RIGHT": 12,
+        "UP": 19,
+        "LEFT": 21
+      },
+      "objective": 708.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 16,
+          "action_name": "DOWNRIGHTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 3,
+          "action_name": "RIGHT",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNRIGHTFIRE": 24,
+        "RIGHT": 16,
+        "UP": 19,
+        "LEFT": 21
+      },
+      "objective": 708.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 16,
+          "action_name": "DOWNRIGHTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 4,
+          "action_name": "LEFT",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 130.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNRIGHTFIRE": 24,
+        "LEFT": 33,
+        "UP": 19
+      },
+      "objective": 708.4
+    }
+  ],
+  "above_200": [],
+  "alive": [
+    {
+      "blocks": [
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 24
+        },
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 125.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 9.0,
+      "action_counts": {
+        "DOWNRIGHT": 24,
+        "DOWNLEFT": 16,
+        "UP": 24,
+        "LEFT": 9,
+        "RIGHT": 7
+      },
+      "objective": 705.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 24
+        },
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 125.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 9.0,
+      "action_counts": {
+        "DOWNRIGHT": 24,
+        "DOWNLEFTFIRE": 16,
+        "UP": 24,
+        "LEFT": 9,
+        "RIGHT": 7
+      },
+      "objective": 705.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 16,
+          "action_name": "DOWNRIGHTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 125.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 9.0,
+      "action_counts": {
+        "DOWNRIGHTFIRE": 24,
+        "DOWNLEFT": 16,
+        "UP": 24,
+        "LEFT": 9,
+        "RIGHT": 7
+      },
+      "objective": 705.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 16,
+          "action_name": "DOWNRIGHTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 125.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 9.0,
+      "action_counts": {
+        "DOWNRIGHTFIRE": 24,
+        "DOWNLEFTFIRE": 16,
+        "UP": 24,
+        "LEFT": 9,
+        "RIGHT": 7
+      },
+      "objective": 705.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 4,
+          "action_name": "LEFT",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 126.0,
+      "final_y": 140.0,
+      "min_y": 132.0,
+      "x_range": 8.0,
+      "action_counts": {
+        "DOWNLEFT": 24,
+        "LEFT": 25,
+        "RIGHT": 6,
+        "UP": 25
+      },
+      "objective": 708.8
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 126.0,
+      "final_y": 140.0,
+      "min_y": 132.0,
+      "x_range": 8.0,
+      "action_counts": {
+        "DOWNLEFT": 40,
+        "RIGHT": 6,
+        "UP": 25,
+        "LEFT": 9
+      },
+      "objective": 708.8
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 126.0,
+      "final_y": 140.0,
+      "min_y": 132.0,
+      "x_range": 8.0,
+      "action_counts": {
+        "DOWNLEFT": 24,
+        "DOWNLEFTFIRE": 16,
+        "RIGHT": 6,
+        "UP": 25,
+        "LEFT": 9
+      },
+      "objective": 708.8
+    },
+    {
+      "blocks": [
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 4,
+          "action_name": "LEFT",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 126.0,
+      "final_y": 140.0,
+      "min_y": 132.0,
+      "x_range": 8.0,
+      "action_counts": {
+        "DOWNLEFTFIRE": 24,
+        "LEFT": 25,
+        "RIGHT": 6,
+        "UP": 25
+      },
+      "objective": 708.8
+    },
+    {
+      "blocks": [
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 126.0,
+      "final_y": 140.0,
+      "min_y": 132.0,
+      "x_range": 8.0,
+      "action_counts": {
+        "DOWNLEFTFIRE": 24,
+        "DOWNLEFT": 16,
+        "RIGHT": 6,
+        "UP": 25,
+        "LEFT": 9
+      },
+      "objective": 708.8
+    },
+    {
+      "blocks": [
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 126.0,
+      "final_y": 140.0,
+      "min_y": 132.0,
+      "x_range": 8.0,
+      "action_counts": {
+        "DOWNLEFTFIRE": 40,
+        "RIGHT": 6,
+        "UP": 25,
+        "LEFT": 9
+      },
+      "objective": 708.8
+    },
+    {
+      "blocks": [
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 24
+        },
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 7.0,
+      "action_counts": {
+        "DOWNRIGHT": 24,
+        "DOWNLEFT": 12,
+        "UP": 31,
+        "LEFT": 9
+      },
+      "objective": 705.2
+    },
+    {
+      "blocks": [
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 24
+        },
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 7.0,
+      "action_counts": {
+        "DOWNRIGHT": 24,
+        "DOWNLEFTFIRE": 12,
+        "UP": 31,
+        "LEFT": 9
+      },
+      "objective": 705.2
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 4,
+          "action_name": "LEFT",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 125.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 7.0,
+      "action_counts": {
+        "DOWNLEFT": 24,
+        "LEFT": 13,
+        "UP": 24,
+        "RIGHT": 15
+      },
+      "objective": 705.2
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 125.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 7.0,
+      "action_counts": {
+        "DOWNLEFT": 36,
+        "UP": 24,
+        "LEFT": 1,
+        "RIGHT": 15
+      },
+      "objective": 705.2
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 125.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 7.0,
+      "action_counts": {
+        "DOWNLEFT": 24,
+        "DOWNLEFTFIRE": 12,
+        "UP": 24,
+        "LEFT": 1,
+        "RIGHT": 15
+      },
+      "objective": 705.2
+    },
+    {
+      "blocks": [
+        {
+          "action": 16,
+          "action_name": "DOWNRIGHTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 7.0,
+      "action_counts": {
+        "DOWNRIGHTFIRE": 24,
+        "DOWNLEFT": 12,
+        "UP": 31,
+        "LEFT": 9
+      },
+      "objective": 705.2
+    },
+    {
+      "blocks": [
+        {
+          "action": 16,
+          "action_name": "DOWNRIGHTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 7.0,
+      "action_counts": {
+        "DOWNRIGHTFIRE": 24,
+        "DOWNLEFTFIRE": 12,
+        "UP": 31,
+        "LEFT": 9
+      },
+      "objective": 705.2
+    },
+    {
+      "blocks": [
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 4,
+          "action_name": "LEFT",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 125.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 7.0,
+      "action_counts": {
+        "DOWNLEFTFIRE": 24,
+        "LEFT": 13,
+        "UP": 24,
+        "RIGHT": 15
+      },
+      "objective": 705.2
+    },
+    {
+      "blocks": [
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 125.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 7.0,
+      "action_counts": {
+        "DOWNLEFTFIRE": 24,
+        "DOWNLEFT": 12,
+        "UP": 24,
+        "LEFT": 1,
+        "RIGHT": 15
+      },
+      "objective": 705.2
+    },
+    {
+      "blocks": [
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 125.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 7.0,
+      "action_counts": {
+        "DOWNLEFTFIRE": 36,
+        "UP": 24,
+        "LEFT": 1,
+        "RIGHT": 15
+      },
+      "objective": 705.2
+    },
+    {
+      "blocks": [
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 24
+        },
+        {
+          "action": 4,
+          "action_name": "LEFT",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 128.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 6.0,
+      "action_counts": {
+        "DOWNRIGHT": 24,
+        "LEFT": 37,
+        "UP": 19
+      },
+      "objective": 708.6
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 3,
+          "action_name": "RIGHT",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 6.0,
+      "action_counts": {
+        "DOWNLEFT": 24,
+        "RIGHT": 16,
+        "UP": 19,
+        "LEFT": 21
+      },
+      "objective": 708.6
+    },
+    {
+      "blocks": [
+        {
+          "action": 16,
+          "action_name": "DOWNRIGHTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 4,
+          "action_name": "LEFT",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 128.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 6.0,
+      "action_counts": {
+        "DOWNRIGHTFIRE": 24,
+        "LEFT": 37,
+        "UP": 19
+      },
+      "objective": 708.6
+    },
+    {
+      "blocks": [
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 3,
+          "action_name": "RIGHT",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 6.0,
+      "action_counts": {
+        "DOWNLEFTFIRE": 24,
+        "RIGHT": 16,
+        "UP": 19,
+        "LEFT": 21
+      },
+      "objective": 708.6
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 6.0,
+      "action_counts": {
+        "DOWNLEFT": 24,
+        "DOWNRIGHT": 16,
+        "UP": 31,
+        "LEFT": 9
+      },
+      "objective": 705.1
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 16,
+          "action_name": "DOWNRIGHTFIRE",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 6.0,
+      "action_counts": {
+        "DOWNLEFT": 24,
+        "DOWNRIGHTFIRE": 16,
+        "UP": 31,
+        "LEFT": 9
+      },
+      "objective": 705.1
+    },
+    {
+      "blocks": [
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 6.0,
+      "action_counts": {
+        "DOWNLEFTFIRE": 24,
+        "DOWNRIGHT": 16,
+        "UP": 31,
+        "LEFT": 9
+      },
+      "objective": 705.1
+    },
+    {
+      "blocks": [
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 16,
+          "action_name": "DOWNRIGHTFIRE",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 6.0,
+      "action_counts": {
+        "DOWNLEFTFIRE": 24,
+        "DOWNRIGHTFIRE": 16,
+        "UP": 31,
+        "LEFT": 9
+      },
+      "objective": 705.1
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 4,
+          "action_name": "LEFT",
+          "hold": 8
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 5.0,
+      "action_counts": {
+        "DOWNLEFT": 24,
+        "LEFT": 28,
+        "UP": 20
+      },
+      "objective": 708.5
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 8
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 5.0,
+      "action_counts": {
+        "DOWNLEFT": 32,
+        "UP": 20,
+        "LEFT": 20
+      },
+      "objective": 708.5
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 8
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 5.0,
+      "action_counts": {
+        "DOWNLEFT": 24,
+        "DOWNLEFTFIRE": 8,
+        "UP": 20,
+        "LEFT": 20
+      },
+      "objective": 708.5
+    },
+    {
+      "blocks": [
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 4,
+          "action_name": "LEFT",
+          "hold": 8
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 5.0,
+      "action_counts": {
+        "DOWNLEFTFIRE": 24,
+        "LEFT": 28,
+        "UP": 20
+      },
+      "objective": 708.5
+    },
+    {
+      "blocks": [
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 8
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 5.0,
+      "action_counts": {
+        "DOWNLEFTFIRE": 24,
+        "DOWNLEFT": 8,
+        "UP": 20,
+        "LEFT": 20
+      },
+      "objective": 708.5
+    },
+    {
+      "blocks": [
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 8
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 5.0,
+      "action_counts": {
+        "DOWNLEFTFIRE": 32,
+        "UP": 20,
+        "LEFT": 20
+      },
+      "objective": 708.5
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 5,
+          "action_name": "DOWN",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 5.0,
+      "action_counts": {
+        "DOWNLEFT": 24,
+        "DOWN": 12,
+        "UP": 31,
+        "LEFT": 9
+      },
+      "objective": 705.0
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 5,
+          "action_name": "DOWN",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 5.0,
+      "action_counts": {
+        "DOWNLEFT": 24,
+        "DOWN": 16,
+        "UP": 31,
+        "LEFT": 9
+      },
+      "objective": 705.0
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 13,
+          "action_name": "DOWNFIRE",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 5.0,
+      "action_counts": {
+        "DOWNLEFT": 24,
+        "DOWNFIRE": 12,
+        "UP": 31,
+        "LEFT": 9
+      },
+      "objective": 705.0
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 13,
+          "action_name": "DOWNFIRE",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 5.0,
+      "action_counts": {
+        "DOWNLEFT": 24,
+        "DOWNFIRE": 16,
+        "UP": 31,
+        "LEFT": 9
+      },
+      "objective": 705.0
+    },
+    {
+      "blocks": [
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 5,
+          "action_name": "DOWN",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 5.0,
+      "action_counts": {
+        "DOWNLEFTFIRE": 24,
+        "DOWN": 12,
+        "UP": 31,
+        "LEFT": 9
+      },
+      "objective": 705.0
+    },
+    {
+      "blocks": [
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 5,
+          "action_name": "DOWN",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 5.0,
+      "action_counts": {
+        "DOWNLEFTFIRE": 24,
+        "DOWN": 16,
+        "UP": 31,
+        "LEFT": 9
+      },
+      "objective": 705.0
+    },
+    {
+      "blocks": [
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 13,
+          "action_name": "DOWNFIRE",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 5.0,
+      "action_counts": {
+        "DOWNLEFTFIRE": 24,
+        "DOWNFIRE": 12,
+        "UP": 31,
+        "LEFT": 9
+      },
+      "objective": 705.0
+    },
+    {
+      "blocks": [
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 13,
+          "action_name": "DOWNFIRE",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 127.0,
+      "final_y": 147.0,
+      "min_y": 132.0,
+      "x_range": 5.0,
+      "action_counts": {
+        "DOWNLEFTFIRE": 24,
+        "DOWNFIRE": 16,
+        "UP": 31,
+        "LEFT": 9
+      },
+      "objective": 705.0
+    },
+    {
+      "blocks": [
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 24
+        },
+        {
+          "action": 3,
+          "action_name": "RIGHT",
+          "hold": 4
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNRIGHT": 24,
+        "RIGHT": 4,
+        "UP": 24,
+        "LEFT": 16
+      },
+      "objective": 708.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 24
+        },
+        {
+          "action": 3,
+          "action_name": "RIGHT",
+          "hold": 8
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNRIGHT": 24,
+        "RIGHT": 8,
+        "UP": 20,
+        "LEFT": 20
+      },
+      "objective": 708.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 24
+        },
+        {
+          "action": 3,
+          "action_name": "RIGHT",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNRIGHT": 24,
+        "RIGHT": 12,
+        "UP": 19,
+        "LEFT": 21
+      },
+      "objective": 708.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 24
+        },
+        {
+          "action": 3,
+          "action_name": "RIGHT",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNRIGHT": 24,
+        "RIGHT": 16,
+        "UP": 19,
+        "LEFT": 21
+      },
+      "objective": 708.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 24
+        },
+        {
+          "action": 4,
+          "action_name": "LEFT",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 130.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNRIGHT": 24,
+        "LEFT": 33,
+        "UP": 19
+      },
+      "objective": 708.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 24
+        },
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 4
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNRIGHT": 28,
+        "UP": 24,
+        "LEFT": 16
+      },
+      "objective": 708.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 24
+        },
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 8
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNRIGHT": 32,
+        "UP": 20,
+        "LEFT": 20
+      },
+      "objective": 708.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 24
+        },
+        {
+          "action": 16,
+          "action_name": "DOWNRIGHTFIRE",
+          "hold": 4
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNRIGHT": 24,
+        "DOWNRIGHTFIRE": 4,
+        "UP": 24,
+        "LEFT": 16
+      },
+      "objective": 708.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "hold": 24
+        },
+        {
+          "action": 16,
+          "action_name": "DOWNRIGHTFIRE",
+          "hold": 8
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNRIGHT": 24,
+        "DOWNRIGHTFIRE": 8,
+        "UP": 20,
+        "LEFT": 20
+      },
+      "objective": 708.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 3,
+          "action_name": "RIGHT",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 134.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNLEFT": 24,
+        "RIGHT": 12,
+        "UP": 19,
+        "LEFT": 21
+      },
+      "objective": 708.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 4,
+          "action_name": "LEFT",
+          "hold": 4
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 128.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNLEFT": 24,
+        "LEFT": 20,
+        "UP": 24
+      },
+      "objective": 708.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 4
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 128.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNLEFT": 28,
+        "UP": 24,
+        "LEFT": 16
+      },
+      "objective": 708.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "hold": 24
+        },
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "hold": 4
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 128.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNLEFT": 24,
+        "DOWNLEFTFIRE": 4,
+        "UP": 24,
+        "LEFT": 16
+      },
+      "objective": 708.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 16,
+          "action_name": "DOWNRIGHTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 3,
+          "action_name": "RIGHT",
+          "hold": 4
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNRIGHTFIRE": 24,
+        "RIGHT": 4,
+        "UP": 24,
+        "LEFT": 16
+      },
+      "objective": 708.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 16,
+          "action_name": "DOWNRIGHTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 3,
+          "action_name": "RIGHT",
+          "hold": 8
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNRIGHTFIRE": 24,
+        "RIGHT": 8,
+        "UP": 20,
+        "LEFT": 20
+      },
+      "objective": 708.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 16,
+          "action_name": "DOWNRIGHTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 3,
+          "action_name": "RIGHT",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNRIGHTFIRE": 24,
+        "RIGHT": 12,
+        "UP": 19,
+        "LEFT": 21
+      },
+      "objective": 708.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 16,
+          "action_name": "DOWNRIGHTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 3,
+          "action_name": "RIGHT",
+          "hold": 16
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 136.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNRIGHTFIRE": 24,
+        "RIGHT": 16,
+        "UP": 19,
+        "LEFT": 21
+      },
+      "objective": 708.4
+    },
+    {
+      "blocks": [
+        {
+          "action": 16,
+          "action_name": "DOWNRIGHTFIRE",
+          "hold": 24
+        },
+        {
+          "action": 4,
+          "action_name": "LEFT",
+          "hold": 12
+        }
+      ],
+      "done": false,
+      "first_life_loss_step": null,
+      "total_reward": 200.0,
+      "score": 200,
+      "lives": 3,
+      "final_x": 130.0,
+      "final_y": 132.0,
+      "min_y": 132.0,
+      "x_range": 4.0,
+      "action_counts": {
+        "DOWNRIGHTFIRE": 24,
+        "LEFT": 33,
+        "UP": 19
+      },
+      "objective": 708.4
+    }
+  ]
+}

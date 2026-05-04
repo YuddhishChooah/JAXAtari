@@ -1,0 +1,32 @@
+## 1. Root cause
+The policy already passes all 20 gates (gate_pass_rate = 1.0, missed_gates = 0), so the dominant cost is **time, not missed gates**. Average downhill speed (1.14) and step count (~2209) are both poor: the policy spends ~40% of frames turning and **0% tucking (DOWN)**, despite a `tuck_angle` parameter being defined. The reward is bleeding from a slow, oscillating trajectory rather than from terminal penalties.
+
+## 2. Evidence from metrics
+- `down_action_rate = 0` despite `tuck_angle ≈ 9.58` — the DOWN branch is never selected in practice.
+- `turn_rate = 0.40` (LEFT 0.18 + RIGHT 0.22) — heavy steering churn; near-balanced LEFT/RIGHT suggests oscillation around the heading setpoint.
+- `average_steps ≈ 2209` with only 20 gates → very long episode; per-step time penalty dominates the −3716 return.
+- `average_gate_center_error ≈ 12 px` — adequate but not tight; gate width is 32, so margin is fine.
+- `flag_collisions = 1.33`, `tree_collisions = 0` — minor pole grazing, not the main cost.
+- `gates_passed = 20`, `missed_gates = 0` → terminal penalty is essentially zero; everything left is time.
+
+## 3. Policy logic causing it
+- `near_straight = |signed| < tuck_angle (≈9.58°)`. The signed orientations available are {−90, −67.5, −45, −22.5, +22.5, +45, +67.5, +90}. **None of these have |angle| < 9.58**, so `near_straight` is always False and DOWN is never chosen. Forward is always NOOP.
+- `heading_gain ≈ 2.18` with `heading_dead ≈ 5.2°`: a few-pixel lateral error produces a desired heading well beyond ±22.5°, so the controller commands turns into the ±45°/±67.5° regimes, which collapse downhill speed.
+- `max_heading ≈ 28.9°` still allows reaching the 45° notch; combined with high gain, the skier sits at moderate angles much of the time → low `average_speed_y`.
+- The heading tracker has no asymmetric "release" logic: once at 22.5°, any small residual error keeps issuing the same turn, causing chatter and overshoot (explains the near-symmetric LEFT/RIGHT rates).
+- Tree-avoidance shift (28 px) is large and can fight gate centering even when `gate_pass_rate` is already perfect, adding unnecessary steering.
+
+## 4. What to preserve
+- Gate selection logic (`_pick_gate`) — clearly working: 100% pass rate.
+- Signed orientation conversion and proportional heading controller skeleton.
+- Tree-threat detection structure (collisions are zero; don't destabilize it).
+- Parametric, small, stateless form. The architecture is fine; tuning + one branch fix will recover speed.
+
+## 5. What to change next
+- **Fix the DOWN gate**: the `tuck_angle` threshold must exceed 22.5° (the smallest non-zero notch). Make the "near-straight" criterion `|signed| ≤ 22.5 + ε` (e.g. parameter range ~25–35°) so that the two fastest headings (±22.5°) trigger DOWN. This alone should drastically cut step count.
+- **Reduce steering aggression**: lower `heading_gain` (closer to ~0.3–0.6) and/or cap `max_heading` near 22.5° so the controller targets the fast notches rather than 45°+. Currently the gain saturates the cap on tiny errors.
+- **Add hysteresis / asymmetric deadband**: separate "engage turn" threshold (larger) from "release turn" threshold (smaller, near 0), to stop LEFT/RIGHT chatter once close to desired heading. A single `heading_dead` causes bang-bang behavior.
+- **Bias forward action toward DOWN** even at moderate angles when no lateral correction is pending; NOOP vs DOWN should be governed by "is a turn currently commanded?", not by orientation alone.
+- **Down-weight tree avoidance**: with 0 tree collisions and 1.3 flag collisions, shrink `tree_shift` (e.g. 8–16) and instead add a small *pole* avoidance margin inside the gate (target `flag_x + 16` is fine; just ensure heading settles before arrival).
+- **Look-ahead gating of turns**: only command a turn if `gate_y - skier_y` is within a horizon; otherwise prefer DOWN. This removes premature steering that wastes downhill speed early.
+- Avoid the previous failed rewrite direction (broad restructuring); the win here is two-line threshold/gain corrections plus a hysteresis term, not a new controller.

@@ -1,0 +1,92 @@
+{
+  "run_id": "rq1_seeded_20260428_s20260480",
+  "suite_dir": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480",
+  "created_at": "2026-04-28 13:44:56",
+  "games": [
+    "pong",
+    "freeway",
+    "asterix",
+    "breakout",
+    "skiing"
+  ],
+  "protocol": {
+    "provider": "anthropic",
+    "model": "claude-opus-4-7",
+    "temperature": null,
+    "max_iters": 5,
+    "target_score": 1000000000.0,
+    "num_envs": 8,
+    "num_episodes": 16,
+    "max_steps": 10000,
+    "search_max_steps": 10000,
+    "optimizer": "cma-es",
+    "param_samples": 16,
+    "cma_generations": 5,
+    "seed": 20260480,
+    "resume_from_results": false,
+    "stop_on_strong_best": false,
+    "completion_grace_seconds": 60
+  },
+  "results": {
+    "pong": {
+      "status": "completed",
+      "returncode": 0,
+      "elapsed_seconds": 1101.456485748291,
+      "seed": 20260480,
+      "output_dir": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/pong",
+      "stdout_log": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/pong/outerloop.out.log",
+      "stderr_log": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/pong/outerloop.err.log",
+      "best_score": 21.0,
+      "best_policy_path": "scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/pong/policy_v3.py",
+      "terminated_after_results": false
+    },
+    "freeway": {
+      "status": "completed",
+      "returncode": 0,
+      "elapsed_seconds": 1456.974083185196,
+      "seed": 20260481,
+      "output_dir": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/freeway",
+      "stdout_log": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/freeway/outerloop.out.log",
+      "stderr_log": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/freeway/outerloop.err.log",
+      "best_score": 23.9375,
+      "best_policy_path": "scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/freeway/policy_v4.py",
+      "terminated_after_results": false
+    },
+    "asterix": {
+      "status": "completed",
+      "returncode": -15,
+      "elapsed_seconds": 11152.564429044724,
+      "seed": 20260482,
+      "output_dir": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/asterix",
+      "stdout_log": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/asterix/outerloop.out.log",
+      "stderr_log": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/asterix/outerloop.err.log",
+      "best_score": 1871.875,
+      "best_policy_path": "scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/asterix/policy_v5.py",
+      "terminated_after_results": true
+    },
+    "breakout": {
+      "status": "completed",
+      "returncode": -15,
+      "elapsed_seconds": 2980.143779039383,
+      "seed": 20260483,
+      "output_dir": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/breakout",
+      "stdout_log": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/breakout/outerloop.out.log",
+      "stderr_log": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/breakout/outerloop.err.log",
+      "best_score": 293.0625,
+      "best_policy_path": "scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/breakout/policy_v5.py",
+      "terminated_after_results": true
+    },
+    "skiing": {
+      "status": "completed",
+      "returncode": -15,
+      "elapsed_seconds": 6981.398619890213,
+      "seed": 20260484,
+      "output_dir": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/skiing",
+      "stdout_log": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/skiing/outerloop.out.log",
+      "stderr_log": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/skiing/outerloop.err.log",
+      "best_score": -3716.25,
+      "best_policy_path": "scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/skiing/policy_v2.py",
+      "terminated_after_results": true
+    }
+  }
+}

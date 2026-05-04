@@ -1,0 +1,50 @@
+{
+  "date": "2026-05-01",
+  "title": "Kangaroo anti-punch-farming feedback added",
+  "summary": "Kangaroo prompt context and logger feedback now explicitly identify high-score-without-climbing behavior as punch farming rather than a solved Kangaroo policy. This prepares future Kangaroo outer-loop runs to target ladder-route behavior instead of optimizing the lower-platform monkey shortcut.",
+  "context": {
+    "previous_milestone": "2026-04-30_kangaroo_retuned_trace_comparison_reveals_punch_farming.json",
+    "reason_for_change": "Exact replay showed that a 3600-point retuned patch-2 episode had 18 RIGHTFIRE rewards and zero UP actions, so reward alone was misleading."
+  },
+  "changes": [
+    {
+      "path": "scripts/llm_optimization/llm_optimization_loop.py",
+      "purpose": "Updated Kangaroo environment description, design principles, failure modes, and improvement guidelines to warn against lower-platform punch farming and require ladder-route progress."
+    },
+    {
+      "path": "scripts/llm_optimization/core/logger.py",
+      "purpose": "Added Kangaroo metrics for punch_action_rate, rightfire_action_rate, leftfire_action_rate, score_without_climb_pattern, and punch_farming_pattern."
+    }
+  ],
+  "verification": {
+    "policy_checked": "scripts/llm_optimization/experiments/kangaroo/policy_v6_overlap_patch2_retuned.py",
+    "episode_key": "episode index 0 from split(PRNGKey(20260480), 128)",
+    "logged_steps": 1200,
+    "observed_metrics": {
+      "reward_total": 600.0,
+      "score_events": 3.0,
+      "up_action_rate": 0.0,
+      "climb_rate": 0.0,
+      "punch_action_rate": 0.06,
+      "score_without_climb_pattern": 1.0,
+      "punch_farming_pattern": 1.0,
+      "max_upward_progress": 0.0
+    },
+    "result": "Generated feedback now tells the LLM that scoring without UP/climbing is not a proper Kangaroo solution and asks for route state: approach reachable ladder, climb, dismount, then select the next upward target."
+  },
+  "interpretation": [
+    "This does not make Kangaroo solved.",
+    "It improves the next Kangaroo attempt by giving the outer loop a concrete behavioral diagnostic for the latest shortcut.",
+    "The next paid Kangaroo run should be judged on both score and ladder-route metrics."
+  ],
+  "rq_mapping": {
+    "RQ1": "Prepares future Kangaroo runs to produce a more task-appropriate policy instead of only a higher score.",
+    "RQ2": "Directly addresses a shortcut identified by trace replay: punch farming with no climbing.",
+    "RQ4": "Keeps parameter optimization useful while preventing the optimizer from silently rewarding only the punch shortcut."
+  },
+  "recommended_next_steps": [
+    "If running Kangaroo again, run an outer loop with these updated diagnostics and inspect logger metrics before interpreting score.",
+    "Send Quentin both the original one-pixel-overlap GIF and the retuned punch-farming GIF so he can see the before/after diagnosis.",
+    "Do not promote Kangaroo until a candidate shows both high reward and nonzero ladder-route behavior."
+  ]
+}

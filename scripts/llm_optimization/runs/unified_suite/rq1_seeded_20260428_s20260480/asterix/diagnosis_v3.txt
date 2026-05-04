@@ -1,0 +1,43 @@
+# Diagnosis
+
+## 1. Root cause
+Survival is the dominant bottleneck. The policy enters and crosses lanes whose projected enemy danger is being underestimated at the *path of transition*, and uses a single danger-at-current-x scalar per lane rather than evaluating danger along the diagonal trajectory. Combined with a too-small collision buffer (`danger_radius` ~25, threshold 0.53) and a coarse "abort transition" rule, the agent commits to diagonals into lanes that are clear-now-but-occupied-on-arrival.
+
+## 2. Evidence from metrics
+- `hits_taken=3`, `lives_remaining=0`, `terminal_game_over=1`: every run dies out → survival, not routing, caps the score.
+- `avg_hit_enemy_gap=3.56`: collisions happen at very small x-gaps; danger model fires too late.
+- `hit_diagonal_fraction=0.78`: most deaths occur during diagonal lane transitions → lane-entry clearance check is insufficient.
+- `avg_hit_lane_index=2.56`: deaths cluster in upper lanes, i.e. during upward harvesting transitions.
+- `respawn_rate=0.092`: ~9% of frames wasted recovering — large score loss.
+- `item_pickup_rate_per_1000=8.68` and `score_rate_per_1000≈434`: pickup density isn't catastrophic; if survival doubled, score would roughly double.
+- `avg_collectibles_visible=0.57`: items are sparse, so each death is very expensive relative to harvest opportunity.
+- `topmost_stage_index=0`, `bottommost_stage_index=7`: full vertical reach already — no need for upper-lane bias.
+
+## 3. Policy logic causing it
+- `danger = danger_now` evaluated only at `px` for *every* lane. The danger array does not represent the destination lane's risk at the player's *arrival x* during a diagonal — it just reuses current-x danger for an enemy in that lane. Lane-entry safety is therefore fictional.
+- `dest_dangerous = danger[target_lane] > danger_thresh` uses that same flawed scalar; abort logic rarely triggers when an enemy is sweeping into the arrival x.
+- `danger_radius≈25` with `exp(-gap/r)` and threshold 0.53 means an enemy must be within ~16 px to mark a lane unsafe. Asterix enemies traverse fast; arrival-time gap can be small even when current gap is large.
+- `_projected_min_gap` uses `horizon=6` frames only, but lane transitions plus respawn-buffer windows often need 10–15 frame horizons.
+- Directional `dir_factor` only boosts when the enemy moves toward `ref_x`; when `ref_x=px` but the threat is at the *destination*, this misses crossing enemies entirely.
+- `lane_dist_w≈39` is huge relative to value (50–300 × `value_w≈0.62` ≈ 30–186). Adjacent lanes always dominate; far high-value items are ignored, while the agent over-commits to the nearest lane even if marginally unsafe.
+- Diagonal escape logic picks the safer adjacent lane by the same per-lane scalar; "both_adj_bad" rarely triggers, so the agent diagonals into trouble instead of doing pure horizontal dodge.
+- Stay-bonus only applies when current lane has a positive item; otherwise lane_dist penalty dominates and the agent twitches between lanes, increasing transition exposure.
+
+## 4. What to preserve
+- Two-frame velocity estimation and lane-aligned indexing.
+- Value table weighting via `collect.visual_id`.
+- Compact parametric structure with `danger_*`, `value_w`, `intercept_w`, `lane_dist_w`, `switch_bias`, `danger_thresh`.
+- Diagonal-vs-horizontal split for upward movement (no pure UP).
+- Fallback safest-lane selection when no safe valued item exists.
+- Score-rate baseline (~434/1k) — don't regress harvesting density.
+
+## 5. What to change next
+- **Per-lane danger evaluated at arrival x**: for each candidate lane `L`, compute danger using the player's *expected x at arrival time* (≈ `px + sign*lane_dist*frames_per_lane`) and a longer horizon (10–15 frames). This is the single biggest fix.
+- **Wider collision buffer**: increase effective `danger_radius` (or add an additive safety margin in pixels) and/or lower `danger_thresh`. Calibrate so an enemy within ~25–35 px of arrival x flags the lane unsafe.
+- **Transition-cost danger**: also evaluate danger of the *traversed* lane during the move (current lane danger over the next few frames), not just destination. Reject diagonals whose source-side path is unsafe.
+- **Asymmetric abort**: if `dest_danger` or `path_danger` exceeds threshold, prefer pure horizontal dodge away from the nearest enemy rather than committing to the diagonal — this directly attacks the 78% diagonal-hit fraction.
+- **Reduce `lane_dist_w`** substantially (toward ~5–15) so 200/300-point items two lanes away can outrank a 50-point neighbor; pair with a stronger danger penalty so this doesn't increase risk.
+- **Post-respawn caution window**: cannot read timers, but you can detect respawn-like states implicitly (player teleport: large `|curr.px - prev.px|` or `player.state` change) and bias toward a safe central lane for a few frames.
+- **Stay-and-harvest when current lane is safe with item incoming**: increase `switch_bias` so the agent doesn't abandon a safe productive lane for a marginal neighbor — reduces exposure frames.
+- **Drop the edge-patrol fallback**; instead idle near `x≈80` only when no safe valued item is reachable, which the current code mostly does — but ensure patrol cannot override a reachable safe item.
+- **Directional danger fix**: weight enemy danger by whether the enemy will cross the player's arrival x within horizon, not just current direction toward current px.

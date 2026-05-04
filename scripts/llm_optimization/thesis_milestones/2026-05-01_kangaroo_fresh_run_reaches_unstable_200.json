@@ -1,0 +1,80 @@
+{
+  "date": "2026-05-01",
+  "title": "Kangaroo fresh run reaches unstable 200-point policy",
+  "summary": "A from-scratch Kangaroo outer-loop run using the revised prompt/logger architecture recovered a 200-point policy without resuming from the previous best, but it did not improve beyond the known first-reward plateau. A 32-episode 10000-step follow-up averaged 93.75, showing the policy is not robust enough for promotion.",
+  "context": {
+    "previous_milestone": "2026-05-01_kangaroo_preservation_contract_after_failed_rerun.json",
+    "run_directory": "scripts/llm_optimization/runs/single_game/kangaroo_20260501_211358_fresh_s20260501",
+    "followup_evaluation": "scripts/llm_optimization/analysis/evaluations/kangaroo_fresh_20260501_policy_v2_eval32_10000steps.json",
+    "run_type": "fresh from scratch; no resume-from-results and no copied previous best"
+  },
+  "run_result": {
+    "best_policy": "scripts/llm_optimization/runs/single_game/kangaroo_20260501_211358_fresh_s20260501/policy_v2.py",
+    "outer_loop_best_score": 200.0,
+    "outer_loop_best_logger": {
+      "score_events": 1.0,
+      "up_action_rate": 0.33959207927817125,
+      "climb_rate": 0.13746744020838267,
+      "fire_action_rate": 0.007296844830846757,
+      "punch_action_rate": 0.007296844830846757,
+      "punch_farming_pattern": 0.0,
+      "first_reward_suppressed_pattern": 0.0,
+      "max_upward_progress": 16.0,
+      "lives_lost": 1.0
+    },
+    "iterations": {
+      "policy_v1.py": {
+        "avg_return": 0.0,
+        "diagnosis": "First reward suppressed; fire_action_rate=0.0 and first_reward_suppressed_pattern=1.0."
+      },
+      "policy_v2.py": {
+        "avg_return": 200.0,
+        "diagnosis": "Recovered first reward and became the best fresh-run policy, but still only one score event."
+      },
+      "policy_v3.py": {
+        "avg_return": 175.0,
+        "search_avg_return": 350.0,
+        "diagnosis": "Showed some search-time promise but did not beat policy_v2 in full evaluation."
+      },
+      "policy_v4.py": {
+        "avg_return": 100.0,
+        "diagnosis": "Used FIRE/punch but did not stabilize the first reward or improve route progress."
+      },
+      "policy_v5.py": {
+        "avg_return": 0.0,
+        "diagnosis": "High FIRE/punch rate but no score events, still shallow upward progress."
+      }
+    }
+  },
+  "followup_evaluation": {
+    "policy": "scripts/llm_optimization/runs/single_game/kangaroo_20260501_211358_fresh_s20260501/policy_v2.py",
+    "episodes": 32,
+    "steps": 10000,
+    "seed": 20260501,
+    "mean": 93.75,
+    "std": 99.8044963916957,
+    "min": 0.0,
+    "max": 200.0,
+    "histogram": {
+      "0": 17,
+      "200": 15
+    },
+    "episodes_above_200": 0
+  },
+  "interpretation": [
+    "Starting fresh avoids direct inheritance from the previous best but still converges to the same first-reward ceiling.",
+    "The revised architecture can now recover the first RIGHTFIRE reward from scratch, which is useful evidence, but it has not solved Kangaroo's post-200 route.",
+    "Kangaroo remains exploratory and should not be added to canonical covered games.",
+    "Further reward-only Kangaroo runs are likely to spend budget rediscovering or destabilizing the 200-point behavior unless the objective or scaffold changes."
+  ],
+  "rq_mapping": {
+    "RQ1": "Adds evidence that the current LeGPS prompt can produce a nonzero Kangaroo policy from scratch, but not a robust or high-performing one.",
+    "RQ2": "Shows the current best fresh policy is not punch farming and does not suppress the first reward, but still only achieves a shallow first-event route.",
+    "RQ4": "Shows CMA-ES can tune parameters to recover the first reward when the structure exposes it, but does not solve post-200 routing with reward-only search."
+  },
+  "recommended_next_steps": [
+    "Do not promote Kangaroo.",
+    "Either pause Kangaroo and move to broader game coverage, or introduce an explicitly documented Kangaroo scaffold such as objective shaping or staged subtask evaluation.",
+    "If continuing Kangaroo, evaluate whether a shaped objective can optimize upward progress and route behavior without hiding that it is no longer pure reward-only optimization."
+  ]
+}

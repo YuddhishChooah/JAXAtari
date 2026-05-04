@@ -1,0 +1,32 @@
+## 1. Root cause
+The "lead" term is dead code. `_target_x` multiplies the lead by `ball_x * 0.0`, so the target is exactly `ball.x` regardless of `lead_gain`, `urgency_y`, or `urgency_scale`. The policy is a pure proportional follower of the ball's current x with a dead zone — it never anticipates where the ball will be when it reaches paddle height. CMA-ES has nothing useful to tune beyond `dead_zone` and `paddle_offset`, which is why three of the five parameters drifted to arbitrary/negative values.
+
+## 2. Evidence from metrics
+- `lead_gain` converged to **−0.27**, a nonsense sign for a lead term — consistent with that parameter being unused (free-floating in the loss landscape).
+- `avg_ball_tracking_error = 2.62` ≈ `dead_zone = 2.63`: the controller is hugging the ball's instantaneous x, not a predicted intercept.
+- `max_ball_tracking_error = 76`: large transients when the ball changes direction, exactly the failure mode of a no-lead tracker.
+- `blocks_broken = 41` per life with `max_hit_streak = 41` and only 1 life lost in 4240 frames: the paddle survives but cannot finish a screen — typical of a follower that mishandles steep-angle returns.
+- `block_clear_percentage = 38%`: stalls well before clearing, suggesting it cannot reach balls that require predictive positioning at the edges.
+- `total_paddle_movement = 7128` with `avg_paddle_movement = 1.65`: heavy reactive movement, no damping from velocity prediction.
+
+## 3. Policy logic causing it
+- `_target_x` returns `ball_x + lead * ball_x * 0.0` → lead contribution is always 0.
+- No use of ball velocity (no memory, and no proxy via `orientation`/`state`).
+- Urgency is computed but discarded.
+- FIRE is only issued when `ball_active < 0.5`; fine, but no handling of life-reset latency or biasing paddle to center on launch.
+- Dead zone is symmetric and constant; no widening when the ball is high (to reduce jitter) or narrowing when low (to ensure interception).
+
+## 4. What to preserve
+- The compact 3–8 float parameterization and `jnp.where` branching.
+- Paddle center = `player.x + paddle_offset` (offset ~8 is correct).
+- Dead-zone-based three-way action selection (prevents per-frame oscillation).
+- FIRE-on-inactive-ball gating.
+- Urgency concept driven by `ball_y` (it's the right idea, just unused).
+
+## 5. What to change next
+- **Wire the lead term in for real.** Make target = `ball_x + lead_gain * urgency * (ball_x - reference)` where the reference is a stateless velocity proxy. Since there's no recurrent state, derive a directional proxy from `ball.orientation` (obs[15]) or from `(ball_x − screen_center)` combined with `ball_y`. A simple, effective form: `target = ball_x + lead_gain * urgency * sign_or_orientation_term`.
+- **Use `urgency` to modulate the dead zone**, not just the lead: smaller dead zone when `ball_y` is large (descending), larger when high. This directly addresses the 76-pixel max tracking error.
+- **Remove the dead multiplication** `* 0.0`; this is the single highest-leverage fix.
+- **Re-seed CMA-ES** with `lead_gain` positive (e.g. 0.3–1.0) and bound it ≥ 0, otherwise the optimizer will again wander since the previous best had it negative.
+- **Consider an edge-bias parameter** so the paddle returns toward center when the ball is high and far away, reducing wasted travel (the 7128-pixel movement total).
+- Keep parameter count ≤ 6: `paddle_offset`, `dead_zone_base`, `dead_zone_urgency`, `lead_gain`, `urgency_y`, and optionally `center_bias`.

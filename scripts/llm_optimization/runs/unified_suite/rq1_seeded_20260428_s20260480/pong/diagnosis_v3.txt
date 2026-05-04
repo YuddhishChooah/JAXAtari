@@ -1,0 +1,34 @@
+## 1. Root cause
+The intercept predictor is too coarse: it uses a single linear projection scaled by `predict_gain` (currently >2.0, which overshoots true travel time) and folds with a fixed playfield span that ignores ball/paddle geometry. Combined with a small dead zone relative to actual tracking error, the paddle chases a noisy/biased target, producing jitter and poor interception even though it still wins on raw speed.
+
+## 2. Evidence from metrics
+- avg_ball_tracking_error 27.76 and max 142.53: paddle frequently far from ball Y.
+- interception_rate 0.185: paddle rarely pre-positioned.
+- paddle_jitter_count ~204 with total movement 17833 px: oscillation, not smooth tracking.
+- avg_reaction_time 15 frames: late commit when ball reverses toward player.
+- points_lost 0.33 despite 20.81 return: small but nonzero leakage from mispredictions.
+- `predict_gain`=2.04 (>>1) inflates dy projection; `vy_damp`=1.10 also amplifies vy — double amplification of vertical prediction.
+
+## 3. Policy logic causing it
+- `predict_gain` multiplies `dy * t`, distorting physical time-to-intercept; correct model needs gain≈1 with proper wall reflection, not gain as a free knob.
+- `vy_damp` is applied as a multiplier on dy *before* prediction; >1 makes it an amplifier, not a damp — misnamed and miscalibrated.
+- Reflection uses PLAYFIELD_TOP/BOTTOM directly without accounting for ball height or paddle half-height, biasing intercept by several pixels.
+- When ball moves away (`dx<=0`), target falls back to raw `ball_y` — paddle chases the ball across the screen instead of returning to center, causing wasted travel and jitter.
+- Dead zone (4.14) << observed tracking error (27.76); paddle constantly toggles around a moving, biased target.
+- FIRE gating depends only on `fire_bias>0` as a boolean; the parameter's magnitude is unused, so FIRE is essentially always-on when close — fine, but no graded control.
+
+## 4. What to preserve
+- 52-feature layout parsing and action encoding (compact 0–5).
+- Intercept-vs-track branching on `dx>0`.
+- Wall-reflection folding structure.
+- Small parameter set with dead_zone, aim_offset, fire usage.
+- Current best params as warm start (especially aim_offset≈-0.83, dead_zone≈4).
+
+## 5. What to change next
+- Replace `predict_gain` semantics: use it as a small correction (≈1.0) on `t`, not a multiplier on dy; or drop it and add a `time_bias` additive term.
+- Rename/repurpose `vy_damp` to a true damp in [0,1], applied only when |dy| is large (suppress noise spikes from frame-stack quantization).
+- Idle behavior when ball recedes: target = screen mid (e.g., 110) or last predicted intercept held, not raw ball_y — reduces jitter and total movement.
+- Add a second, larger "coarse" dead zone for far-away ball and a smaller one when ball is close (two-tier hysteresis) to cut 200+ direction reversals.
+- Correct reflection bounds by subtracting BALL_HEIGHT and accounting for PADDLE_CENTER_OFFSET so target aligns with paddle center, not ball top.
+- Introduce an off-center aim term that scales with ball speed to produce spiky returns (leverage insight #5) without enlarging the parameter set much — reuse `aim_offset` multiplied by sign(dy).
+- Ensure `predict_gain` is bounded near 1.0 during search; current 2.04 indicates the optimizer compensated for a geometry bug rather than finding true optimum.

@@ -1,0 +1,33 @@
+## 1. Root cause
+The policy is stuck horizontally oscillating near the bottom of the first ladder column, climbing only briefly. Its climb gate requires both `on_column` AND `aligned` (a tight `align_tol≈4 px` center test), but the horizontal mover targets the same ladder using the same `align_dx` sign — so when the kangaroo is one pixel off-center it keeps stepping past the column instead of issuing UP. Combined with the absence of any first RIGHTFIRE punch event, the agent never triggers the known stable-200 reward.
+
+## 2. Evidence from metrics
+- `climb_rate=0.52` but `up_action_rate=0.0015` — the engine reports the player in a climbing state, yet the policy almost never emits UP. Classic gating mismatch.
+- `horizontal_action_rate=0.9985`, `unique_action_count=3` — policy is essentially {LEFT, RIGHT, RIGHTFIRE}.
+- `max_upward_progress=8`, `min_player_y=140`, `y_range=8` — never leaves the starting platform region.
+- `x_range≈105` — sweeping horizontally across the lower platform.
+- `score_events=0`, `final_score=0`, but `rightfire_action_rate=0.099` — FIRE is being issued, but not at a moment that scores (monkey detection thresholds likely too strict, or the punch happens off-target while sweeping).
+- `lives_lost=1` while crash_rate≈0 → death from a hazard the dodge branch did not catch in time.
+
+## 3. Policy logic causing it
+- Climb predicate is `climbing & aligned`, with `aligned = |align_dx| < align_tol (≈4)`. The center-band test `on_column = |align_dx| < lw*0.4 + 1` is wider than `align_tol`, so there is a band where `on_column` is true but `aligned` is false → policy chooses `move_to_ladder` again, overshoots, comes back, repeats. This explains 52% climbing-state but 0.15% UP actions.
+- `move_to_ladder` direction is derived from `align_dx` with no deadband or hysteresis, so sub-pixel oscillation is inherent.
+- Ladder selection uses `argmin(|lcx - pcx|)` among reachable ladders — fine, but once `on_column` it should *latch*, not re-pick each frame.
+- Punch branch requires `mdy < 12` and `|mdx| < punch_dx≈16`. With `pcy = py + ph*0.5`, monkey y on the same platform may exceed 12 px, so the first-route RIGHTFIRE reward event is suppressed even though RIGHTFIRE fires occasionally elsewhere. This is the "first reward suppressed" failure mode.
+- Dodge action is a bare LEFT/RIGHT with no FIRE and no consideration of ladder progress; it can push the agent off the climb column right when it would have started UP.
+- `near_top` dismount returns RIGHT unconditionally — no test for whether a next ladder lies right vs left from the new platform.
+
+## 4. What to preserve
+- Reachable-ladder selection via `|ladder_bottom - player_bottom|` with `ladder_top < player_y` and `active>0.5`.
+- Object-centric parametric structure with the six tunable scalars.
+- RIGHTFIRE punch branch on the lower platform (do not add `& ~on_column` or any ladder-state gate to `punch_in_range`).
+- Wider `on_column` band (≈ `lw*0.4`) as the climbing trigger, and the `near_top` concept.
+
+## 5. What to change next
+- Decouple climb trigger from tight `aligned`: climb whenever `on_column & above_bottom & ~near_top`. Use `align_tol` only as a deadband for horizontal movement (no LEFT/RIGHT when `|align_dx| < align_tol`, emit UP or NOOP-toward-UP instead). This directly fixes the 52% climb-state vs 0.15% UP gap.
+- Add ladder latching: once `on_column` becomes true, keep selecting the same ladder index (e.g., by selecting the ladder whose column already contains `pcx`) so micro x-jitter cannot re-target.
+- Loosen / parameterize the punch vertical window (`punch_dy` separate from `punch_dx`) and ensure the first-route monkey on the starting platform falls inside it; this restores the 200-point reward event.
+- For dismount at `near_top`: pick the next reachable ladder from the *expected new platform* (i.e., re-run reachable-ladder selection using `player_bottom ≈ lty` rather than current `pby`) and walk toward that ladder's center, instead of unconditional RIGHT.
+- Hazard branch should bias horizontally only when not `on_column`; when on a ladder, prefer continuing UP (or DOWN one step) rather than stepping off the column into the falling-coconut path. This addresses the lost life.
+- Add a small jitter-break: if `align_dx` sign flipped on the previous-equivalent frame test (approximated by checking `|align_dx| < align_tol`), force UP. Since there is no state, implement as: `|align_dx| < align_tol & on_column → UP` overrides horizontal.
+- Keep parameter set compact; introduce at most `punch_dy` and reuse existing tolerances.

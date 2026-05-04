@@ -1,0 +1,35 @@
+# Kangaroo Policy Diagnosis
+
+## 1. Root cause
+The policy reliably executes the first reward path (RIGHTFIRE punch near x≈132, y≈148, +200) and starts climbing, but stalls in the first ladder column near its top. The "near_top" dismount branch is mis-gated and the dismount target re-selects the same column, so the policy oscillates at y≈132 until a falling coconut kills it. Net upward progress is only ~11 px past the first platform.
+
+## 2. Evidence from metrics
+- `final_player_y=137`, `min_player_y=132`, `y_range=17`, `max_upward_progress=16`: climbed exactly one platform's worth, then stuck.
+- `climb_rate=0.17` with `up_action_rate=0.28`: it does press UP, but climbing terminates early.
+- `score_events=1`, `final_score=200`: only the first punch reward fires; no later ladder/child progress.
+- `lives_lost=1`, `crash_rate=0.0013`: death is the falling-coconut hit at the stall location, matching the trace.
+- `x_range=108`, `horizontal_action_rate=0.72`: lots of lateral sweeping after the stall instead of committed re-routing.
+- `unique_action_count=4`: action repertoire collapses to {RIGHT, LEFT, UP, RIGHTFIRE}; FIRE-only jump and UPFIRE never used for hazard evasion.
+
+## 3. Policy logic causing it
+- `_select_best` and the dismount selector are called with **identical arguments** (`exclude_pad=on_pad` in both). The "dismount" target is therefore not distinct from the primary target; once the player is in column ~132, both selectors exclude it and pick whatever is next, but the `near_top` test (`py - on_top_y < 8.0`) fires only inside that same column, producing chatter between climb and dismount.
+- `_on_ladder_column` uses `in_x = (pcx >= lx - on_pad) & (pcx <= lx + lw + on_pad)`. With `on_pad≈3.2` and narrow ladders, even 1-px overlaps qualify (matches insight #12). The policy thinks it is "on column" while still standing on the platform edge, gating climbing prematurely and blocking dismount logic.
+- `bottom_below = lby >= pby - 4.0` plus `top_above = lty < py + 2.0` makes the column test true on adjacent ladders too, so `near_top` can latch onto a higher ladder's top while the player is actually mid-traverse.
+- Hazard handling on-ladder is `NOOP` for thrown coconuts and overhead falling coconuts. Standing still in the column is exactly the failure mode in the trace; there is no descent or sidestep escape.
+- No use of `FIRE` (jump) or `UPFIRE` to clear the top-of-ladder transition; dismount is pure horizontal, which leaves the player on the ladder cell when a coconut arrives.
+- Child-biased fallback (`child_dir_x = pcx + sign(child_x - pcx)*30`) only activates when no ladder is valid — it never helps after reaching the second platform because some ladder always passes the loose `useful & active` test.
+
+## 4. What to preserve
+- The first-reward branch: RIGHTFIRE punch when `any_monkey & |dx|<punch_dx` near start. Do not retune `punch_dx`, `danger_r`, or the monkey-direction sign logic.
+- Asymmetric reach window (`reach_tol`, `reach_up`) — it correctly excludes the x≈20 higher-platform ladder at start.
+- Height-weighted ladder cost and the `~in_col` exclusion concept.
+- Parameter dictionary shape and the 7 tuned scalars.
+
+## 5. What to change next
+- **Tighten on-column test**: replace pad-based x-overlap with a center-band test, e.g. `|pcx - (lx + lw/2)| < align_tol*0.5`, AND require `pby` to be strictly between `lty` and `lby` (not just adjacent). Add a parameter for the column band width so CMA-ES can tune it.
+- **Differentiate dismount selector**: call `_select_best` for dismount with a *larger* exclude pad (or pass current column index explicitly) so it cannot reselect the same ladder. Add a parameter like `dismount_exclude_pad`.
+- **Add a "just-dismounted" commitment**: once `near_top` triggers, bias horizontal motion in the dismount direction for several frames by using player orientation (obs_flat[7]) as a cheap memory proxy — pick a direction whose sign matches `child_x - pcx` and commit until `~on_column`.
+- **Replace on-ladder NOOP under hazard with active evasion**: if a thrown/falling coconut threatens while on column and not near bottom, issue DOWN to descend one platform; if near top, issue dismount direction + FIRE (jump off). Add a `hazard_descend` gate parameter.
+- **Use UPFIRE for the top-of-ladder transition** when `near_top & ~any_thrown & ~overhead_fc` to clear the lip reliably instead of plain UP.
+- **Stricter `useful` test**: require `lty < py - height_weight*small_const` so the next-ladder selector ignores ladders that would only move sideways at the same platform height.
+- **Keep changes additive**: gate every new branch behind a condition that is false on the starting platform, so the 200-point opening route is byte-identical.

@@ -1,0 +1,83 @@
+{
+  "date": "2026-05-01",
+  "title": "Kangaroo preservation contract added after failed rerun",
+  "summary": "A fresh Kangaroo rerun with anti-punch-overcorrection diagnostics still failed to beat the stable 200-point baseline. The diagnostics correctly identified first-reward suppression in four of five new policies, and one policy partially restored the punch branch with average return 75.0, but no candidate improved. The prompt now uses an explicit preservation contract for the stable 200-point baseline.",
+  "context": {
+    "previous_milestone": "2026-05-01_kangaroo_anti_punch_overcorrection_fix.json",
+    "run_directory": "scripts/llm_optimization/runs/single_game/kangaroo_20260501_144525_anti_punch_overcorrection_fix_s20260501",
+    "retained_best_policy": "scripts/llm_optimization/runs/single_game/kangaroo_resume3_20260430_144102/policy_v6.py",
+    "retained_best_score": 200.0
+  },
+  "run_result": {
+    "policy_v1.py": {
+      "avg_return": 0.0,
+      "first_reward_suppressed_pattern": 1.0,
+      "fire_action_rate": 0.0,
+      "punch_action_rate": 0.0
+    },
+    "policy_v2.py": {
+      "avg_return": 75.0,
+      "search_avg_return": 200.0,
+      "first_reward_suppressed_pattern": 0.0,
+      "fire_action_rate": 0.053074236273588364,
+      "punch_action_rate": 0.053074236273588364,
+      "score_events": 0.3333333333333333
+    },
+    "policy_v3.py": {
+      "avg_return": 0.0,
+      "first_reward_suppressed_pattern": 1.0,
+      "fire_action_rate": 0.0,
+      "punch_action_rate": 0.0
+    },
+    "policy_v4.py": {
+      "avg_return": 0.0,
+      "first_reward_suppressed_pattern": 1.0,
+      "fire_action_rate": 0.0,
+      "punch_action_rate": 0.0
+    },
+    "policy_v5.py": {
+      "avg_return": 0.0,
+      "first_reward_suppressed_pattern": 1.0,
+      "fire_action_rate": 0.0,
+      "punch_action_rate": 0.0
+    }
+  },
+  "diagnosis": [
+    "The added logger metrics worked: failed candidates now show whether they suppressed the first reward or avoided punch farming.",
+    "The LLM still made broad early-route rewrites even when asked to solve only the post-200 route.",
+    "For Kangaroo, the stable first reward is fragile enough that preserving the lower-platform route, monkey-threat detection, and RIGHTFIRE branch must be treated as a hard constraint, not a soft suggestion."
+  ],
+  "changes": [
+    {
+      "path": "scripts/llm_optimization/llm_optimization_loop.py",
+      "purpose": "Added Kangaroo prompt text stating that broad early-route rewrites from the stable 200-point baseline are a known failure mode."
+    },
+    {
+      "path": "scripts/llm_optimization/llm_optimization_loop.py",
+      "purpose": "Added a conservative Kangaroo rewrite strategy for 50-250 return baselines: preserve lower-platform route, monkey-threat detection, danger/punch parameter semantics, and the exact nearby-monkey RIGHTFIRE branch."
+    },
+    {
+      "path": "scripts/llm_optimization/llm_optimization_loop.py",
+      "purpose": "Added explicit critical rules forbidding `& ~on_column`, `& ~on_ladder`, or similar ladder-state gates on `punch_in_range` when continuing from the stable 200-point baseline."
+    },
+    {
+      "path": "scripts/llm_optimization/run_kangaroo_anti_punch_outer_loop.sh",
+      "purpose": "Changed the default Kangaroo continuation budget to two outer-loop iterations, while allowing MAX_ITERS to override it, so the next preservation-contract test can be inspected before a full five-iteration spend."
+    }
+  ],
+  "interpretation": [
+    "Kangaroo remains exploratory and should not be promoted.",
+    "The current obstacle is not only parameter search; the LLM is still changing fragile pre-reward logic while trying to solve the post-reward route.",
+    "The next paid run should be short and checked after the first candidate before continuing to five iterations."
+  ],
+  "rq_mapping": {
+    "RQ1": "Documents another failed Kangaroo expansion attempt while retaining the best 200-point policy.",
+    "RQ2": "Strengthens the distinction between intended route progress, punch farming, and first-reward suppression.",
+    "RQ4": "Shows that CMA-ES cannot rescue generated structures that lose the first reward branch."
+  },
+  "recommended_next_steps": [
+    "Run a short one- or two-iteration Kangaroo continuation with the new preservation contract before spending a full five-iteration budget.",
+    "If the first candidate still scores 0 with first_reward_suppressed_pattern=1, stop Kangaroo and move to broader game coverage.",
+    "If a candidate preserves 200 and improves post-200 metrics, render/debug it before any canonical promotion decision."
+  ]
+}

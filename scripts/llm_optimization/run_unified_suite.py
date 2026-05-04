@@ -15,6 +15,7 @@ from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_GAMES = ["pong", "freeway", "asterix", "breakout", "skiing"]
+SUPPORTED_GAMES = [*DEFAULT_GAMES, "kangaroo"]
 
 
 def json_write(path: Path, data: dict[str, Any]) -> None:
@@ -97,7 +98,7 @@ def run_game_process(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run the unified LeGPS suite")
-    parser.add_argument("--games", nargs="+", default=DEFAULT_GAMES, choices=DEFAULT_GAMES)
+    parser.add_argument("--games", nargs="+", default=DEFAULT_GAMES, choices=SUPPORTED_GAMES)
     parser.add_argument("--run-id", type=str, default=None)
     parser.add_argument("--base-dir", type=str, default="scripts/llm_optimization/runs/unified_suite")
     parser.add_argument("--provider", type=str, default="anthropic")

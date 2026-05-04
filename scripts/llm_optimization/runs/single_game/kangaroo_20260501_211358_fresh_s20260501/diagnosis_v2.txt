@@ -1,0 +1,32 @@
+## 1. Root cause
+The horizontal-traversal branch dominates over the climb branch, and the punch branch is unreachable in practice. `climbing` is gated on `in_climb_band` (|align_err| < `climb_hold`≈6), but `go_right_to_lad`/`go_left_to_lad` fire whenever |align_err|>1 — so the player keeps stepping horizontally past the ladder column instead of committing to UP, and never aligns long enough to climb. Additionally, FIRE-bearing actions (RIGHTFIRE/LEFTFIRE) are written to `a` *before* the climbing/traversal lines logically, but in the `jnp.where` chain they are overwritten by the dodge/dismount lines and never overwrite the horizontal motion when align_err is large — net effect: the policy never punches.
+
+## 2. Evidence from metrics
+- `fire_action_rate=0`, `punch_action_rate=0`, `rightfire_action_rate=0` → punch branch is dead.
+- `first_reward_suppressed_pattern=1`, `no_fire_scoreless_pattern=1` → confirms missing first-reward RIGHTFIRE.
+- `horizontal_action_rate=0.98`, `up_action_rate=0.018`, but `climb_rate=0.47` → the *state* is on a ladder ~half the time, yet the *action* is almost never UP. Climb predicate is too narrow / horizontal predicate too greedy.
+- `min_player_y=132`, `max_upward_progress=16`, `y_range=17` → reaches first ladder top region but cannot dismount/continue.
+- `unique_action_count=3` → only LEFT, RIGHT, and rare UP; FIRE/RIGHTFIRE/LEFTFIRE never selected.
+- `x_range≈105` → broad horizontal sweeping consistent with overshoot past ladder columns.
+
+## 3. Policy logic causing it
+- Action priority is implemented as a sequence of `jnp.where` overwrites. The order is: climb → horizontal → punch → dodge → dismount. That means dodge/dismount can wipe punch, and horizontal traversal *fires whenever align_err>1*, which is a tighter condition than `in_climb_band` (6.0). When the player enters the ladder column from the side, align_err crosses 0 only briefly, and the horizontal step is re-issued on the other side — pushing the agent out before UP is selected.
+- `climbing` requires being in the band *and* not near top, but does not require the player to actually be at a y where the ladder spans (no check that `lty < py < lby`). On entry approach the climb predicate may not engage because the chosen ladder's reach test is computed from the original platform only.
+- Punch predicate uses `same_row` with `|my-py|<ph+6`, which is correct, but it is then overwritten by other `jnp.where` lines lower in the chain.
+- Coconut dodge fires whenever `~climbing`, which on the early route causes lateral pushes that cancel the approach to the ladder and prevent any FIRE from sticking.
+- No "commit to ladder" hysteresis: once approaching, small jitter in align_err flips between RIGHT and LEFT before climb engages.
+
+## 4. What to preserve
+- The reachability selector using `|ladder_bottom_y - player_bottom_y|` plus `lty < player_y` (correctly avoids the x≈20 trap-ladder).
+- Parameter set (`ladder_reach`, `ladder_align`, `climb_hold`, `top_dismount`, `punch_dx`, `danger_r`) — these are the right CMA-ES knobs.
+- Monkey punch geometry: same-row test plus `|mdx|<punch_dx`, with RIGHTFIRE/LEFTFIRE selection by sign — this is the stable-200 first-reward branch.
+- Ladder selection considering only active+upward+reachable candidates.
+
+## 5. What to change next
+- Fix priority semantics: build the action via a single ordered selection (e.g., a priority list with `jnp.select`) where **punch (first-reward) > dodge > climb-when-on-column > dismount-at-top > horizontal-toward-ladder > NOOP**. Currently later `jnp.where`s silently overwrite punch.
+- Make the climb predicate dominate horizontal motion: define `on_column = lvalid & (|align_err| < climb_hold) & (py > lty - eps) & (p_by < lby + eps)` and gate horizontal traversal with `~on_column` so the agent commits to UP once inside the column. Note: this is a climb gate on horizontal motion, NOT a gate on punch (rule 13).
+- Add a real top-of-ladder dismount: when `py < lty + top_dismount`, choose RIGHT or LEFT based on the *next* reachable ladder's center (re-run selector with `p_by` set to the new platform's y), not just the child x. This addresses the post-200 stall.
+- Remove the unconditional dodge override from horizontal branch; only dodge when actually in danger AND not on a ladder column, and never let dodge overwrite punch.
+- Add light hysteresis on align_err (e.g., a slightly larger band to *enter* climb than to *exit*, both parameterized) so jitter near the column does not flip back to horizontal.
+- Keep the punch branch independent of `on_column` (per rule 13). Ensure it is evaluated last in the priority chain so it wins when a monkey is in punch range, preserving the stable-200 first reward.
+- Verify FIRE actions are reachable by checking `unique_action_count` rises and `rightfire_action_rate>0` in the next trace before tuning anything else.

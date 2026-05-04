@@ -1,0 +1,34 @@
+# Kangaroo Policy Diagnosis
+
+## 1. Root cause
+The policy successfully executes the first-route punch (200 points) and climbs the first ladder ~16px upward, but then stalls in the ladder column near `x≈132, y≈132`. It fails to dismount onto the new platform and never selects a *next* ladder, because the dismount/next-ladder branch is gated incorrectly: `near_top` requires `use_on` (still on column), and the dismount target is computed from `tgt_lty` which is the *current* ladder's top — so the "new platform" reach test compares against a y the player has just barely reached, often producing no valid next ladder. The player then lingers in the column and gets killed by a falling coconut.
+
+## 2. Evidence from metrics
+- `min_player_y = 132`, `final_player_y = 132`, `max_upward_progress = 16`, `y_range = 17`: climbed exactly one short ladder, then stuck.
+- `climb_rate = 0.24` and `up_action_rate = 0.27`: lots of UP, but no second climb event.
+- `score_events = 1`, `final_score = 200`: only the first RIGHTFIRE reward fires.
+- `lives_lost = 1` with `final_player_y = 132`: died at/near the top of the first ladder, matching the known coconut-at-`x≈133,y≈129` trace.
+- `horizontal_action_rate = 0.73` with `x_range = 108`: lots of horizontal sweeping that never converts into a second ladder approach — consistent with `_select_next_ladder_from_top` returning `has_next=False` and falling through to `RIGHT` fallback / dodging.
+- `unique_action_count = 4`: very narrow behavior set, no DOWN, no LEFTFIRE — confirms the policy is stuck in a single mode.
+
+## 3. Policy logic causing it
+- `near_top` is conjoined with `use_on`, so dismount only triggers while still column-latched. Once the player steps off, control flows to the `approach`/`no_ladder` branch, which then re-latches or sweeps.
+- `_select_next_ladder_from_top` uses `tgt_lty` (top of *current* ladder) as the new platform's bottom proxy, plus `reach_tol + 6`. That window often misses the genuinely reachable next ladder and returns `has_next=False`, collapsing dismount to a blind `RIGHT`.
+- The column-latch test `_on_column_ladder` uses `col_frac + 0.1` as half-width, which is fairly permissive and re-latches the player onto the just-climbed ladder immediately after a 1-step dismount, re-entering `climbing`.
+- Coconut dodge is *below* `near_top` in the priority tree but uses `LEFT/RIGHT` only — no vertical retreat (DOWN) or jump (FIRE) — so a falling coconut directly above the column kills the player who is forced UP by the climb branch.
+- No hysteresis/latch on "I just dismounted; commit horizontally for N frames" — the policy oscillates between latch and approach.
+
+## 4. What to preserve
+- The entire first-reward path: `monkey_in_punch` priority → `RIGHTFIRE` branch with current `punch_dx/punch_dy` thresholds.
+- Reachable-ladder selection by `|ladder_bottom_y - player_bottom_y|` (not by x alone).
+- The 4 best-tuned scalars (`reach_tol=14.2`, `align_tol=4.5`, `punch_dx=17.7`, `punch_dy=19.7`) governing the lower-platform route.
+- Overall priority ordering: punch > climb > (post-climb logic) > approach > fallback.
+- `col_frac=0.71` based column test (do not revert to x-overlap-only).
+
+## 5. What to change next
+- **Decouple `near_top` from `use_on`**: detect "just reached top" using `(py - tgt_lty) < top_tol` regardless of current latch, and add a small dismount-commit counter-free latch via a parametric horizontal bias (e.g., commit toward the side where the *next* reachable ladder lies, evaluated from `py` rather than from `tgt_lty`).
+- **Fix next-ladder reference y**: in `_select_next_ladder_from_top`, evaluate reachability against `player_bottom_y` once near the top (i.e., the platform the player is about to stand on), not against the previous ladder's `lty`. This is the real bug producing `has_next=False`.
+- **Add a column-exit hysteresis**: once `near_top` fires, suppress `_on_column_ladder` re-latch for the same ladder (e.g., require `py < lty - margin` or just disable climb when `near_top` was true on the previous decision via a parametric stricter `col_frac` for the just-used column — done purely via geometry, not state).
+- **Coconut handling at top of ladder**: when `falling_coconut_active` and its x is within ~`danger_r` of `pcx` and y is above player, prefer immediate horizontal step off the column (LEFT or RIGHT toward the next ladder's side) over UP. Currently coconut dodge is unreachable while `climbing=True`.
+- **Add a parametric `dismount_bias`** (signed scalar) so CMA-ES can choose left vs right post-200 dismount instead of hard-coded `RIGHT` fallback.
+- **Do not** widen rewrites beyond the post-200 segment; the 2026-05-01 regression confirms broad rewrites zero out the first reward. Keep the punch branch and reachable-ladder selector byte-identical.

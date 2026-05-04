@@ -1,0 +1,33 @@
+## 1. Root cause
+The policy already maxes the score (21–0), but its tracking quality is poor: it wins by reacting late with large corrective sweeps rather than by sitting on the predicted intercept. The intercept prediction is noisy/biased (large `aim_offset`+`spike_gain` applied unconditionally) and the dead zone logic is inverted in magnitude — wider when the ball is far/receding rather than tighter for fine alignment near contact.
+
+## 2. Evidence from metrics
+- avg_ball_tracking_error 25.9 and max 120 — paddle frequently far from ball Y.
+- interception_rate 0.26 — most frames not in intercept position.
+- paddle_jitter_count 197 with avg movement 0.77/frame and total 5713 px — many reversals despite a 2.8 dead zone.
+- avg_reaction_time 14.8 frames — reacting late, not pre-positioning.
+- avg_rally_length ~356 with episode_length 7427 — long rallies indicate paddle scrambles, not clean returns.
+- Score is still 21–0, so changes must not regress win rate.
+
+## 3. Policy logic causing it
+- `spike_gain=2.36` and `sign(dy)` add a constant ±2.36 offset to target whenever ball approaches; combined with `aim_offset=-1.11` this shifts the aim point and causes the paddle to chase a moving target as `dy` sign flips on bounces → jitter and tracking error.
+- Dead zone is *doubled* when ball is far/receding (`dz_base*2`) but the wider gate is fine; the issue is `dz_base=2.8` is still active during fast approach where finer alignment is needed → late corrective moves.
+- `idle_target` uses `idle_pull=0.47*(ball_y-mid)`: when ball recedes, paddle drifts toward ball Y on the enemy side, leaving it mispositioned when ball returns.
+- Intercept uses single reflection of a linear extrapolation; with `time_bias=0.11` and no velocity smoothing, dy noise around bounces produces oscillating predictions.
+- FIRE alignment uses `dz_base+8`, fairly loose — fine, not a major issue.
+
+## 4. What to preserve
+- 52-feature layout and action mapping.
+- Reflective intercept predictor `_predict_intercept` and the moving_toward gate.
+- FIRE-combo gating on close_x and alignment (it's helping per the prompt).
+- Compact param dict; `dead_zone`, `fire_range`, `aim_offset`, `spike_gain`, `time_bias`, `idle_pull` names.
+- Current win rate behavior — keep changes incremental.
+
+## 5. What to change next
+- Pre-position during recede: set `idle_target` toward `PLAYFIELD_MID` (small or zero `idle_pull`, or pull toward predicted *return* using last known dy sign) so paddle is ready early; this should raise interception_rate and cut reaction_time.
+- Make dead zone distance-adaptive the *correct* way: smaller dz when `close_x` is small (precision near contact), larger dz when far (stability). Currently it's the opposite emphasis.
+- Gate the spike term: only apply `spike_gain*sign(dy)` when ball is very close (e.g., `close_x < fire_range`) and alignment error is already small; otherwise aim at pure predicted intercept. This removes target oscillation mid-flight that drives jitter.
+- Add a hysteresis / minimum-move threshold: require `|error|` to exceed dz by a margin to switch direction, reducing the 197 reversals.
+- Consider smoothing dy by averaging with a sign-consistent fallback (e.g., ignore dy when |dy|<small) to stabilize intercept around bounces; keeps params minimal (one new threshold).
+- Tighten `time_bias` toward 0 or make it scale with `close_x` so far-away predictions aren't over-extrapolated.
+- Keep `fire_range` ~18 and aim_offset small; do not broaden the rewrite — these incremental gating changes target the diagnosed jitter and low interception without risking the 21–0 outcome.

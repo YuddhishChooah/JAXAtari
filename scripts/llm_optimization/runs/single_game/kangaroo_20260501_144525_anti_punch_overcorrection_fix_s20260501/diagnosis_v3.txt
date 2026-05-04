@@ -1,0 +1,33 @@
+# Kangaroo Policy Diagnosis
+
+## 1. Root cause
+The policy reliably executes the first reward (RIGHTFIRE punch near x≈132, y≈148) and begins climbing the x≈132 ladder, but it has no working post-climb transition. Once the player nears the top of that ladder, the "near_top dismount" branch is degenerate because the dismount selector is identical to the primary selector (same `exclude_pad`), so it re-selects the same column the player just climbed or returns no useful target. The player loiters in the ladder column and is killed by the falling coconut at x≈133, y≈129. Result: a stable 200-point plateau with shallow y_range=17 and min_player_y=132.
+
+## 2. Evidence from metrics
+- `min_player_y=132`, `max_upward_progress=16`, `y_range=17`: climbed exactly one ladder segment, then stalled.
+- `climb_rate=0.174` with `up_action_rate=0.280`: climbing is happening but short-lived.
+- `horizontal_action_rate=0.720`, `x_range=108`: lots of horizontal sweeping after the climb, consistent with the dismount branch flailing rather than committing to a next ladder.
+- `score_events=1`, `reward_total=200`: exactly the known first-route reward, nothing after.
+- `lives_lost=1` with `crash_rate=0.0013`: single death, consistent with the documented falling-coconut hit at x≈133, y≈129.
+- `final_player_y=137.33` ≈ start: the player drifts back down rather than progressing to a higher platform.
+
+## 3. Policy logic causing it
+- `_select_best` is called twice with identical arguments for primary and dismount targets; `d_lcx, d_lty` carry no new information. The dismount branch cannot point to a genuinely different next ladder.
+- `_on_ladder_column` uses `in_x = (pcx >= lx - pad) & (pcx <= lx + lw + pad)` with `on_pad≈3.25`. This is a coarse x-band test, not the parametric overlap-fraction / center-band test recommended (insight #12). One-pixel overlap can latch the climb branch and prevent dismount.
+- `near_top` triggers when `(py - on_top_y) < 8.0`, but the dismount direction uses `_move_toward_x(... , 1.0)` toward a target that is essentially the same column (because primary and dismount selectors agree). This produces NOOP-then-fallback-to-child-direction, which is just horizontal drift.
+- The on-column hazard branch forces `NOOP` when a thrown coconut is near and not near top. Combined with the falling-coconut "pause on column" rule, the policy literally stands still in the kill column. There is no "step off the ladder before the coconut arrives" escape.
+- Primary selector excludes the current column via `~in_col`, but once the player is on top of the ladder, the new platform's reachable next ladder may have `lby` slightly above feet; the asymmetric `reach_up=28` window is large vertically, but the cost function `dx - height_weight*height_gap` rewards the highest ladder rather than the closest reachable one, biasing selection toward distant unreachable ladders on the new platform.
+
+## 4. What to preserve
+- The first-reward route: RIGHTFIRE punch on the lower-platform monkey at the start (insights #10, #14). Do not gate FIRE more aggressively or remove the punch branch.
+- `reach_tol`, `reach_up`, `align_tol`, `punch_dx` numeric ranges and the parametric structure.
+- The `_select_best` primary selection logic for the initial ladder at x≈132.
+- The horizontal-then-climb chaining for the first segment (climb_rate≈0.17 is the working part).
+
+## 5. What to change next
+- **Differentiate the dismount selector**: when `near_top` is true, use the *new* platform geometry. Compute the next-ladder target using a y reference of `on_top_y + small_offset` (i.e., predicted feet on the next platform) instead of current `pby`, so reachability is evaluated for the upper platform.
+- **Replace coarse `in_x` on-column test with an overlap-fraction or center-band test**: require player center to lie within `[lx + frac*lw, lx + (1-frac)*lw]`, with `frac` parameterized. This prevents 1-pixel latch and lets the player actually leave the column horizontally.
+- **Add a "leave the kill column" rule**: when on column AND near_top AND any hazard predicted overhead, prefer a horizontal step off the column rather than NOOP. The current "pause on ladder" rule is what caused the coconut death.
+- **Fix the cost function**: the `- height_weight*height_gap` term selects the *highest* ladder, not the *closest reachable* one. After dismount, prefer minimum `dx` among reachable-from-new-platform ladders; reserve the height bias for tie-breaking only.
+- **Add a brief commit timer or hysteresis**: once dismount direction is chosen at near_top, keep moving that direction until off the ladder column (no re-selection per frame). This is achievable without state by keying on `~on_column` to switch back to ladder seeking.
+- **Keep the change minimal and post-200 only** (insight #11): do not touch the start-of-episode branch ordering; only add the upper-platform selector and the column-overlap test. Verify first-reward path still fires before tuning.

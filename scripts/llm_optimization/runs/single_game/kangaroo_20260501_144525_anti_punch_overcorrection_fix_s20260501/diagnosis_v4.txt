@@ -1,0 +1,32 @@
+# Diagnosis
+
+## 1. Root cause
+After collecting the first 200-point reward near `x≈132, y≈148`, the policy enters the ladder column at `x≈132`, climbs to `y≈132`, and then gets trapped at/near the top of that ladder. The "near_top" dismount branch never fires reliably, so the agent oscillates in the column and is killed by a falling coconut at `x≈133, y≈129`. The next-ladder selection from the new (upper) platform is also broken because the dismount target is computed with the *same* selector as the primary (still excluding the current column with `exclude_pad=on_pad`), so when no reachable ladder exists from the upper platform the dismount falls back to a child-direction nudge that just drifts horizontally on top of the same column.
+
+## 2. Evidence from metrics
+- `final_player_y=137.3`, `min_player_y=132`, `max_upward_progress=16`, `y_range=17`: agent climbed exactly one ladder, then stuck.
+- `score_events=1`, `final_score=200`: the single first-route reward, no further progression.
+- `climb_rate=0.174` but `up_action_rate=0.28` and `horizontal_action_rate=0.72`: lots of UP issued but only ~17% of frames are actually in the climbing state — many UPs are wasted (column-overlap test too loose / climbing decisions misfire above platform).
+- `lives_lost=1`, `crash_rate=0.0013`: death came from a hazard, consistent with the traced overhead falling coconut, not from falling.
+- `x_range=108`: the agent does sweep horizontally, confirming it tries to traverse on the upper platform but never finds/commits to the next ladder.
+
+## 3. Policy logic causing it
+- `_select_best` is called twice with **identical** arguments for primary and dismount targets. The "dismount" target is not actually different from the primary, so when on top of the column the same selector returns the same column (filtered out) → fallback `child_dir_x` → ambiguous direction.
+- `near_top` uses `(py - on_top_y) < 8.0` AND requires `on_column` to still be true. As the player rises, `bottom_below = lby >= pby - 4.0` can become false before `near_top` triggers, so the agent exits "on_column" without ever entering the dismount branch.
+- `_on_ladder_column` uses `in_x = (pcx >= lx - pad) & (pcx <= lx + lw + pad)` — a center-in-extended-bbox test. With `on_pad≈3.25` and narrow ladders this is essentially "any tiny x overlap" (Insight #12), causing UP to be issued whenever the agent grazes a ladder column on the upper platform, stalling traversal.
+- Thrown/falling coconut handler issues `NOOP` while `on_column & ~near_top`. Sitting still under an overhead coconut on a ladder is exactly the death scenario in the trace.
+- No mechanism forces the agent to leave the just-used ladder column after climbing (no cooldown / no "exclude last ladder" memory — and adding state is forbidden, so this must be encoded via geometry: e.g. require the *new* platform's reachable ladder to be different in x).
+
+## 4. What to preserve
+- The first-reward route: horizontal RIGHT traversal from start, the RIGHTFIRE punch branch within `punch_dx`, and selection of the `x≈132` ladder via the asymmetric `reach_tol` / `reach_up` window with `height_weight` cost. This produces the stable 200.
+- The parametric structure (7 scalar params), the asymmetric reach window, the height-weighted ladder cost, the punch-by-orientation branch.
+- FIRE usage rate around ~0.10 — do not suppress it (Insight #14, and the failed v3 had `fire_action_rate=0`).
+
+## 5. What to change next
+- **Differentiate the dismount selector**: at `near_top`, recompute target with `exclude_pad` large enough to *strongly* exclude the current column (e.g. `exclude_pad = ladder_w + on_pad`) and *drop* the `useful` upward-only filter so a sideways/short next ladder on the same upper platform is also acceptable. The current `useful: lty < py - 4` excludes ladders whose tops are at the same height as the new platform.
+- **Tighten the on-column test** (Insight #12): replace `pcx in [lx-pad, lx+lw+pad]` with a center-band test, e.g. `abs(pcx - (lx + lw/2)) < align_tol` AND require non-trivial vertical overlap fraction. This stops spurious UP commands during upper-platform traversal.
+- **Force horizontal commit after reaching a platform top**: when `near_top` (or just after losing `on_column` with low `py`), suppress UP for a geometric condition like `abs(pcx - last_ladder_cx) < ladder_w` — encoded by selecting the next ladder with `dx > min_step` instead of memory.
+- **Fix on-ladder hazard response**: replace `NOOP` with a directional climb/descend choice. If overhead falling coconut is detected while on column, *descend one step* (DOWN) or commit UP to clear the top, rather than freezing under it.
+- **Loosen `near_top`**: trigger on `(py - on_top_y) < ph + small` OR when player_y has been monotonically decreasing and is within a band of `on_top_y`; do not require `on_column` to still be true (use a separate "just left column upward" geometric flag derived from `lty` of the nearest column).
+- **Add a second ladder in cost when on upper platform**: the height-weighted cost should still rank ladders whose `lty` is only modestly above current `py`; consider clamping `height_gap` so distant high ladders don't dominate the nearest reachable next-step ladder.
+- **Keep parameter count small**: add at most 1–2 new scalars (e.g. `dismount_exclude_w`, `column_band`) and let CMA-ES tune them, rather than rewriting the structure.

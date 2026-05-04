@@ -1,0 +1,91 @@
+{
+  "milestone_id": "2026-04-29_kangaroo_up_only_failure_diagnosed",
+  "created_at": "2026-04-29",
+  "project": {
+    "method_name": "LeGPS",
+    "method_expansion": "Language Guided Policy Search"
+  },
+  "why_this_milestone_exists": {
+    "purpose": "Record the behavioral diagnosis of the first zero-score Kangaroo smoke policy and the tooling added to prevent blind reruns.",
+    "trigger": "The first Kangaroo LLM smoke run completed but scored 0.0, so the next step was rollout inspection before spending a full run budget."
+  },
+  "diagnosed_run": {
+    "run_id": "kangaroo_smoke_20260429_152718",
+    "policy": "scripts/llm_optimization/runs/unified_suite/kangaroo_smoke_20260429_152718/kangaroo/policy_v1.py",
+    "results": "scripts/llm_optimization/runs/unified_suite/kangaroo_smoke_20260429_152718/kangaroo/optimization_results.json"
+  },
+  "diagnosis": {
+    "summary": "The first Kangaroo policy is valid but behaviorally degenerate: it effectively returns UP every step, never moves horizontally, never triggers a reward event, and loses a life.",
+    "evidence": {
+      "action_counts": {
+        "2:UP": 392
+      },
+      "total_reward": 0.0,
+      "reward_events": 0,
+      "x_range": 0.0,
+      "y_range": 17.0,
+      "final_raw_score": 0,
+      "final_lives": 2,
+      "done": true
+    },
+    "logger_check": {
+      "average_steps": 401.0,
+      "score_events": 0.0,
+      "lives_lost": 1.0,
+      "max_upward_progress": 16.0,
+      "x_range": 0.0,
+      "up_action_rate": 1.0,
+      "horizontal_action_rate": 0.0,
+      "unique_action_count": 1.0,
+      "up_only_failure": 1.0
+    }
+  },
+  "artifacts_created": [
+    {
+      "path": "scripts/llm_optimization/experiments/kangaroo/render_policy_video.py",
+      "purpose": "Reusable Kangaroo rollout renderer. It writes GIF output without requiring OpenCV and can write MP4 if OpenCV is installed."
+    },
+    {
+      "path": "scripts/llm_optimization/analysis/videos/kangaroo_smoke_20260429_152718_policy_v1.gif",
+      "purpose": "Visual rollout artifact for the first Kangaroo smoke policy."
+    }
+  ],
+  "code_changes": [
+    {
+      "path": "scripts/llm_optimization/core/logger.py",
+      "change": "Added KangarooLogger with diagnostics for action diversity, vertical progress, horizontal movement, score events, life loss, climbing/crashing, and the known up_only_failure pattern."
+    },
+    {
+      "path": "scripts/llm_optimization/llm_optimization_loop.py",
+      "change": "Added Kangaroo-specific feedback and prompt warnings against UP-only controllers, using the observed smoke-run failure as documented evidence."
+    }
+  ],
+  "interpretation": [
+    "The immediate problem is not syntax, API access, or CMA-ES plumbing. The generated controller is behaviorally too simple.",
+    "The first policy treats ladder alignment as enough reason to hold UP forever. That produces shallow vertical oscillation, no horizontal platform traversal, no reward events, and eventual life loss.",
+    "A full Kangaroo run should not be launched blindly from this exact context. The next LLM attempt should receive the new Kangaroo logger metrics and the explicit UP-only failure warning."
+  ],
+  "rq_relevance": {
+    "RQ1": "This is negative onboarding evidence: Kangaroo is runnable, but the first policy is not successful.",
+    "RQ2": "The diagnostic tooling begins checking whether behavior matches the intended route-navigation task instead of only reporting score.",
+    "RQ3": "No adaptation evidence yet.",
+    "RQ4": "No optimizer ablation evidence yet."
+  },
+  "next_steps": [
+    {
+      "priority": 1,
+      "step": "Run a second short Kangaroo LLM attempt with the new logger/prompt feedback active.",
+      "why": "The next attempt should explicitly avoid the UP-only failure and will produce behavioral metrics for the LLM if it still fails."
+    },
+    {
+      "priority": 2,
+      "step": "Only move to the full 10000-step Kangaroo budget if the second smoke attempt shows nonzero horizontal movement and meaningful route progress.",
+      "why": "This prevents spending a full run on another degenerate controller."
+    },
+    {
+      "priority": 3,
+      "step": "Keep the first smoke run as a documented failure artifact.",
+      "why": "It supports the thesis narrative that failures are inspected and classified rather than hidden."
+    }
+  ]
+}

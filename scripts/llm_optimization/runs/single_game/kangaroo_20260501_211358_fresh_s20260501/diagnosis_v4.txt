@@ -1,0 +1,37 @@
+# Kangaroo Policy Diagnosis
+
+## 1. Root cause
+The policy successfully executes the first ladder approach + RIGHTFIRE punch (200 pts) and even climbs onto the higher platform (final_player_y≈134 vs start 148), but it cannot commit to a *next* ladder from the new platform. After dismount it sweeps horizontally and dies to a falling coconut while still loitering in the ~x=132 column. The "next ladder" selection is misconfigured: from the new platform `_select_next_ladder` is called with `lty + 4.0` as the new player bottom, but on the next platform the player's bottom is actually around `lty + ph` (≈ lty + 20). With the wrong reference y, the reach test rarely returns a valid next ladder, so the policy falls back to chasing the child x-coordinate and never aligns to a real upward route.
+
+## 2. Evidence from metrics
+- `min_player_y=132`, `max_upward_progress=16`, `net_upward_progress=13.3` → reached top of first ladder only, never a second platform.
+- `climb_rate=0.137` but `score_events=1` → climbing happened, but only the one scripted reward.
+- `horizontal_action_rate=0.66`, `x_range=104` → heavy horizontal sweeping after the climb, consistent with no valid next-ladder target.
+- `lives_lost=1`, `crash_rate=0.0012` → death by hazard while loitering, matching the trace note about coconut at x≈133, y≈129.
+- `fire_action_rate=0.0073` (single punch) → first-route punch preserved; not a punch-farming or suppression pattern.
+- `unique_action_count=4` → very limited late-game behavior repertoire.
+
+## 3. Policy logic causing it
+- `_select_next_ladder(obs, p_cx, lty + 4.0, reach)`: wrong reference bottom-y for the *new* platform. Should use the next platform's bottom ≈ `lty + ph` (or `lby` of the just-climbed ladder is the player's old bottom; the new bottom is approximately `lty + ph`). This makes `nxt_valid` mostly false.
+- `near_top` triggers `dismount_right/left` based on `target_dx`, but with `nxt_valid=False` the target is `child_dx` (always far right/up), so the player dismounts in a fixed direction without regard to a real ladder column.
+- After dismount, `on_column` becomes false and `_select_ladder` recomputes from the *current* platform — but since `p_by` updates only after the player physically lands, there's a transient where the just-climbed ladder is still "reachable" and reselected, pulling the player back into the same column where coconuts fall.
+- `in_span` uses fixed ±6 pixel pads regardless of `ph`; combined with `climb_hold≈6.4` the on-column predicate is brittle once the player is mid-climb on tall ladders.
+- No "leave-column after dismount" hysteresis: nothing prevents reselecting the just-used ladder on the next tick.
+- Coconut danger gate `dodge & ~on_column` does not fire while `on_column` is true near the top, so the player cannot evade a falling coconut centered on the ladder column.
+
+## 4. What to preserve
+- The 200-point first route: lower-platform approach, `_select_ladder` choosing the x≈132 ladder via reach + slight x-cost weighting.
+- The unconditional `punch_right/punch_left` branch at top priority (rule 13: do not gate it by `on_column`).
+- `init_params` keys and tuned values; CMA-ES has converged useful thresholds.
+- The priority-select structure with `jnp.select`.
+- Ladder reachability test using `player_bottom_y` vs `ladder_bottom_y`.
+
+## 5. What to change next
+Patch only post-200 / top-of-ladder logic:
+- **Fix next-ladder reference y**: call `_select_next_ladder` with `new_p_by ≈ lty + ph` (player bottom on the new platform), not `lty + 4`. This must make `nxt_valid` reliably true when a real next ladder exists.
+- **Exclude the just-climbed ladder** from next-ladder selection: in `_select_next_ladder`, add a cost penalty for ladders whose `lcx` is within `climb_hold` of the *current* `lcx`, so the same column isn't re-picked.
+- **Add a brief post-dismount horizontal commitment**: once `near_top` fires and a `nxt_lcx` exists, prefer moving toward `nxt_lcx` even when `on_column` would still be true for the old ladder. Add a parametric "exit band" so the old ladder is ignored while `|p_cx - old_lcx| < exit_band`.
+- **Allow dodge while on_column near top**: drop the `~on_column` gate at least when `near_top` is true, or when a falling coconut's x is within `danger_r` of `p_cx`. This addresses the coconut death at x≈133,y≈129.
+- **Use overlap fraction for on-column** (per insight 12): replace `abs_align < climb_hold` with `overlap_frac = min(pw,lw) - |p_cx - lcx|*2` style band test, gated by a learned fraction parameter, so 1-pixel overlaps don't trigger UP.
+- **Add one parameter** like `exit_band` (post-dismount lateral commitment distance) and one `coconut_dodge_priority` boolean-equivalent threshold rather than enlarging the architecture.
+- Keep the policy stateless; all "post-200" behavior must be derivable from current obs (player y above first-ladder top, nxt_valid true, etc.). Do not introduce `state` or recurrent memory.

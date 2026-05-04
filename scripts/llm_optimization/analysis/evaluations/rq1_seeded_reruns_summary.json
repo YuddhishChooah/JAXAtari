@@ -1,0 +1,316 @@
+{
+  "created_at": "2026-04-28 20:23:54",
+  "purpose": "RQ1 seeded-rerun stability summary for LeGPS unified-suite outputs.",
+  "canonical_manifest": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/best_10000_steps/manifest.json",
+  "suite_dirs": [
+    "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480"
+  ],
+  "games": [
+    "pong",
+    "freeway",
+    "asterix",
+    "breakout",
+    "skiing"
+  ],
+  "interpretation_note": "Scores are best_score values reported by each unified-suite manifest. Deltas compare those rerun scores against canonical 10000-step saved-policy scores.",
+  "per_game": [
+    {
+      "game": "pong",
+      "canonical_score": 20.96875,
+      "canonical_human_normalized": 138.89583333333334,
+      "attempted_runs": 1,
+      "completed_runs": 1,
+      "failed_runs": 0,
+      "missing_runs": 0,
+      "score_summary": {
+        "count": 1,
+        "mean": 21.0,
+        "sample_std": 0.0,
+        "min": 21.0,
+        "max": 21.0,
+        "median": 21.0
+      },
+      "delta_vs_canonical_summary": {
+        "count": 1,
+        "mean": 0.03125,
+        "sample_std": 0.0,
+        "min": 0.03125,
+        "max": 0.03125,
+        "median": 0.03125
+      },
+      "human_normalized_summary": {
+        "count": 1,
+        "mean": 139.0,
+        "sample_std": 0.0,
+        "min": 139.0,
+        "max": 139.0,
+        "median": 139.0
+      },
+      "best_score": 21.0,
+      "best_delta_vs_canonical": 0.03125,
+      "completed_seeds": [
+        20260480
+      ],
+      "failed_or_missing_runs": []
+    },
+    {
+      "game": "freeway",
+      "canonical_score": 27.15625,
+      "canonical_human_normalized": 91.74408783783782,
+      "attempted_runs": 1,
+      "completed_runs": 1,
+      "failed_runs": 0,
+      "missing_runs": 0,
+      "score_summary": {
+        "count": 1,
+        "mean": 23.9375,
+        "sample_std": 0.0,
+        "min": 23.9375,
+        "max": 23.9375,
+        "median": 23.9375
+      },
+      "delta_vs_canonical_summary": {
+        "count": 1,
+        "mean": -3.21875,
+        "sample_std": 0.0,
+        "min": -3.21875,
+        "max": -3.21875,
+        "median": -3.21875
+      },
+      "human_normalized_summary": {
+        "count": 1,
+        "mean": 80.86993243243242,
+        "sample_std": 0.0,
+        "min": 80.86993243243242,
+        "max": 80.86993243243242,
+        "median": 80.86993243243242
+      },
+      "best_score": 23.9375,
+      "best_delta_vs_canonical": -3.21875,
+      "completed_seeds": [
+        20260481
+      ],
+      "failed_or_missing_runs": []
+    },
+    {
+      "game": "asterix",
+      "canonical_score": 9850.0,
+      "canonical_human_normalized": 116.24261425298445,
+      "attempted_runs": 1,
+      "completed_runs": 1,
+      "failed_runs": 0,
+      "missing_runs": 0,
+      "score_summary": {
+        "count": 1,
+        "mean": 1871.875,
+        "sample_std": 0.0,
+        "min": 1871.875,
+        "max": 1871.875,
+        "median": 1871.875
+      },
+      "delta_vs_canonical_summary": {
+        "count": 1,
+        "mean": -7978.125,
+        "sample_std": 0.0,
+        "min": -7978.125,
+        "max": -7978.125,
+        "median": -7978.125
+      },
+      "human_normalized_summary": {
+        "count": 1,
+        "mean": 20.03949113710358,
+        "sample_std": 0.0,
+        "min": 20.03949113710358,
+        "max": 20.03949113710358,
+        "median": 20.03949113710358
+      },
+      "best_score": 1871.875,
+      "best_delta_vs_canonical": -7978.125,
+      "completed_seeds": [
+        20260482
+      ],
+      "failed_or_missing_runs": []
+    },
+    {
+      "game": "breakout",
+      "canonical_score": 205.8125,
+      "canonical_human_normalized": 678.1146179401993,
+      "attempted_runs": 1,
+      "completed_runs": 1,
+      "failed_runs": 0,
+      "missing_runs": 0,
+      "score_summary": {
+        "count": 1,
+        "mean": 293.0625,
+        "sample_std": 0.0,
+        "min": 293.0625,
+        "max": 293.0625,
+        "median": 293.0625
+      },
+      "delta_vs_canonical_summary": {
+        "count": 1,
+        "mean": 87.25,
+        "sample_std": 0.0,
+        "min": 87.25,
+        "max": 87.25,
+        "median": 87.25
+      },
+      "human_normalized_summary": {
+        "count": 1,
+        "mean": 967.9817275747508,
+        "sample_std": 0.0,
+        "min": 967.9817275747508,
+        "max": 967.9817275747508,
+        "median": 967.9817275747508
+      },
+      "best_score": 293.0625,
+      "best_delta_vs_canonical": 87.25,
+      "completed_seeds": [
+        20260483
+      ],
+      "failed_or_missing_runs": []
+    },
+    {
+      "game": "skiing",
+      "canonical_score": -3537.875,
+      "canonical_human_normalized": 106.2613625677836,
+      "attempted_runs": 1,
+      "completed_runs": 1,
+      "failed_runs": 0,
+      "missing_runs": 0,
+      "score_summary": {
+        "count": 1,
+        "mean": -3716.25,
+        "sample_std": 0.0,
+        "min": -3716.25,
+        "max": -3716.25,
+        "median": -3716.25
+      },
+      "delta_vs_canonical_summary": {
+        "count": 1,
+        "mean": -178.375,
+        "sample_std": 0.0,
+        "min": -178.375,
+        "max": -178.375,
+        "median": -178.375
+      },
+      "human_normalized_summary": {
+        "count": 1,
+        "mean": 104.86357082406043,
+        "sample_std": 0.0,
+        "min": 104.86357082406043,
+        "max": 104.86357082406043,
+        "median": 104.86357082406043
+      },
+      "best_score": -3716.25,
+      "best_delta_vs_canonical": -178.375,
+      "completed_seeds": [
+        20260484
+      ],
+      "failed_or_missing_runs": []
+    }
+  ],
+  "suites": [
+    {
+      "run_id": "rq1_seeded_20260428_s20260480",
+      "suite_dir": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480",
+      "manifest_path": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/manifest.json",
+      "created_at": "2026-04-28 13:44:56",
+      "protocol": {
+        "provider": "anthropic",
+        "model": "claude-opus-4-7",
+        "temperature": null,
+        "max_iters": 5,
+        "target_score": 1000000000.0,
+        "num_envs": 8,
+        "num_episodes": 16,
+        "max_steps": 10000,
+        "search_max_steps": 10000,
+        "optimizer": "cma-es",
+        "param_samples": 16,
+        "cma_generations": 5,
+        "seed": 20260480,
+        "resume_from_results": false,
+        "stop_on_strong_best": false,
+        "completion_grace_seconds": 60
+      },
+      "games": {
+        "pong": {
+          "run_id": "rq1_seeded_20260428_s20260480",
+          "suite_dir": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480",
+          "created_at": "2026-04-28 13:44:56",
+          "game": "pong",
+          "status": "completed",
+          "returncode": 0,
+          "seed": 20260480,
+          "best_score": 21.0,
+          "canonical_score": 20.96875,
+          "delta_vs_canonical": 0.03125,
+          "elapsed_seconds": 1101.456485748291,
+          "output_dir": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/pong",
+          "best_policy_path": "scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/pong/policy_v3.py"
+        },
+        "freeway": {
+          "run_id": "rq1_seeded_20260428_s20260480",
+          "suite_dir": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480",
+          "created_at": "2026-04-28 13:44:56",
+          "game": "freeway",
+          "status": "completed",
+          "returncode": 0,
+          "seed": 20260481,
+          "best_score": 23.9375,
+          "canonical_score": 27.15625,
+          "delta_vs_canonical": -3.21875,
+          "elapsed_seconds": 1456.974083185196,
+          "output_dir": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/freeway",
+          "best_policy_path": "scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/freeway/policy_v4.py"
+        },
+        "asterix": {
+          "run_id": "rq1_seeded_20260428_s20260480",
+          "suite_dir": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480",
+          "created_at": "2026-04-28 13:44:56",
+          "game": "asterix",
+          "status": "completed",
+          "returncode": -15,
+          "seed": 20260482,
+          "best_score": 1871.875,
+          "canonical_score": 9850.0,
+          "delta_vs_canonical": -7978.125,
+          "elapsed_seconds": 11152.564429044724,
+          "output_dir": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/asterix",
+          "best_policy_path": "scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/asterix/policy_v5.py"
+        },
+        "breakout": {
+          "run_id": "rq1_seeded_20260428_s20260480",
+          "suite_dir": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480",
+          "created_at": "2026-04-28 13:44:56",
+          "game": "breakout",
+          "status": "completed",
+          "returncode": -15,
+          "seed": 20260483,
+          "best_score": 293.0625,
+          "canonical_score": 205.8125,
+          "delta_vs_canonical": 87.25,
+          "elapsed_seconds": 2980.143779039383,
+          "output_dir": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/breakout",
+          "best_policy_path": "scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/breakout/policy_v5.py"
+        },
+        "skiing": {
+          "run_id": "rq1_seeded_20260428_s20260480",
+          "suite_dir": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480",
+          "created_at": "2026-04-28 13:44:56",
+          "game": "skiing",
+          "status": "completed",
+          "returncode": -15,
+          "seed": 20260484,
+          "best_score": -3716.25,
+          "canonical_score": -3537.875,
+          "delta_vs_canonical": -178.375,
+          "elapsed_seconds": 6981.398619890213,
+          "output_dir": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/skiing",
+          "best_policy_path": "scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/skiing/policy_v2.py"
+        }
+      }
+    }
+  ]
+}

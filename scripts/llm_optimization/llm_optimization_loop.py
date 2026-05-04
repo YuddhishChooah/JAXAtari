@@ -66,6 +66,7 @@ class OptimizationConfig:
     num_eval_episodes: int = 1024  # Evaluate over 1024 episodes
     frame_stack_size: int = 0  # 0 = use game default
     search_max_steps: int = 0  # 0 = use max_steps_per_episode
+    kangaroo_shaped_objective: bool = False  # Optional scaffold for Kangaroo route-progress search.
     
     # Parameter search settings - CMA-ES
     optimizer: str = "cma-es"  # "none", "random", "cma-es", or "bayes"
@@ -258,38 +259,118 @@ Control a mother kangaroo to rescue her child (Joey) at the top of the screen.
 Navigate platforms using ladders and jumping. Avoid or punch monkeys and coconuts.
 
 ### Observation Space
-The observation is a flattened 1D array with 111 features:
+The policy receives a flattened 1D array with 440 features.
+Kangaroo currently uses `frame_stack=1`, so these indices are one current object-centric frame:
 
-Index  | Feature              | Description
--------|----------------------|------------------------------------------
-0      | player_x             | Player X position (0-160)
-1      | player_y             | Player Y position (0-210, lower=higher on screen)
-2      | player_o             | Orientation (-1=left, 1=right)
-3-42   | platform_positions   | 20 platforms with (x,y) coordinates
-43-82  | ladder_positions     | 20 ladders with (x,y) coordinates
-83-88  | fruit_positions      | 3 fruits with (x,y), -1 if not present
-89-90  | bell_position        | Bell location (x,y) at top
-91-92  | child_position       | Joey's location (x,y) - your goal!
-93-94  | falling_coco         | Falling coconut (x,y), -1 if none
-95-102 | coco_positions       | 4 thrown coconuts with (x,y)
-103-110| monkey_positions     | 4 monkeys with (x,y)
+```python
+# player object
+player_x = obs_flat[0]
+player_y = obs_flat[1]
+player_w = obs_flat[2]
+player_h = obs_flat[3]
+player_active = obs_flat[4]
+player_orientation = obs_flat[7]  # 90=right, 270=left
 
-### Action Space (18 actions, focus on these):
-- Action 0: NOOP
-- Action 1: FIRE (Jump/Punch)
-- Action 2: UP (Climb ladder)
-- Action 3: RIGHT (Move right)
-- Action 4: LEFT (Move left)
-- Action 5: DOWN (Climb down/Crouch)
-- Action 6: UPRIGHT
-- Action 7: UPLEFT
+# 20 platform objects, stored by field arrays
+platform_x = obs_flat[8:28]
+platform_y = obs_flat[28:48]
+platform_w = obs_flat[48:68]
+platform_h = obs_flat[68:88]
+platform_active = obs_flat[88:108]
 
-### Key Insights:
-1. Lower player_y = higher on screen (goal: minimize player_y to reach child)
-2. Ladders are key - detect when player is aligned with a ladder
-3. Monkeys throw coconuts - avoid or punch them
-4. Bell at top signals level completion
-"""
+# 20 ladder objects, stored by field arrays
+ladder_x = obs_flat[168:188]
+ladder_y = obs_flat[188:208]
+ladder_w = obs_flat[208:228]
+ladder_h = obs_flat[228:248]
+ladder_active = obs_flat[248:268]
+ladder_center_x = ladder_x + ladder_w * 0.5
+ladder_top_y = ladder_y
+ladder_bottom_y = ladder_y + ladder_h
+
+# 3 fruit objects
+fruit_x = obs_flat[328:331]
+fruit_y = obs_flat[331:334]
+fruit_active = obs_flat[340:343]
+fruit_visual_id = obs_flat[343:346]
+
+# single bell, child, and falling-coconut objects
+bell_x, bell_y, bell_active = obs_flat[352], obs_flat[353], obs_flat[356]
+child_x, child_y, child_active = obs_flat[360], obs_flat[361], obs_flat[364]
+falling_coconut_x = obs_flat[368]
+falling_coconut_y = obs_flat[369]
+falling_coconut_active = obs_flat[372]
+
+# 4 monkey objects
+monkey_x = obs_flat[376:380]
+monkey_y = obs_flat[380:384]
+monkey_active = obs_flat[392:396]
+monkey_state = obs_flat[400:404]  # 1=down, 2=left, 3=throw, 4=right, 5=up
+
+# 4 thrown coconut objects
+coconut_x = obs_flat[408:412]
+coconut_y = obs_flat[412:416]
+coconut_active = obs_flat[424:428]
+coconut_state = obs_flat[432:436]
+```
+
+Y increases downward. Lower `player_y` means the player is higher on the screen.
+The child is usually near the top, so successful play needs upward progress through platforms and ladders.
+
+Important coordinate detail:
+- `player_y` is the top of the player sprite.
+- The player's feet/bottom are approximately `player_bottom_y = player_y + player_h`.
+- A ladder is reachable from the current platform when its bottom is close to `player_bottom_y`, not merely when its x is close.
+- A ladder is useful for upward progress when `ladder_top_y < player_y`.
+- In Level 1, the starting player is near `x≈23, y≈148`, but the first reachable lower-platform ladder is around `x≈132, y≈132, h≈36`. The nearby ladder around `x≈20, y≈84` belongs to a higher platform and should not be selected from the starting platform.
+- A good policy should repeatedly choose a reachable ladder, traverse horizontally to it, climb it, then traverse horizontally to the next reachable ladder/platform route.
+
+### Action Space
+The wrapped environment expects compact action indices:
+- `0`: NOOP
+- `1`: FIRE (jump or punch)
+- `2`: UP
+- `3`: RIGHT
+- `4`: LEFT
+- `5`: DOWN
+- `6`: UPRIGHT
+- `7`: UPLEFT
+- `8`: DOWNRIGHT
+- `9`: DOWNLEFT
+- `10`: UPFIRE
+- `11`: RIGHTFIRE
+- `12`: LEFTFIRE
+- `13`: DOWNFIRE
+- `14`: UPRIGHTFIRE
+- `15`: UPLEFTFIRE
+- `16`: DOWNRIGHTFIRE
+- `17`: DOWNLEFTFIRE
+
+### Game Dynamics
+1. The player starts on a lower platform and must climb or jump upward toward the child.
+2. Ladders are the main reliable way to change platform height.
+3. Monkeys and coconuts are hazards; FIRE can punch, and movement can dodge.
+4. Fruits and enemies give score, but reaching the child and surviving matter more than local item chasing.
+5. Bell and child positions are useful top-screen landmarks.
+6. Holding UP is not enough. The player must alternate route modes: horizontal traversal to a reachable ladder, climbing at the ladder, then horizontal traversal after reaching the next platform.
+
+### Key Insights for a Good Policy
+1. Select an active ladder that is reachable from the current platform using `abs(ladder_bottom_y - player_bottom_y)`, move horizontally toward it, then climb.
+2. Do not chase fruits if doing so prevents upward progress.
+3. Treat nearby active monkeys, falling coconuts, and thrown coconuts as local danger.
+4. Use simple geometric thresholds that CMA-ES can tune.
+5. Keep the controller compact; avoid large hard-coded path scripts for one exact level layout.
+6. Avoid UP-only controllers. The first Kangaroo smoke run held `UP` for every step, gained no reward, and lost a life.
+7. Avoid horizontal-only controllers. The second smoke rewrite alternated LEFT/RIGHT near the starting position, never climbed, and also scored 0.
+8. Do not choose the nearest ladder by x alone. At the start, that selects the wrong ladder and causes the known failure.
+9. Once the player is inside a ladder column, the climb decision should not depend only on the starting-platform reach test. Keep climbing until near the ladder top, then dismount horizontally and choose the next reachable ladder from the new platform.
+10. A route trace of the current stable-200 policy showed the reward at `x≈132,y≈148` via RIGHTFIRE, followed by a stall on the `x≈132,y≈132` ladder/top area and a falling-coconut life loss at almost the same x/y. This is not level completion; the next fix must handle the post-200 dismount/hazard/next-ladder transition.
+11. A trace-guided rewrite after the stable-200 policy regressed to 0 by disrupting the working first-reward route. Future post-200 changes should be minimal and preserve the first 200-point behavior.
+12. A debug overlay trace confirmed the current stable-200 policy issues UP when player/ladder bounding boxes overlap by only 1 pixel. Do not treat any tiny x-overlap as "on ladder"; use a parametric overlap fraction or center-band test before climbing.
+13. A later trace-guided patch reached high scores by repeatedly using RIGHTFIRE on lower-platform monkeys with zero UP actions. This is punch farming, not a proper Kangaroo solution. High reward is not enough unless the policy also shows upward/lower-y progress and real ladder-route behavior.
+14. Anti-punch-farming does not mean removing FIRE or suppressing the first useful RIGHTFIRE. The stable 200-point route depends on a nearby-monkey punch around the first ladder/platform segment; preserve that branch and solve the post-200 route separately.
+15. The 2026-05-01 anti-punch-overcorrection run showed that broad early-route rewrites keep regressing to 0. For the stable-200 baseline, treat the lower-platform approach, monkey-threat detection, and RIGHTFIRE branch as a preservation contract; patch only post-200/top-of-ladder behavior unless metrics prove the first route still scores.
+""".strip()
 
 # ============================================================================
 # Freeway Environment Description
@@ -920,6 +1001,70 @@ Pong ranges roughly from -21 (lose all points) to +21 (win all points).
 A strong policy should approach +21.
 """.strip(),
     ),
+    "kangaroo": GamePromptSpec(
+        environment_description=KANGAROO_ENVIRONMENT_DESCRIPTION,
+        design_principles="""
+1. Make upward progress the primary objective: find reachable active ladders and climb toward the child.
+2. Use the measured 440-feature single-frame layout exactly; do not use the obsolete 111-feature draft layout.
+3. Keep the policy compact and parameterized with simple thresholds for ladder alignment, danger distance, and target choice.
+4. Prefer ladder-centered movement over hard-coded screen scripts.
+5. Use FIRE only when near a monkey or in a jump/punch situation; constant FIRE can interrupt movement.
+6. Avoid nearby active coconuts and monkeys without turning the whole policy into passive waiting.
+7. Do not optimize for fruit collection before the policy can reliably move upward.
+8. Use `player_bottom_y = player_y + player_h` and `ladder_bottom_y = ladder_y + ladder_h` for ladder reachability.
+9. Start by moving toward a ladder whose bottom is on the current platform; after climbing, recompute the next reachable ladder from the new platform.
+10. Treat repeated lower-platform punching as a diagnostic fallback, not the main strategy. A candidate that scores with zero UP actions has not solved Kangaroo.
+11. Preserve the first useful monkey punch. Do not gate `punch_in_range` away merely because the player is on or near a ladder column; anti-punch-farming should prevent repeated shortcut scoring after the first route segment, not erase the first reward path.
+12. When continuing from the 200-point baseline, copy the first-route monkey detection and punch branch exactly unless the rewrite is explicitly restoring it. Do not alter the monkey `danger_r`/`punch_dx` semantics, branch ordering, or lower-platform ladder approach before the first reward.
+""".strip(),
+        failure_modes="""
+1. Using wrong observation indices from an older Kangaroo prompt draft.
+2. Moving horizontally forever because ladder alignment is too strict.
+3. Climbing at the wrong x position because the policy ignores ladder width and player center.
+4. Chasing fruit while making no vertical progress.
+5. Standing still or excessive NOOP/FIRE use when the path is safe.
+6. Hard-coding one exact ladder order so the policy becomes brittle.
+7. Returning only UP because the player is near a ladder; this can trap the agent on the lower ladder/platform and never reach reward.
+8. Returning only LEFT/RIGHT because ladder selection never enters a climb band; this dithers near the start and makes no upward progress.
+9. Selecting the nearest ladder by x even when that ladder's bottom is far above the player's current platform.
+10. Comparing ladder bottom to `player_y` instead of `player_y + player_h`, causing the policy to reject the actual starting ladder.
+11. Requiring the ladder-bottom reach test to remain true while already climbing; this can make the policy abandon the ladder halfway up.
+12. Reaching the first higher platform and then sweeping left/right without choosing the next reachable ladder.
+13. Plateauing at a single 200-point event: this is progress over zero-score policies, but it may be only one punch/reward event near the first route segment, not a completed ladder chain or Joey rescue.
+14. A rewrite that loses the first 200-point behavior while trying to solve the second ladder. A prior trace-guided policy_v7 attempt did this and regressed to 0, so preserve the working first-ladder route before changing next-ladder logic.
+15. Staying in the climbing/top-of-ladder state at `x≈132,y≈132` after the 200-point event until a falling coconut reaches the same column.
+16. Treating a one-pixel player/ladder bounding-box overlap as enough to climb. This causes UP/jump loops before the kangaroo is actually centered on the ladder.
+17. Punch farming: repeatedly scoring with RIGHTFIRE/LEFTFIRE near the lower platform while never issuing UP or climbing toward Joey.
+18. Overcorrecting anti-punch-farming by adding `& ~on_column` to the punch predicate or otherwise never using FIRE. This regresses the known stable 200-point route to zero.
+19. Replacing the whole early-route perception stack when only the post-200 dismount/next-ladder behavior was diagnosed. This usually changes the starting ladder or monkey punch timing and loses the first 200 points.
+20. Using Python int(), bool(), or Python if-statements on JAX arrays inside policy().
+""".strip(),
+        improvement_guidelines="""
+1. If score is near zero, first fix navigation: move to the nearest useful active ladder and climb.
+2. If the agent reaches ladders but stalls, relax alignment thresholds or use diagonal actions near ladder edges.
+3. If the policy uses UP almost every step, add explicit horizontal transitions after climbing: move toward the next platform, next ladder, bell, or child.
+4. If horizontal movement dominates but `max_upward_progress` is near zero, relax the climb-band condition and issue UP when the player is at the ladder x and near the ladder bottom.
+5. If the policy chooses the wrong starting ladder, change the ladder score to require `abs(ladder_bottom_y - player_bottom_y) < reach_tol`.
+6. If `climb_rate` is high but `up_action_rate` is low, add an on-ladder-column predicate that forces UP independently of the initial ladder-bottom reach check.
+7. If the policy reaches the first higher platform but score remains weak, add top-of-ladder dismount and next-reachable-ladder selection instead of walking blindly toward the child x coordinate.
+8. If the policy reliably scores around 200 but not more, preserve that first reward path and only modify the later route logic: second-platform next-ladder selection, reach windows, hazard timing, or dismount direction.
+9. If a rewrite regresses from 200 back to 0, revert the structural change and keep the last scoring policy as the baseline.
+10. If the post-200 trace shows the player stuck near `x≈132,y≈132`, step or jump out of the falling-coconut column and target the next upward route instead of staying on the old ladder.
+11. If deaths dominate, add local avoidance for active thrown coconuts, falling coconuts, and nearby monkeys.
+12. If movement is too cautious, reduce NOOP/FIRE fallback behavior and preserve upward progress.
+13. Keep numeric constants in `params` so CMA-ES can tune distances and danger thresholds.
+14. Make low-level perception helpers explicitly parametric: `_ladder_overlap_fraction`, `_is_on_ladder`, `_reachable_ladder_score`, `_can_punch_monkey`, `_danger_near_player`, and `_move_toward_x`.
+15. For `_is_on_ladder`, require more than a tiny x-overlap. Use tunable parameters such as minimum overlap fraction, center tolerance, and feet-to-ladder-bottom window.
+16. If logger feedback shows score events but `up_action_rate` and `climb_rate` near zero, keep the useful punch-distance predicate but add a real route-state machine: approach reachable ladder, align, climb, dismount, then choose the next ladder/platform target.
+17. If logger feedback shows `score_events=0` and near-zero `fire_action_rate` after starting from a scoring baseline, restore the first RIGHTFIRE reward branch before changing later route logic. Do not block punching simply because `on_column` is true.
+18. If the current best is the stable 200-point policy, make minimal additive edits gated by post-climb geometry such as `near_top`, `player_y <= 140`, or the first ladder column. Do not rewrite the starting ladder selector or monkey-threat helper unless the rewritten code is copied from the scoring baseline.
+""".strip(),
+        benchmark_context="""
+## Benchmark Context
+Kangaroo is an onboarding game in this thesis state. No canonical LeGPS 10000-step Kangaroo policy has been promoted yet.
+Positive return is better because reward follows score increments. Early runs should be treated as exploratory until a saved policy is reevaluated through the canonical evaluation path.
+""".strip(),
+    ),
     "freeway": GamePromptSpec(
         environment_description=FREEWAY_ENVIRONMENT_DESCRIPTION_V2,
         design_principles="""
@@ -1362,6 +1507,117 @@ class ParallelEvaluator:
             raise ValueError(
                 f"policy() must return one scalar action, got shape {tuple(action.shape)}"
             )
+
+    def _kangaroo_shaped_objective(
+        self,
+        total_reward: jnp.ndarray,
+        rewards: jnp.ndarray,
+        obs_history: jnp.ndarray,
+        actions: jnp.ndarray,
+        active_mask: jnp.ndarray,
+    ) -> Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray, jnp.ndarray, jnp.ndarray, jnp.ndarray]:
+        """Kangaroo-only scaffolded objective for inner-loop parameter search.
+
+        This deliberately remains separate from real game reward. It gives
+        CMA-ES intermediate route-progress signals when reward-only search
+        repeatedly rediscovered the shallow first-reward plateau.
+        """
+        active = active_mask.astype(jnp.float32)
+        active_count = jnp.maximum(jnp.sum(active), 1.0)
+
+        player_y = obs_history[:, 1]
+        start_y = player_y[0]
+        valid_y = jnp.where(active_mask, player_y, jnp.array(1e6, dtype=jnp.float32))
+        min_y = jnp.min(valid_y)
+        max_upward_progress = jnp.maximum(start_y - min_y, 0.0)
+
+        score_events = jnp.sum(jnp.where(active_mask & (rewards > 0), 1.0, 0.0))
+
+        up_mask = (
+            (actions == 2)
+            | (actions == 6)
+            | (actions == 7)
+            | (actions == 10)
+            | (actions == 14)
+            | (actions == 15)
+        ) & active_mask
+        fire_mask = (
+            (actions == 1)
+            | (actions == 10)
+            | (actions == 11)
+            | (actions == 12)
+            | (actions == 13)
+            | (actions == 14)
+            | (actions == 15)
+            | (actions == 16)
+            | (actions == 17)
+        ) & active_mask
+        punch_mask = ((actions == 11) | (actions == 12)) & active_mask
+
+        up_count = jnp.sum(up_mask.astype(jnp.float32))
+        fire_count = jnp.sum(fire_mask.astype(jnp.float32))
+        punch_rate = jnp.sum(punch_mask.astype(jnp.float32)) / active_count
+
+        first_route_bonus = 100.0 * (total_reward >= 200.0).astype(jnp.float32)
+        route_progress_bonus = (
+            8.0 * jnp.clip(max_upward_progress, 0.0, 16.0)
+            + 20.0 * jnp.clip(max_upward_progress - 16.0, 0.0, 64.0)
+        )
+        climb_signal_bonus = 50.0 * ((up_count > 0.0) & (max_upward_progress >= 8.0)).astype(jnp.float32)
+        post_first_reward_bonus = (
+            150.0
+            * ((total_reward >= 200.0) & (max_upward_progress > 20.0)).astype(jnp.float32)
+            + 12.0 * jnp.clip(max_upward_progress - 20.0, 0.0, 60.0)
+        )
+
+        no_fire_scoreless_penalty = (
+            150.0
+            * ((total_reward <= 0.0) & (fire_count == 0.0) & (max_upward_progress >= 8.0)).astype(jnp.float32)
+        )
+        futile_punch_penalty = (
+            100.0
+            * ((total_reward <= 0.0) & (punch_rate > 0.10)).astype(jnp.float32)
+        )
+        punch_farming_penalty = jnp.where(
+            (score_events >= 2.0) & (up_count == 0.0) & (max_upward_progress < 10.0) & (punch_rate > 0.05),
+            0.75 * jnp.abs(total_reward) + 500.0,
+            0.0,
+        )
+
+        shaped_score = (
+            total_reward
+            + first_route_bonus
+            + route_progress_bonus
+            + climb_signal_bonus
+            + post_first_reward_bonus
+            - no_fire_scoreless_penalty
+            - futile_punch_penalty
+            - punch_farming_penalty
+        )
+
+        return (
+            shaped_score,
+            max_upward_progress,
+            score_events,
+            no_fire_scoreless_penalty,
+            punch_farming_penalty,
+            post_first_reward_bonus,
+        )
+
+    def _optimization_score(
+        self,
+        total_reward: jnp.ndarray,
+        rewards: jnp.ndarray,
+        obs_history: jnp.ndarray,
+        actions: jnp.ndarray,
+        active_mask: jnp.ndarray,
+    ) -> Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray, jnp.ndarray, jnp.ndarray, jnp.ndarray]:
+        if self.game == "kangaroo" and self.config.kangaroo_shaped_objective:
+            return self._kangaroo_shaped_objective(
+                total_reward, rewards, obs_history, actions, active_mask
+            )
+        zero = jnp.array(0.0, dtype=jnp.float32)
+        return total_reward, zero, zero, zero, zero, zero
     
     def _run_single_episode(
         self,
@@ -1381,6 +1637,7 @@ class ParallelEvaluator:
         
         def step_fn(carry, _):
             obs_flat, state, total_reward, done = carry
+            active_step = jnp.logical_not(done)
             
             # Get action from policy
             action = policy_fn(obs_flat, params)
@@ -1415,10 +1672,32 @@ class ParallelEvaluator:
                 lambda: next_state
             )
             
-            return (next_obs_flat, next_state, next_total_reward, new_done), (effective_reward, obs_flat, episode_finished)
+            return (
+                next_obs_flat,
+                next_state,
+                next_total_reward,
+                new_done,
+            ), (
+                effective_reward,
+                obs_flat,
+                action,
+                active_step,
+                episode_finished,
+            )
         
         init_carry = (obs_flat, state, jnp.array(0.0), jnp.array(False))
-        (final_obs, final_state, total_reward, _), (rewards, obs_history, terminal_flags) = lax.scan(
+        (
+            final_obs,
+            final_state,
+            total_reward,
+            _,
+        ), (
+            rewards,
+            obs_history,
+            actions,
+            active_mask,
+            terminal_flags,
+        ) = lax.scan(
             step_fn, init_carry, None, length=max_steps
         )
         
@@ -1451,8 +1730,34 @@ class ParallelEvaluator:
             # For non-Pong games, use total reward as score
             player_score = total_reward
             enemy_score = jnp.array(0.0)
+
+        (
+            optimization_score,
+            shaped_upward_progress,
+            shaped_score_events,
+            shaped_no_fire_penalty,
+            shaped_punch_farming_penalty,
+            shaped_post_reward_bonus,
+        ) = self._optimization_score(
+            total_reward,
+            rewards,
+            obs_history,
+            actions,
+            active_mask,
+        )
         
-        return total_reward, rewards, player_score, enemy_score
+        return (
+            total_reward,
+            rewards,
+            player_score,
+            enemy_score,
+            optimization_score,
+            shaped_upward_progress,
+            shaped_score_events,
+            shaped_no_fire_penalty,
+            shaped_punch_farming_penalty,
+            shaped_post_reward_bonus,
+        )
     
     def evaluate_policy(
         self,
@@ -1476,20 +1781,40 @@ class ParallelEvaluator:
         )
         
         # Run all episodes in parallel
-        total_rewards, all_rewards, player_scores, enemy_scores = vmapped_run(keys)
+        (
+            total_rewards,
+            all_rewards,
+            player_scores,
+            enemy_scores,
+            optimization_scores,
+            shaped_upward_progress,
+            shaped_score_events,
+            shaped_no_fire_penalties,
+            shaped_punch_farming_penalties,
+            shaped_post_reward_bonuses,
+        ) = vmapped_run(keys)
         
         # Compute metrics
         avg_return = jnp.mean(total_rewards)
+        avg_optimization_score = jnp.mean(optimization_scores)
         avg_player_score = jnp.mean(player_scores)
         avg_enemy_score = jnp.mean(enemy_scores)
         win_rate = jnp.mean(player_scores > enemy_scores)
         
         return {
             'avg_return': float(avg_return),
+            'optimization_score': float(avg_optimization_score),
+            'objective_is_shaped': bool(self.game == "kangaroo" and self.config.kangaroo_shaped_objective),
+            'shaped_upward_progress': float(jnp.mean(shaped_upward_progress)),
+            'shaped_score_events': float(jnp.mean(shaped_score_events)),
+            'shaped_no_fire_penalty': float(jnp.mean(shaped_no_fire_penalties)),
+            'shaped_punch_farming_penalty': float(jnp.mean(shaped_punch_farming_penalties)),
+            'shaped_post_reward_bonus': float(jnp.mean(shaped_post_reward_bonuses)),
             'avg_player_score': float(avg_player_score),
             'avg_enemy_score': float(avg_enemy_score),
             'win_rate': float(win_rate),
             'total_rewards': total_rewards,
+            'optimization_scores': optimization_scores,
             'player_scores': player_scores,
             'enemy_scores': enemy_scores,
         }
@@ -1669,6 +1994,11 @@ def vector_to_params(vector: jnp.ndarray, structure: Tuple) -> Dict:
     return jax.tree_util.tree_unflatten(tree_def, flat_arrays)
 
 
+def get_search_score(metrics: Dict[str, Any]) -> float:
+    """Return the scalar objective used by the inner parameter optimizer."""
+    return float(metrics.get("optimization_score", metrics["avg_return"]))
+
+
 class CMAESOptimizer:
     """
     CMA-ES (Covariance Matrix Adaptation Evolution Strategy) optimizer.
@@ -1757,7 +2087,7 @@ class CMAESOptimizer:
                         num_episodes=self.config.num_parallel_envs,
                         max_steps=search_max_steps,
                     )
-                    score = metrics['avg_return']
+                    score = get_search_score(metrics)
                     fitness_scores.append(score)
                     all_metrics.append((score, candidate_params, metrics))
                     
@@ -1805,7 +2135,7 @@ class CMAESOptimizer:
             gen_mean = jnp.mean(jnp.array([s for s in fitness_scores if s > float('-inf')]))
             
             if self.config.verbose:
-                print(f"    Gen {gen+1}: best={gen_best:.2f}, mean={gen_mean:.2f}, Ïƒ={sigma:.3f}, overall_best={best_score:.2f}")
+                print(f"    Gen {gen+1}: best_objective={gen_best:.2f}, mean_objective={gen_mean:.2f}, Ïƒ={sigma:.3f}, overall_best_objective={best_score:.2f}")
         
         # If no valid evaluations, return base params with default metrics
         if best_metrics is None:
@@ -1865,13 +2195,14 @@ class RandomSearchOptimizer:
             max_steps=search_max_steps,
         )
         
-        if base_metrics['avg_return'] > best_score:
-            best_score = base_metrics['avg_return']
+        base_score = get_search_score(base_metrics)
+        if base_score > best_score:
+            best_score = base_score
             best_params = base_params
             best_metrics = base_metrics
         
         if self.config.verbose:
-            print(f"  Base params: return={base_metrics['avg_return']:.2f}, "
+            print(f"  Base params: objective={base_score:.2f}, return={base_metrics['avg_return']:.2f}, "
                   f"player={base_metrics['avg_player_score']:.1f}, "
                   f"enemy={base_metrics['avg_enemy_score']:.1f}")
         
@@ -1889,13 +2220,14 @@ class RandomSearchOptimizer:
                 max_steps=search_max_steps,
             )
             
-            if metrics['avg_return'] > best_score:
-                best_score = metrics['avg_return']
+            score = get_search_score(metrics)
+            if score > best_score:
+                best_score = score
                 best_params = perturbed_params
                 best_metrics = metrics
                 
                 if self.config.verbose:
-                    print(f"  Sample {i+1}: NEW BEST return={metrics['avg_return']:.2f}")
+                    print(f"  Sample {i+1}: NEW BEST objective={score:.2f}, return={metrics['avg_return']:.2f}")
         
         return best_params, best_metrics
 
@@ -2045,7 +2377,7 @@ class BayesianOptimizer:
             num_episodes=self.config.num_parallel_envs,
             max_steps=search_max_steps,
         )
-        score = float(base_metrics["avg_return"])
+        score = get_search_score(base_metrics)
         self.history_X.append(x0.copy())
         self.history_y.append(score)
         
@@ -2056,7 +2388,7 @@ class BayesianOptimizer:
 
         if self.config.verbose:
             print(f"  Bayesian Opt: n={n} params, {self.config.cma_es_generations} iterations")
-            print(f"    Initial: return={score:.2f}, win_rate={base_metrics['win_rate']:.2%}")
+            print(f"    Initial: objective={score:.2f}, return={base_metrics['avg_return']:.2f}, win_rate={base_metrics['win_rate']:.2%}")
 
         # Initial random exploration (warm-start GP with diverse samples)
         n_initial = min(5, self.config.num_param_samples)
@@ -2076,7 +2408,7 @@ class BayesianOptimizer:
                     num_episodes=self.config.num_parallel_envs,
                     max_steps=search_max_steps,
                 )
-                score = float(metrics["avg_return"])
+                score = get_search_score(metrics)
             except Exception:
                 score = float('-inf')
                 metrics = None
@@ -2089,7 +2421,7 @@ class BayesianOptimizer:
                 best_params = candidate_params
                 best_metrics = metrics
                 if self.config.verbose:
-                    print(f"    Random init {i+1}: NEW BEST return={score:.2f}")
+                    print(f"    Random init {i+1}: NEW BEST objective={score:.2f}, return={metrics['avg_return']:.2f}")
 
         # Main Bayesian Optimization loop
         gp = GaussianProcess(length_scale=sigma, noise=1e-4)
@@ -2156,7 +2488,7 @@ class BayesianOptimizer:
                     num_episodes=self.config.num_parallel_envs,
                     max_steps=search_max_steps,
                 )
-                score = float(metrics["avg_return"])
+                score = get_search_score(metrics)
             except Exception:
                 score = float('-inf')
                 metrics = None
@@ -2172,12 +2504,12 @@ class BayesianOptimizer:
             # Progress reporting (every 10% or when new best)
             if self.config.verbose and (iteration + 1) % max(1, remaining_budget // 10) == 0:
                 print(f"    Iter {iteration + 1}/{remaining_budget}: "
-                      f"best={best_score:.2f}, current={score:.2f}, "
+                      f"best_objective={best_score:.2f}, current_objective={score:.2f}, "
                       f"Î²={beta:.2f}")
         
         # Final summary
         if self.config.verbose and best_metrics:
-            print(f"    Final: return={best_score:.2f}, win_rate={best_metrics['win_rate']:.2%}")
+            print(f"    Final: objective={best_score:.2f}, return={best_metrics['avg_return']:.2f}, win_rate={best_metrics['win_rate']:.2%}")
         
         return best_params, best_metrics
 
@@ -2207,7 +2539,7 @@ class NoSearchOptimizer:
         if self.config.verbose:
             print(
                 "  No-search ablation: evaluated LLM init_params directly "
-                f"return={metrics['avg_return']:.2f}, win_rate={metrics['win_rate']:.2%}"
+                f"objective={get_search_score(metrics):.2f}, return={metrics['avg_return']:.2f}, win_rate={metrics['win_rate']:.2%}"
             )
         return params, metrics
 
@@ -2381,6 +2713,19 @@ def generate_feedback(metrics: Dict[str, Any], params: Dict, logger_metrics: Dic
             feedback_parts.append("The agent is crossing sometimes, but timing and lane choice are still limiting score.")
         else:
             feedback_parts.append("The agent is crossing consistently. Further gains likely come from cleaner lane timing and less hesitation.")
+    elif game == "kangaroo":
+        if avg_return <= 0:
+            feedback_parts.append("The Kangaroo agent is not scoring. It likely fails to turn ladder movement into platform progress, reward collection, or child-reaching behavior.")
+        elif avg_return < 500:
+            feedback_parts.append("The Kangaroo agent is scoring only lightly. It needs more reliable upward route execution and safer transitions between ladders/platforms.")
+        else:
+            feedback_parts.append("The Kangaroo agent is scoring. Further gains likely come from safer route progress and better reward opportunities after reaching upper platforms.")
+        if metrics.get("objective_is_shaped"):
+            feedback_parts.append(
+                "Kangaroo parameter search used an explicitly shaped route objective for CMA-ES. "
+                f"Real average return is still {avg_return:.2f}; the shaped optimization score is "
+                f"{float(metrics.get('optimization_score', avg_return)):.2f}. Treat shaped terms as a scaffold, not as final task success."
+            )
     elif game == "asterix":
         if avg_return < 500:
             feedback_parts.append("The agent is still close to random-level Asterix performance. It likely misses too many collectibles, idles in safe lanes, or changes lanes too cautiously.")
@@ -2427,6 +2772,40 @@ def generate_feedback(metrics: Dict[str, Any], params: Dict, logger_metrics: Dic
                     feedback_parts.append("High collision rate: improve current-lane and next-lane projected-overlap checks, but do not become overly passive.")
                 if logger_metrics.get('crossings', 0) == 0:
                     feedback_parts.append("No crossings recorded: the chicken must actually reach the top of the screen.")
+            elif game == "kangaroo":
+                if logger_metrics.get('up_only_failure', 0) > 0.5:
+                    feedback_parts.append("\nUP-only failure detected: the policy effectively returned UP for the whole rollout. Add horizontal transitions after climbing and do not treat ladder alignment as permission to hold UP forever.")
+                if logger_metrics.get('horizontal_only_failure', 0) > 0.5:
+                    feedback_parts.append("\nHorizontal-only failure detected: the policy mostly moved LEFT/RIGHT but made almost no upward progress. Relax the climb-band gate and issue UP when aligned with a reachable ladder bottom.")
+                if logger_metrics.get('punch_farming_pattern', 0) > 0.5:
+                    feedback_parts.append("\nPunch-farming pattern detected: the policy scored multiple times with LEFTFIRE/RIGHTFIRE while never issuing UP. Keep the useful punch predicate, but this is not a proper Kangaroo solution; add route state that approaches a reachable ladder, climbs, dismounts, and selects the next upward target.")
+                if logger_metrics.get('score_without_climb_pattern', 0) > 0.5:
+                    feedback_parts.append("The policy scored without climbing or meaningful upward progress. Do not optimize this as the main strategy; require ladder-route progress toward lower y positions and the child.")
+                if logger_metrics.get('first_reward_suppressed_pattern', 0) > 0.5:
+                    feedback_parts.append("First-reward suppression detected: the policy moves/climbs through the early route but almost never uses FIRE and scores 0. Restore the nearby-monkey RIGHTFIRE branch from the stable 200-point policy before changing post-200 route logic.")
+                    feedback_parts.append("Do not add `& ~on_column` or similar broad ladder gates to `punch_in_range`; the working first reward can happen while the player is on or near the ladder column.")
+                if logger_metrics.get('no_fire_scoreless_pattern', 0) > 0.5:
+                    feedback_parts.append("The policy is scoreless and almost never uses FIRE. Anti-punch-farming should stop repeated lower-platform punch shortcuts, not remove the first useful punch/jump action entirely.")
+                if logger_metrics.get('score_events', 0) == 0:
+                    feedback_parts.append("No positive reward events occurred. The policy must reach fruit/enemy/level-progress opportunities instead of only moving on the starting ladder.")
+                if logger_metrics.get('horizontal_action_rate', 0) < 0.15:
+                    feedback_parts.append("Horizontal movement is too low for Kangaroo. The agent must move left/right between ladder segments, platforms, bell, child, and safe reward opportunities.")
+                if logger_metrics.get('horizontal_action_rate', 0) > 0.9 and logger_metrics.get('max_upward_progress', 0) < 5:
+                    feedback_parts.append("Horizontal movement is too high while vertical progress is near zero. The agent is dithering instead of climbing.")
+                if logger_metrics.get('climb_rate', 0) > 0.3 and logger_metrics.get('up_action_rate', 0) < 0.15:
+                    feedback_parts.append("The player is often in a climbing state but the policy rarely issues UP. Add an on-ladder-column predicate so climbing wins over horizontal target movement until the ladder top is reached.")
+                if logger_metrics.get('x_range', 0) > 80 and logger_metrics.get('max_upward_progress', 0) < 35:
+                    feedback_parts.append("The policy moves widely but reaches only the first higher platform. Add top-of-ladder dismount logic and select the next reachable ladder from the new platform instead of sweeping horizontally.")
+                if 50 <= avg_return <= 250 and logger_metrics.get('score_events', 0) <= 1.2 and logger_metrics.get('max_upward_progress', 0) < 35:
+                    feedback_parts.append("The policy has likely found a stable single 200-point event but is plateauing there. Preserve that first reward path, then improve only the later route logic: next-ladder selection, hazard timing, and dismount direction.")
+                    feedback_parts.append("A route trace of the current stable-200 Kangaroo policy found the bottleneck: reward at step 613 from RIGHTFIRE near x=132,y=148, then the player remained near x=132,y=132 until a falling coconut at roughly x=133,y=129 caused life loss. The next rewrite should avoid staying in that column after the reward.")
+                    feedback_parts.append("Avoid broad structural rewrites from this plateau. A prior trace-guided rewrite regressed from 200 to 0 by losing the working first-reward route.")
+                if logger_metrics.get('x_range', 0) < 10:
+                    feedback_parts.append("The player barely changes x position. Add route logic that intentionally moves across platforms after climbing.")
+                if logger_metrics.get('lives_lost', 0) > 0:
+                    feedback_parts.append("The rollout lost at least one life. Add hazard avoidance or stop staying in a vulnerable ladder state.")
+                if logger_metrics.get('max_upward_progress', 0) < 40:
+                    feedback_parts.append("Vertical progress is shallow. The policy should climb to higher platforms and then transition horizontally to the next ladder or child route.")
             elif game == "asterix":
                 if logger_metrics.get('hits_taken', 0) >= 2:
                     feedback_parts.append("\nToo many enemy hits: lane danger estimation is too weak or too late.")
@@ -2504,6 +2883,20 @@ def generate_feedback(metrics: Dict[str, Any], params: Dict, logger_metrics: Dic
         feedback_parts.append("6. Do not use Python int() inside policy().")
         feedback_parts.append("7. Strong Freeway policies usually use mostly UP and NOOP; DOWN should be rare.")
         feedback_parts.append("8. Do not require many future lanes to be safe simultaneously; check current and immediate next lane first.")
+    elif game == "kangaroo":
+        feedback_parts.append("1. Current wrapper uses 440 features with frame_stack=1; do not use the obsolete 111-feature layout.")
+        feedback_parts.append("2. Player fields are obs_flat[0:8]; player_x=obs_flat[0], player_y=obs_flat[1], player_orientation=obs_flat[7].")
+        feedback_parts.append("3. Ladder arrays are x=obs_flat[168:188], y=obs_flat[188:208], w=obs_flat[208:228], h=obs_flat[228:248], active=obs_flat[248:268].")
+        feedback_parts.append("4. Child fields are x=obs_flat[360], y=obs_flat[361], active=obs_flat[364].")
+        feedback_parts.append("5. Hazard arrays include monkeys x/y/active/state at 376:408 and thrown coconuts x/y/active/state at 408:440.")
+        feedback_parts.append("6. Action mapping is 0=NOOP, 1=FIRE, 2=UP, 3=RIGHT, 4=LEFT, 5=DOWN, 6=UPRIGHT, 7=UPLEFT.")
+        feedback_parts.append("7. Prioritize ladder navigation and upward progress before fruit collection.")
+        feedback_parts.append("8. Do not return UP every step. A known failed smoke policy used mostly UP, scored 0.0, and lost a life.")
+        feedback_parts.append("9. Do not return only LEFT/RIGHT either. A known failed rewrite alternated horizontally near the start, made no upward progress, scored 0.0, and lost a life.")
+        feedback_parts.append("10. Ladder reachability must use player_bottom_y = player_y + player_h and ladder_bottom_y = ladder_y + ladder_h; at Level 1 start the reachable first ladder is around x=132, not the nearby higher-platform ladder around x=20.")
+        feedback_parts.append("11. Do not use Python int(), bool(), or Python if-statements inside policy().")
+        feedback_parts.append("12. When improving the stable 200-point Kangaroo baseline, preserve the lower-platform route, monkey-threat detection, and first RIGHTFIRE punch branch exactly; patch only post-200/top-of-ladder logic.")
+        feedback_parts.append("13. Forbidden Kangaroo regression: do not add `& ~on_column`, `& ~on_ladder`, or another ladder-state gate to `punch_in_range`.")
     elif game == "asterix":
         feedback_parts.append("1. Each frame is 136 features; stacked observations have 272 features.")
         feedback_parts.append("2. Use prev/curr enemy and collectible x positions to estimate lane-wise dx.")
@@ -2590,7 +2983,7 @@ class LLMOptimizationLoop:
                     "the LLM-chosen constants directly."
                 ),
             }
-        return {
+        context = {
             "method_objective": (
                 "Produce one clean parametric controller that can be optimized by CMA-ES. "
                 "The structure should generalize well and avoid game-specific prompt hacks."
@@ -2601,6 +2994,26 @@ class LLMOptimizationLoop:
             "improvement_objective": "Improve score while keeping the controller simple enough for CMA-ES.",
             "rewrite_objective": "Keep the controller compact and optimizer-friendly.",
         }
+        if self.game == "kangaroo" and self.config.kangaroo_shaped_objective:
+            context["method_objective"] += (
+                " For this Kangaroo scaffolded experiment only, CMA-ES will optimize a shaped "
+                "route-progress objective that combines real reward with upward-progress, first-reward, "
+                "and anti-shortcut terms. Final success is still judged by real game reward."
+            )
+            context["method_design_rule"] += (
+                " Expose tunable geometric thresholds that can trade off route progress, ladder behavior, "
+                "and reward without hiding low real return."
+            )
+            context["improvement_objective"] = (
+                "Improve real Kangaroo reward and route behavior. The inner optimizer is using a shaped "
+                "route-progress scaffold, so policy structure should expose meaningful ladder, dismount, "
+                "hazard, and punch thresholds."
+            )
+            context["rewrite_objective"] = (
+                "Keep the controller compact and optimizer-friendly for the shaped Kangaroo route objective, "
+                "while remembering that final evaluation remains real game reward."
+            )
+        return context
 
     def _build_initial_prompt(self) -> str:
         return UNIFIED_INITIAL_PROMPT.format(
@@ -2631,7 +3044,20 @@ class LLMOptimizationLoop:
         else:
             strong_policy = avg_return >= self.config.target_score
 
-        if strong_policy:
+        if self.game == "kangaroo" and 50.0 <= avg_return <= 250.0:
+            revision_strategy = (
+                "This is a conservative Kangaroo continuation from the stable first-reward baseline. "
+                "Preserve the lower-platform route, `_threats` monkey detection, `punch_dx`/`danger_r` "
+                "semantics, and the exact nearby-monkey RIGHTFIRE branch. Only patch behavior that is "
+                "clearly after the first ladder/reward: top-of-ladder dismount, falling-coconut escape, "
+                "and next-ladder selection from the upper platform."
+            )
+            change_budget = (
+                "Very small Kangaroo edit budget: do not rewrite the whole controller, do not change the "
+                "starting-ladder selector, and do not add any `& ~on_column` or `& ~on_ladder` condition "
+                "to `punch_in_range`. Add at most one or two post-200 helper conditions or parameters."
+            )
+        elif strong_policy:
             revision_strategy = (
                 "The current policy is already strong. Preserve the overall structure, helper layout, "
                 "and main control logic. Only make the smallest set of changes needed to address the "
@@ -2711,6 +3137,7 @@ class LLMOptimizationLoop:
         failed_candidate_context: str = "",
     ) -> str:
         avg_return = float(metrics.get('avg_return', 0.0))
+        method_context = self._method_prompt_context()
         if self.game == "asterix" and avg_return >= 1000.0:
             rewrite_strategy = (
                 "This is a conservative continuation from a working Asterix baseline. Preserve the "
@@ -2720,6 +3147,22 @@ class LLMOptimizationLoop:
                 "parameters cannot express the fix. Do not add a blanket structural upper-lane bias; prefer "
                 "nearest safe collectible selection with a lane-distance/reachability penalty and better "
                 "danger avoidance. Use the current best numeric parameters as the CMA-ES starting point."
+            )
+        elif self.game == "kangaroo" and 50.0 <= avg_return <= 250.0:
+            rewrite_strategy = (
+                "This is a conservative continuation from Kangaroo's stable 200-point baseline, not a "
+                "fresh policy rewrite. Preserve the complete first-reward route: the lower-platform ladder "
+                "approach, `_threats` monkey detection, `danger_r` and `punch_dx` meanings, and the exact "
+                "`punch_in_range = any_monkey & (jnp.abs(monkey_sign_dx) < punch_dx)` followed by "
+                "`action = jnp.where(punch_in_range, punch_action, action)`. The rewrite may only alter "
+                "post-200/top-of-ladder behavior: dismount from the first ladder, falling-coconut escape, "
+                "and next-ladder selection from the upper platform. Do not add `& ~on_column`, `& ~on_ladder`, "
+                "or any other ladder-state gate to the punch branch."
+            )
+            method_context["rewrite_objective"] = (
+                method_context["rewrite_objective"]
+                + " For Kangaroo at the stable 200-point plateau, use a minimal preservation patch: "
+                "the candidate must still keep the first RIGHTFIRE reward path intact."
             )
         else:
             rewrite_strategy = (
@@ -2739,12 +3182,44 @@ class LLMOptimizationLoop:
             previous_code=previous_code,
             diagnosis=diagnosis,
             failed_candidate_context=failed_candidate_context,
-            **self._method_prompt_context(),
+            **method_context,
             rewrite_strategy=rewrite_strategy,
             benchmark_context=self.prompt_spec.benchmark_context,
             improvement_guidelines=self.prompt_spec.improvement_guidelines,
         )
-    
+
+    def _record_llm_exchange(
+        self,
+        *,
+        kind: str,
+        prompt: str,
+        system_prompt: str,
+        response: str,
+        extracted_output: Optional[str] = None,
+    ) -> Path:
+        """Persist exact LLM input/output for auditability without credentials."""
+        io_dir = Path(self.config.output_dir) / "llm_io"
+        io_dir.mkdir(parents=True, exist_ok=True)
+        safe_kind = "".join(ch if ch.isalnum() or ch in {"_", "-"} else "_" for ch in kind)
+        path = io_dir / f"v{self.iteration:02d}_{safe_kind}.json"
+        payload = {
+            "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "game": self.game,
+            "iteration": self.iteration,
+            "kind": kind,
+            "provider": self.config.llm_provider,
+            "model": self.config.llm_model,
+            "temperature": self.config.temperature,
+            "max_tokens": self.config.max_tokens,
+            "optimizer": self.config.optimizer,
+            "system_prompt": system_prompt,
+            "user_prompt": prompt,
+            "raw_response": response,
+            "extracted_output": extracted_output,
+        }
+        path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        return path
+
     def _get_initial_policy(self) -> str:
         """Get the initial policy from the LLM."""
         prompt = self._build_initial_prompt()
@@ -2753,7 +3228,15 @@ class LLMOptimizationLoop:
             print("Requesting initial policy from LLM...")
         
         response = self.llm_client.ask(prompt, system_prompt=self.system_prompt)
-        return extract_python_code(response)
+        extracted_code = extract_python_code(response)
+        self._record_llm_exchange(
+            kind="initial_policy",
+            prompt=prompt,
+            system_prompt=self.system_prompt,
+            response=response,
+            extracted_output=extracted_code,
+        )
+        return extracted_code
 
     def _recent_failed_candidate_context(self, best_score: float) -> str:
         """Summarize the latest worse rewrite so the next prompt avoids repeating it."""
@@ -2782,6 +3265,15 @@ class LLMOptimizationLoop:
             if logger_metrics:
                 metric_names = [
                     "final_score",
+                    "score_events",
+                    "up_action_rate",
+                    "climb_rate",
+                    "fire_action_rate",
+                    "punch_action_rate",
+                    "first_reward_suppressed_pattern",
+                    "no_fire_scoreless_pattern",
+                    "punch_farming_pattern",
+                    "score_without_climb_pattern",
                     "item_pickups",
                     "hits_taken",
                     "respawn_rate",
@@ -2832,6 +3324,13 @@ class LLMOptimizationLoop:
                 diagnosis_prompt,
                 system_prompt=UNIFIED_DIAGNOSTIC_SYSTEM_PROMPT,
             ).strip()
+            self._record_llm_exchange(
+                kind="diagnosis",
+                prompt=diagnosis_prompt,
+                system_prompt=UNIFIED_DIAGNOSTIC_SYSTEM_PROMPT,
+                response=diagnosis,
+                extracted_output=diagnosis,
+            )
 
             diagnosis_path = Path(self.config.output_dir) / f"diagnosis_v{self.iteration}.txt"
             diagnosis_path.parent.mkdir(parents=True, exist_ok=True)
@@ -2849,7 +3348,15 @@ class LLMOptimizationLoop:
                 print("Requesting improved policy from LLM...")
         
         response = self.llm_client.ask(prompt, system_prompt=self.system_prompt)
-        return extract_python_code(response)
+        extracted_code = extract_python_code(response)
+        self._record_llm_exchange(
+            kind="policy_rewrite",
+            prompt=prompt,
+            system_prompt=self.system_prompt,
+            response=response,
+            extracted_output=extracted_code,
+        )
+        return extracted_code
 
     def _is_strong_result(self, metrics: Optional[Dict[str, Any]]) -> bool:
         """Return True when a game is already in a regime where preservation matters more than exploration."""
@@ -3202,6 +3709,20 @@ class LLMOptimizationLoop:
                     max_steps=self.config.max_steps_per_episode,
                 )
                 metrics['search_avg_return'] = search_metrics.get('avg_return', float('-inf'))
+                metrics['search_optimization_score'] = search_metrics.get(
+                    'optimization_score',
+                    metrics['search_avg_return'],
+                )
+                metrics['objective_is_shaped'] = bool(search_metrics.get('objective_is_shaped', False))
+                for shaped_key in [
+                    'shaped_upward_progress',
+                    'shaped_score_events',
+                    'shaped_no_fire_penalty',
+                    'shaped_punch_farming_penalty',
+                    'shaped_post_reward_bonus',
+                ]:
+                    if shaped_key in search_metrics:
+                        metrics[f"search_{shaped_key}"] = search_metrics[shaped_key]
                 metrics['search_avg_player_score'] = search_metrics.get('avg_player_score', 0.0)
                 metrics['search_avg_enemy_score'] = search_metrics.get('avg_enemy_score', 0.0)
                 metrics['search_win_rate'] = search_metrics.get('win_rate', 0.0)
@@ -3213,7 +3734,11 @@ class LLMOptimizationLoop:
             print(f"\nResults for iteration {self.iteration}:")
             if 'search_avg_return' in metrics:
                 print(f"  Search Return ({self.config.search_max_steps or self.config.max_steps_per_episode} steps): {metrics['search_avg_return']:.2f}")
+            if metrics.get('objective_is_shaped') and 'search_optimization_score' in metrics:
+                print(f"  Search Shaped Objective: {metrics['search_optimization_score']:.2f}")
             print(f"  Average Return: {metrics['avg_return']:.2f}")
+            if metrics.get('objective_is_shaped'):
+                print(f"  Evaluation Shaped Objective: {metrics.get('optimization_score', metrics['avg_return']):.2f}")
             print(f"  Player Score: {metrics['avg_player_score']:.2f}")
             print(f"  Enemy Score: {metrics['avg_enemy_score']:.2f}")
             print(f"  Win Rate: {metrics['win_rate']:.2%}")
@@ -3253,20 +3778,27 @@ class LLMOptimizationLoop:
                 if self.config.stop_on_strong_best and self._is_strong_result(best_metrics):
                     print("  Current revision did not improve a strong best policy.")
                     print("  Stopping now to preserve the best policy instead of continuing weaker rewrites.")
+                    history_metrics = {k: v for k, v in metrics.items()
+                                       if not isinstance(v, jnp.ndarray)}
+                    if logger_metrics is not None:
+                        history_metrics["logger_metrics"] = logger_metrics
                     self.history.append({
                         'iteration': self.iteration,
-                        'metrics': {k: v for k, v in metrics.items() 
-                                   if not isinstance(v, jnp.ndarray)},
+                        'metrics': history_metrics,
                         'best_params': to_jsonable(current_params),
                         'filepath': filepath
                     })
                     break
             
             # Save history
+            history_metrics = {k: v for k, v in metrics.items()
+                               if not isinstance(v, jnp.ndarray)}
+            if logger_metrics is not None:
+                history_metrics["logger_metrics"] = logger_metrics
+
             self.history.append({
                 'iteration': self.iteration,
-                'metrics': {k: v for k, v in metrics.items() 
-                           if not isinstance(v, jnp.ndarray)},
+                'metrics': history_metrics,
                 'best_params': to_jsonable(current_params),
                 'filepath': filepath
             })
@@ -3359,31 +3891,77 @@ import jax
 def init_params() -> dict:
     """Initialize parameters for Kangaroo."""
     return {
-        'ladder_threshold': jnp.array(12.0),
-        'move_speed': jnp.array(1.0),
+        'ladder_threshold': jnp.array(10.0),
+        'ladder_reach_tol': jnp.array(12.0),
+        'ladder_top_margin': jnp.array(4.0),
+        'danger_x_margin': jnp.array(14.0),
+        'danger_y_margin': jnp.array(18.0),
     }
 
 def policy(obs_flat: jnp.ndarray, params: dict) -> int:
-    """Simple policy: find ladder and climb."""
+    """Simple policy: move to a useful ladder, climb, and dodge immediate hazards."""
     player_x = obs_flat[0]
     player_y = obs_flat[1]
-    
-    # Get first ladder position (indices 43-44)
-    ladder_x = obs_flat[43]
-    ladder_y = obs_flat[44]
-    
-    # Check if we're near a ladder
-    dx = ladder_x - player_x
+    player_w = obs_flat[2]
+    player_h = obs_flat[3]
+    player_center_x = player_x + player_w * 0.5
+    player_bottom_y = player_y + player_h
+
+    ladder_x = obs_flat[168:188]
+    ladder_y = obs_flat[188:208]
+    ladder_w = obs_flat[208:228]
+    ladder_h = obs_flat[228:248]
+    ladder_active = obs_flat[248:268] > 0
+
+    ladder_center_x = ladder_x + ladder_w * 0.5
+    ladder_top_y = ladder_y
+    ladder_bottom_y = ladder_y + ladder_h
+    bottom_reachable = jnp.abs(ladder_bottom_y - player_bottom_y) < params['ladder_reach_tol']
+    upward_ladder = ladder_top_y < player_y - params['ladder_top_margin']
+    usable_ladder = ladder_active & bottom_reachable & upward_ladder
+    fallback_ladder = ladder_active & upward_ladder
+    candidate_ladder = jnp.where(jnp.any(usable_ladder), usable_ladder, fallback_ladder)
+    ladder_cost = (
+        jnp.abs(ladder_center_x - player_center_x)
+        + 0.35 * jnp.abs(ladder_bottom_y - player_bottom_y)
+        + 0.05 * ladder_top_y
+    )
+    ladder_cost = jnp.where(candidate_ladder, ladder_cost, 1e6)
+    ladder_idx = jnp.argmin(ladder_cost)
+    target_x = ladder_center_x[ladder_idx]
+
+    dx = target_x - player_center_x
     at_ladder = jnp.abs(dx) < params['ladder_threshold']
+
+    monkey_x = obs_flat[376:380]
+    monkey_y = obs_flat[380:384]
+    monkey_active = obs_flat[392:396] > 0
+    coconut_x = obs_flat[408:412]
+    coconut_y = obs_flat[412:416]
+    coconut_active = obs_flat[424:428] > 0
+    monkey_near = jnp.any(
+        monkey_active
+        & (jnp.abs(monkey_x - player_x) < params['danger_x_margin'])
+        & (jnp.abs(monkey_y - player_y) < params['danger_y_margin'])
+    )
+    coconut_near = jnp.any(
+        coconut_active
+        & (jnp.abs(coconut_x - player_x) < params['danger_x_margin'])
+        & (jnp.abs(coconut_y - player_y) < params['danger_y_margin'])
+    )
+    danger_near = monkey_near | coconut_near
     
-    # If at ladder, climb up. Otherwise move towards ladder
     action = jax.lax.cond(
-        at_ladder,
-        lambda: 2,  # UP - climb
+        danger_near,
+        lambda: 1,  # FIRE - punch/jump defensively
         lambda: jax.lax.cond(
-            dx > 0,
-            lambda: 3,  # RIGHT
-            lambda: 4   # LEFT
+            at_ladder,
+            lambda: 2,  # UP - climb
+            lambda: jax.lax.cond(
+                dx > 0,
+                lambda: 3,  # RIGHT
+                lambda: 4   # LEFT
+            )
         )
     )
     return action
@@ -3441,6 +4019,8 @@ def run_demo_mode(config: OptimizationConfig, seed: int = 42, game: str = "pong"
     # Select demo code based on game
     if game == "freeway":
         demo_code = FREEWAY_DEMO_CODE
+    elif game == "kangaroo":
+        demo_code = KANGAROO_DEMO_CODE
     else:
         demo_code = PONG_DEMO_CODE
     
@@ -3479,7 +4059,7 @@ def main():
     )
     # Game selection
     parser.add_argument('--game', type=str, default='pong',
-                       choices=['pong', 'freeway', 'asterix', 'breakout', 'skiing'],
+                       choices=['pong', 'freeway', 'asterix', 'breakout', 'skiing', 'kangaroo'],
                        help='Game to optimize in the current unified thesis scope')
     
     # LLM settings
@@ -3504,6 +4084,8 @@ def main():
                        help='Frame stack size (0 = game default, Pong uses 2)')
     parser.add_argument('--search-max-steps', type=int, default=0,
                        help='Inner-loop optimization horizon (0 = use --max-steps)')
+    parser.add_argument('--kangaroo-shaped-objective', action='store_true',
+                       help='Kangaroo only: use a documented shaped route-progress objective for inner-loop parameter search while still reporting real reward.')
     
     # Optimization settings
     parser.add_argument('--optimizer', type=str, default='cma-es',
@@ -3569,6 +4151,7 @@ def main():
         max_steps_per_episode=args.max_steps,
         frame_stack_size=args.frame_stack,
         search_max_steps=args.search_max_steps,
+        kangaroo_shaped_objective=args.kangaroo_shaped_objective,
         optimizer=args.optimizer,
         max_iterations=args.max_iters,
         target_score=args.target_score,
@@ -3590,6 +4173,8 @@ def main():
     print(f"Optimizer: {args.optimizer}")
     print(f"Search Horizon: {args.search_max_steps or args.max_steps} steps")
     print(f"Evaluation Horizon: {args.max_steps} steps")
+    if args.game == "kangaroo":
+        print(f"Kangaroo Shaped Objective: {args.kangaroo_shaped_objective}")
     print(f"Output: {args.output_dir}")
     print(f"{'='*60}\n")
     

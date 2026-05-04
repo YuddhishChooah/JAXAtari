@@ -1,0 +1,189 @@
+
+============================================================
+Game: FREEWAY
+Optimizer: cma-es
+Search Horizon: 10000 steps
+Evaluation Horizon: 10000 steps
+Output: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/freeway
+============================================================
+
+Logger initialized for freeway
+============================================================
+LLM Policy Optimization Loop for JAXAtari FREEWAY
+============================================================
+
+============================================================
+Outer-loop step 1/5 (policy v1)
+============================================================
+Requesting initial policy from LLM...
+Saved policy to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/freeway/policy_v1.py
+Successfully loaded policy module
+
+Searching for optimal parameters (16 samples)...
+  CMA-ES: n=6 params, Î»=16 population, 5 generations
+    Gen 1: best=20.25, mean=19.62, Ïƒ=0.277, overall_best=20.25
+    Gen 2: best=21.00, mean=19.86, Ïƒ=0.256, overall_best=21.00
+    Gen 3: best=20.38, mean=19.73, Ïƒ=0.254, overall_best=21.00
+    Gen 4: best=20.38, mean=19.81, Ïƒ=0.263, overall_best=21.00
+    Gen 5: best=20.38, mean=19.75, Ïƒ=0.244, overall_best=21.00
+
+Results for iteration 1:
+  Search Return (10000 steps): 21.00
+  Average Return: 19.81
+  Player Score: 19.81
+  Enemy Score: 0.00
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 17 metrics
+    crossings: 20.000
+    collision_count: 73.000
+    collision_rate: 0.785
+    avg_upward_progress: 0.007
+    total_upward_progress: 4717.333
+  >>> New best overall!
+Checkpoint saved to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/freeway/optimization_checkpoint.json
+
+============================================================
+Outer-loop step 2/5 (policy v2)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/freeway/diagnosis_v2.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/freeway/policy_v2.py
+Successfully loaded policy module
+
+Searching for optimal parameters (16 samples)...
+  CMA-ES will use policy defaults because resumed params are incompatible (missing=['commit_band', 'gap_min', 'horizon', 'ttc_curr', 'ttc_next'], extra=['danger_thresh', 'down_safe_gap', 'lookahead', 'next_lane_dy', 'safe_gap', 'up_bias']).
+  CMA-ES: n=5 params, Î»=16 population, 5 generations
+    Gen 1: best=16.00, mean=14.58, Ïƒ=0.305, overall_best=16.00
+    Gen 2: best=16.00, mean=15.42, Ïƒ=0.337, overall_best=16.00
+    Gen 3: best=16.00, mean=15.02, Ïƒ=0.401, overall_best=16.00
+    Gen 4: best=16.12, mean=15.53, Ïƒ=0.450, overall_best=16.12
+    Gen 5: best=16.62, mean=15.62, Ïƒ=0.577, overall_best=16.62
+
+Results for iteration 2:
+  Search Return (10000 steps): 16.62
+  Average Return: 16.06
+  Player Score: 16.06
+  Enemy Score: 0.00
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 17 metrics
+    crossings: 16.667
+    collision_count: 45.667
+    collision_rate: 0.732
+    avg_upward_progress: 0.017
+    total_upward_progress: 3642.333
+Checkpoint saved to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/freeway/optimization_checkpoint.json
+
+============================================================
+Outer-loop step 3/5 (policy v3)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/freeway/diagnosis_v3.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/freeway/policy_v3.py
+Successfully loaded policy module
+
+Searching for optimal parameters (16 samples)...
+  CMA-ES will use policy defaults because resumed params are incompatible (missing=['danger_gap', 'down_gap', 'lane_window'], extra=['danger_thresh', 'down_safe_gap', 'next_lane_dy', 'up_bias']).
+  CMA-ES: n=5 params, Î»=16 population, 5 generations
+    Gen 1: best=17.75, mean=16.27, Ïƒ=0.299, overall_best=17.75
+    Gen 2: best=17.75, mean=16.79, Ïƒ=0.321, overall_best=17.75
+    Gen 3: best=18.38, mean=16.84, Ïƒ=0.340, overall_best=18.38
+    Gen 4: best=18.25, mean=17.01, Ïƒ=0.335, overall_best=18.38
+    Gen 5: best=19.25, mean=17.24, Ïƒ=0.370, overall_best=19.25
+
+Results for iteration 3:
+  Search Return (10000 steps): 19.25
+  Average Return: 18.88
+  Player Score: 18.88
+  Enemy Score: 0.00
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 17 metrics
+    crossings: 19.333
+    collision_count: 32.333
+    collision_rate: 0.626
+    avg_upward_progress: 0.015
+    total_upward_progress: 3760.333
+Checkpoint saved to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/freeway/optimization_checkpoint.json
+
+============================================================
+Outer-loop step 4/5 (policy v4)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/freeway/diagnosis_v4.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/freeway/policy_v4.py
+Successfully loaded policy module
+
+Searching for optimal parameters (16 samples)...
+  CMA-ES will use policy defaults because resumed params are incompatible (missing=['approach_eps', 'current_slack', 'entry_margin', 'entry_ttc', 'safe_ttc'], extra=['danger_thresh', 'down_safe_gap', 'lookahead', 'next_lane_dy', 'safe_gap', 'up_bias']).
+  CMA-ES: n=5 params, Î»=16 population, 5 generations
+    Gen 1: best=23.88, mean=22.62, Ïƒ=0.283, overall_best=23.88
+    Gen 2: best=23.88, mean=23.41, Ïƒ=0.303, overall_best=23.88
+    Gen 3: best=24.25, mean=23.27, Ïƒ=0.401, overall_best=24.25
+    Gen 4: best=24.12, mean=23.71, Ïƒ=0.490, overall_best=24.25
+    Gen 5: best=24.38, mean=23.58, Ïƒ=0.485, overall_best=24.38
+
+Results for iteration 4:
+  Search Return (10000 steps): 24.38
+  Average Return: 23.94
+  Player Score: 23.94
+  Enemy Score: 0.00
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 17 metrics
+    crossings: 23.333
+    collision_count: 49.000
+    collision_rate: 0.677
+    avg_upward_progress: 0.005
+    total_upward_progress: 4623.667
+  >>> New best overall!
+Checkpoint saved to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/freeway/optimization_checkpoint.json
+
+============================================================
+Outer-loop step 5/5 (policy v5)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/freeway/diagnosis_v5.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/freeway/policy_v5.py
+Successfully loaded policy module
+
+Searching for optimal parameters (16 samples)...
+  CMA-ES will use policy defaults because resumed params are incompatible (missing=['cur_horizon', 'danger_thresh', 'entry_delay', 'next_horizon', 'x_slack'], extra=['approach_eps', 'current_slack', 'entry_margin', 'entry_ttc', 'safe_ttc']).
+  CMA-ES: n=5 params, Î»=16 population, 5 generations
+    Gen 1: best=21.38, mean=19.54, Ïƒ=0.301, overall_best=21.38
+    Gen 2: best=21.50, mean=20.30, Ïƒ=0.355, overall_best=21.50
+    Gen 3: best=22.12, mean=20.72, Ïƒ=0.473, overall_best=22.12
+    Gen 4: best=21.88, mean=20.55, Ïƒ=0.463, overall_best=22.12
+    Gen 5: best=21.50, mean=20.90, Ïƒ=0.499, overall_best=22.12
+
+Results for iteration 5:
+  Search Return (10000 steps): 22.12
+  Average Return: 21.19
+  Player Score: 21.19
+  Enemy Score: 0.00
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 17 metrics
+    crossings: 22.000
+    collision_count: 54.000
+    collision_rate: 0.710
+    avg_upward_progress: 0.008
+    total_upward_progress: 4714.333
+Checkpoint saved to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/freeway/optimization_checkpoint.json
+
+============================================================
+Optimization Complete!
+============================================================
+Best Score Achieved: 23.94
+Total Iterations: 5
+Results saved to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/freeway/optimization_results.json

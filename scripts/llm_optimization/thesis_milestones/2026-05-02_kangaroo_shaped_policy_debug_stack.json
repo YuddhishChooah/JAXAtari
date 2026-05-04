@@ -1,0 +1,78 @@
+{
+  "date": "2026-05-02",
+  "title": "Kangaroo shaped policy debug stack",
+  "summary": "The Kangaroo debug renderer now supports the shaped run's policy_v2 parameter and helper-function layout. The rendered decision trace exactly matches the policy actions and shows the post-200 failure is caused by monkey-punch priority overriding ladder/dismount behavior near the top area.",
+  "context": {
+    "previous_milestone": "2026-05-02_kangaroo_shaped_run_stabilizes_200_plateau.json",
+    "run_directory": "scripts/llm_optimization/runs/single_game/kangaroo_20260501_223920_shaped_fresh_s20260501",
+    "policy": "scripts/llm_optimization/runs/single_game/kangaroo_20260501_223920_shaped_fresh_s20260501/policy_v2.py"
+  },
+  "implementation": {
+    "modified_files": [
+      "scripts/llm_optimization/experiments/kangaroo/render_policy_debug_video.py"
+    ],
+    "change": "Added a shaped-policy explainer path for policies with reach_tol, align_tol, top_tol, punch_dx, punch_dy, danger_r, and col_frac parameters.",
+    "reason": "The old debug renderer assumed older policy parameters such as reach_up and height_weight, so it could not explain the shaped run's best policy."
+  },
+  "artifacts": {
+    "debug_trace": "scripts/llm_optimization/analysis/traces/kangaroo_shaped_fresh_20260501_policy_v2_debug_trace.json",
+    "debug_gif": "scripts/llm_optimization/analysis/videos/kangaroo_shaped_fresh_20260501_policy_v2_debug.gif",
+    "route_trace": "scripts/llm_optimization/analysis/traces/kangaroo_shaped_fresh_20260501_policy_v2_route_trace.json"
+  },
+  "validation": {
+    "py_compile": "passed",
+    "trace_replay": {
+      "seed": 20260501,
+      "max_steps": 900,
+      "steps": 830,
+      "total_reward": 200.0,
+      "reward_events": 1,
+      "mismatched_explanations": 0
+    }
+  },
+  "diagnosis": {
+    "first_reward": {
+      "step": 601,
+      "action": "RIGHTFIRE",
+      "final_reason": "monkey_in_punch_priority",
+      "position": {
+        "x": 132.0,
+        "y": 148.0
+      }
+    },
+    "post_reward_pattern": "After the first reward, the policy briefly chooses UP via on_column_ladder_climb, then repeatedly chooses RIGHTFIRE because monkey_in_punch_priority has top priority.",
+    "terminal_failure": {
+      "step": 829,
+      "action": "RIGHTFIRE",
+      "final_reason": "monkey_in_punch_priority",
+      "position": {
+        "x": 133.0,
+        "y": 132.0
+      },
+      "score_after": 200,
+      "lives_after": 2
+    },
+    "reason_counts": {
+      "approach_reachable_ladder": 358,
+      "on_column_ladder_climb": 209,
+      "near_top_dismount": 153,
+      "monkey_in_punch_priority": 110
+    }
+  },
+  "interpretation": [
+    "The shaped policy does not fail because it cannot ever reach the first route reward; it reaches that reward reliably.",
+    "The post-200 failure is a priority/guarding bug: punch behavior remains allowed while on or near the ladder/top area, so it overrides dismount or next-route behavior.",
+    "The next Kangaroo change should be narrow: preserve the stable first RIGHTFIRE route, but gate monkey punching after the first reward or while on/near ladder-top route states.",
+    "This supports Quentin's requested stack-style diagnostic: the trace now gives stack=[policy, _select_reachable_ladder, _on_column_ladder, _nearest_monkey, _coconut_danger, _select_next_ladder_from_top, _move_toward_x, decision_tree] and action/reason per frame."
+  ],
+  "rq_mapping": {
+    "RQ1": "Explains why the current best shaped Kangaroo policy remains capped at 200 despite stable first-reward performance.",
+    "RQ2": "Provides behavioral evidence that the failure is a shortcut/priority issue, not robust task completion.",
+    "RQ4": "Shows the shaped CMA-ES objective improved first-reward stability but did not tune the high-level priority structure enough to solve post-200 routing."
+  },
+  "recommended_next_steps": [
+    "Do not launch another broad Kangaroo run before adding a post-200 guard or prompt constraint around monkey punching.",
+    "Use the debug trace to design a narrow policy/prompt rule: before first reward, preserve monkey punch; after first reward or near ladder top, prefer dismount/route progress over repeated RIGHTFIRE.",
+    "Re-evaluate any patched candidate with real reward and the debug renderer before interpreting shaped objective gains."
+  ]
+}

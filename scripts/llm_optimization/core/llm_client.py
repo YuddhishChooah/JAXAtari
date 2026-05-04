@@ -3,7 +3,6 @@ LLM Client for policy generation using Anthropic Claude.
 """
 
 import os
-import anthropic
 from typing import Optional, Dict, Any
 from dataclasses import dataclass
 
@@ -34,6 +33,14 @@ class LLMClient:
                 "Anthropic API key not found. "
                 "Set ANTHROPIC_API_KEY environment variable or pass api_key in config."
             )
+
+        try:
+            import anthropic
+        except ModuleNotFoundError as exc:
+            raise ModuleNotFoundError(
+                "The anthropic package is required to construct LLMClient. "
+                "Install the LLM provider dependencies before running generation."
+            ) from exc
         
         self.client = anthropic.Anthropic(api_key=api_key)
     

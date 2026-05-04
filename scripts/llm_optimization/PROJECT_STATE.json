@@ -1,6 +1,6 @@
 {
   "purpose": "Single entry point for resuming the LeGPS thesis work from a fresh chat or after a context reset.",
-  "last_updated": "2026-04-28",
+  "last_updated": "2026-05-03",
   "method": {
     "name": "LeGPS",
     "expansion": "Language Guided Policy Search",
@@ -19,8 +19,8 @@
     },
     {
       "step": 3,
-      "path": "scripts/llm_optimization/thesis_milestones/2026-04-27_project_status_after_rq4_first_pass.json",
-      "reason": "Latest milestone at the time of this state file. It explains where the project stands and what is still missing."
+      "path": "scripts/llm_optimization/thesis_milestones/2026-05-03_kangaroo_top_ladder_transition_probe.json",
+      "reason": "Latest milestone. It records the bounded top-ladder sequence probe showing that a simple short forced-action prefix does not escape the 200-point Kangaroo plateau."
     },
     {
       "step": 4,
@@ -47,7 +47,9 @@
       "skiing"
     ],
     "candidate_next_games": [
-      "seaquest",
+      "seaquest"
+    ],
+    "exploratory_onboarding_games": [
       "kangaroo"
     ],
     "main_goal": "Produce interpretable code agents that are as competitive as possible with neural baselines while keeping a reproducible, unified method."
@@ -56,37 +58,100 @@
     "short_answer": "The project has strong infrastructure and promising evidence, but is not thesis-complete yet.",
     "what_is_done": [
       "Canonical 10000-step policies exist for five games.",
-      "Canonical policy reevaluation reproduces stored scores exactly.",
+      "Canonical policy reevaluation reproduces stored scores exactly, including a local macOS rerun on 2026-04-28.",
+      "One full seeded RQ1 rerun suite completed on 2026-04-28.",
+      "Future outer-loop runs save exact LLM input/output audit JSON files under each game run's llm_io directory.",
+      "Kangaroo is selectable for exploratory LeGPS single-game and suite runs, with measured 440-feature prompt context.",
+      "A first Kangaroo LLM smoke run completed with saved llm_io artifacts, but the generated policy scored 0.0 in both the 1000-step run and a 10000-step API-free follow-up check.",
+      "The first Kangaroo failure has been diagnosed as an UP-only controller: no horizontal movement, no reward events, and one life lost. Kangaroo logger metrics and a GIF renderer now exist.",
+      "A second Kangaroo smoke run completed with two LLM iterations and full llm_io audit artifacts. It avoided pure UP-only behavior but policy_v2 overcorrected into horizontal-only dithering and still scored 0.0.",
+      "Kangaroo route context has been refined so future prompts, feedback, and demo code use player-bottom and ladder-bottom alignment to identify reachable ladders.",
+      "A third Kangaroo smoke run produced the first nonzero Kangaroo score: policy_v2 averaged 100.0 in the short 1000-step run, but a 16-episode 10000-step API-free follow-up averaged only 12.5 with one scoring episode.",
+      "Kangaroo prompt and feedback rules now include the newly observed weak-policy pattern: reaching the first higher platform, then sweeping horizontally without reliable next-ladder routing.",
+      "A resume-style Kangaroo run from smoke3 produced policy_v3, which scored 200.0 in all eight 4000-step run-evaluation episodes and averaged 162.5 over a 16-episode 10000-step API-free follow-up.",
+      "The best LLM-generated Kangaroo run policy before manual patching was policy_v6 from scripts/llm_optimization/runs/single_game/kangaroo_resume3_20260430_144102, but it still plateaued at one 200-point reward event.",
+      "A second Kangaroo continuation produced policy_v6 in scripts/llm_optimization/runs/single_game/kangaroo_resume2_20260430_141111. It scored exactly 200.0 in all 16 episodes of a 10000-step API-free follow-up.",
+      "A rollout trace shows policy_v6's 200-point event occurs at step 613 with RIGHTFIRE at x=132, y=148, followed by a life loss at y=132. This is stable first-event behavior, not level completion.",
+      "A detailed post-200 trace now exists at scripts/llm_optimization/analysis/traces/kangaroo_resume2_20260430_141111_policy_v6_route_trace.json. It shows the life loss is caused by a falling coconut near x=133,y=129 while the player remains near x=132,y=132.",
+      "A targeted trace-guided Kangaroo continuation in scripts/llm_optimization/runs/single_game/kangaroo_resume3_20260430_144102 generated policy_v7, but policy_v7 regressed to 0.0. The retained LLM-run best before manual patching remained policy_v6 at 200.0.",
+      "A high-budget API-free evaluation of policy_v6 over 128 episodes with a 50000-step cap returned exactly 200.0 in every episode; no episode exceeded the plateau.",
+      "A smaller API-free CMA-ES parameter-only retune of policy_v6 did not improve beyond 200.0; the base parameters were retained.",
+      "A Kangaroo debug renderer now exists at scripts/llm_optimization/experiments/kangaroo/render_policy_debug_video.py. Its trace shows policy_v6 issued 193 of 212 UP actions with only one pixel of player-ladder overlap.",
+      "A trace-guided API-free Kangaroo patch now separates strict ladder-climb perception from route-column exclusion. The base patch-2 candidate averaged 2634.38 over 128 episodes with a 50000-step cap, with 108 of 128 episodes above the old 200-point plateau.",
+      "A local CMA-ES retune of the patch-2 parameters produced scripts/llm_optimization/experiments/kangaroo/policy_v6_overlap_patch2_retuned.py. It averaged 2656.25 over 128 episodes with a 50000-step cap, also with 108 of 128 episodes above 200.",
+      "Exact replay of retuned patch-2 vectorized episodes is now supported by render_policy_debug_video.py via --episode-index, --split-count, and --trace-only.",
+      "A high-scoring retuned patch-2 replay, episode index 0 from the 128-episode evaluation, reached 3600.0 with 18 RIGHTFIRE reward events and zero UP actions.",
+      "A failing retuned patch-2 replay, episode index 6 from the same evaluation, ended at 200.0 with one RIGHTFIRE reward event and zero UP actions.",
+      "Patch-2 Kangaroo remains exploratory: the trace comparison shows lower-platform monkey punch farming, not a fully validated ladder-climbing solution.",
+      "Kangaroo prompt context and logger feedback now explicitly flag score-without-climbing and punch-farming behavior. A logger check on the retuned patch-2 policy produced punch_farming_pattern=1.0, score_without_climb_pattern=1.0, up_action_rate=0.0, and climb_rate=0.0.",
+      "A follow-up anti-punch-farming Kangaroo outer loop completed in scripts/llm_optimization/runs/single_game/kangaroo_20260501_anti_punch_s20260501, but all five new policies scored 0.0 and the retained best remained policy_v6 at 200.0.",
+      "The anti-punch-farming run was diagnosed as an overcorrection: several generated policies suppressed the first useful RIGHTFIRE branch, for example by gating punch_in_range with on-ladder/column predicates. The logger now includes first_reward_suppressed_pattern and no_fire_scoreless_pattern to catch this separately from punch farming.",
+      "A fresh anti-punch-overcorrection rerun completed in scripts/llm_optimization/runs/single_game/kangaroo_20260501_144525_anti_punch_overcorrection_fix_s20260501. The retained best remained policy_v6 at 200.0; policy_v2 reached avg_return=75.0, while policy_v1/v3/v4/v5 scored 0.0 and were flagged as first-reward suppression.",
+      "Kangaroo continuation prompts now use a hard preservation contract for the stable 200-point baseline: preserve the lower-platform route, monkey-threat detection, danger/punch parameter semantics, and first RIGHTFIRE branch; patch only post-200/top-of-ladder behavior.",
+      "A fresh-from-scratch Kangaroo run completed in scripts/llm_optimization/runs/single_game/kangaroo_20260501_211358_fresh_s20260501. It recovered a 200.0 outer-loop best in policy_v2 without resuming from policy_v6, but a 32-episode 10000-step follow-up averaged 93.75 with 17 zero-score episodes and 15 episodes at 200.",
+      "An optional Kangaroo-only shaped objective now exists behind --kangaroo-shaped-objective. It gives CMA-ES route-progress, first-reward, post-first-reward, no-fire, and punch-farming signals during search, while the outer loop still reports and selects the best policy by real avg_return.",
+      "The first shaped-objective Kangaroo fresh run completed in scripts/llm_optimization/runs/single_game/kangaroo_20260501_223920_shaped_fresh_s20260501. Its best policy_v2 reached 200.0 in the outer loop and, with saved CMA-ES best_params, averaged 193.75 over 32 episodes at 10000 steps: 31 episodes at 200 and one at 0, with no episode above 200.",
+      "A route trace and GIF for shaped policy_v2 show the same shallow pattern: one RIGHTFIRE reward at x=132,y=148, then life loss at x=133,y=132 with total reward 200.",
+      "The Kangaroo debug renderer now supports the shaped policy_v2 parameter/function layout. Its exact decision trace has 0 mismatched explanations and shows the post-200 death is caused by monkey_in_punch_priority repeatedly choosing RIGHTFIRE near the top/ladder state instead of dismounting or routing onward.",
+      "Two API-free post-200 guard patches were tested: policy_shaped_v2_post200_guard.py and policy_shaped_v2_post200_guard_dodge.py. Both averaged 193.75 over 32 episodes at 10000 steps and never exceeded 200.",
+      "A top-of-ladder action probe shows that at y=132 no atomic action can escape before life loss; at y=140, horizontal actions do not dismount, UP moves into the y=132 trap, and DOWN actions retreat downward.",
+      "A bounded top-ladder transition sequence probe tested 216 short forced-action candidates from the y=140 post-reward state. No candidate exceeded 200; the best short prefix, DOWNRIGHTx24 + DOWNLEFTx16, delayed failure but a longer replay still died at score 200 near x=126,y=132.",
       "The unified suite runner exists.",
       "The optimizer=none RQ4 ablation path exists and has a first completed run.",
       "The thesis goal tracker and milestone log exist."
     ],
     "what_is_missing": [
-      "Multiple seeded reruns for RQ1 stability.",
+      "Additional seeded reruns for RQ1 stability and variance estimation.",
       "Systematic RQ2 shortcut and robustness probes.",
       "RQ3 task-variation adaptation experiments.",
-      "Broader environment coverage beyond the current five games.",
+      "A canonical Kangaroo promotion decision: patch-2 retuned is the current exploratory best candidate, but it has not been promoted to best_10000_steps.",
+      "Evidence that a future Kangaroo candidate solves the intended ladder-routing task robustly rather than relying on lower-platform punch farming.",
+      "Evidence that a future Kangaroo candidate preserves the stable first 200-point RIGHTFIRE reward while improving post-200 route behavior.",
+      "A working Kangaroo top-ladder transition sequence or policy routine that escapes the y=132 trap after the first reward.",
+      "Evidence that a future Kangaroo candidate exceeds the 200-point plateau under standardized real-reward evaluation.",
+      "A successful standardized 10000-step Kangaroo policy run and canonical reevaluation before counting it as covered.",
+      "Broader environment coverage beyond the current five canonical games.",
       "Cleaner evidence that improvements come from the unified method rather than hidden per-game hand tuning."
     ]
   },
   "recommended_next_steps": [
     {
       "priority": 1,
-      "task": "Run seeded RQ1 reruns on the current five games.",
-      "reason": "Needed to estimate variance and avoid single-seed claims."
+      "task": "Do not launch another broad Kangaroo outer loop from the same setup as the main next action.",
+      "reason": "The bounded transition probe found no simple short forced-action prefix above 200, so another paid run without stronger mechanics guidance is likely to repeat the same plateau."
     },
     {
       "priority": 2,
-      "task": "Implement RQ2 shortcut/robustness probes.",
-      "reason": "Needed to test whether policies solve the intended task or exploit brittle artifacts."
+      "task": "Choose between a faster staged Kangaroo mechanics search and onboarding Seaquest for broader thesis coverage.",
+      "reason": "Kangaroo is now well-instrumented but still exploratory; the current thesis goal also prioritizes maximizing covered games."
     },
     {
       "priority": 3,
-      "task": "Onboard the next game using the documented single-game protocol.",
-      "reason": "Needed to increase environment coverage without weakening the unified-method claim."
+      "task": "If continuing Kangaroo, search for a staged top-ladder transition with an explicit success target.",
+      "reason": "A useful target is reaching a new platform, reaching the next ladder route, or scoring above 200 before handing control back to the policy."
     },
     {
       "priority": 4,
+      "task": "Use exact episode-index debug replay before any more paid Kangaroo attempts.",
+      "reason": "It can now reproduce specific vectorized evaluation episodes and distinguish high-score shortcuts from intended task progress."
+    },
+    {
+      "priority": 5,
+      "task": "Keep low-level perception parameters separate from high-level route parameters.",
+      "reason": "Patch-2 shows that separating ladder overlap from route-column exclusion can materially improve Kangaroo without another LLM call."
+    },
+    {
+      "priority": 6,
+      "task": "Keep policy_v7 as a documented regression rather than deleting or hiding it.",
+      "reason": "Failed policies are useful method evidence and support honest RQ1/RQ2 interpretation."
+    },
+    {
+      "priority": 7,
+      "task": "Return to additional seeded RQ1 reruns and RQ2/RQ3/RQ4 probes after expanding coverage.",
+      "reason": "The RQs still need evidence, but the immediate direction is broader environment coverage."
+    },
+    {
+      "priority": 8,
       "task": "Create a new dated milestone after each meaningful evidence change.",
       "reason": "Keeps a chronological record of thesis state, risks, and decisions."
     }
@@ -101,6 +166,11 @@
   ],
   "common_commands": {
     "canonical_reproducibility": "python scripts/llm_optimization/evaluate_canonical_policies.py --num-episodes 32 --max-steps 10000 --use-manifest-seeds",
+    "run_rq1_seeded_rerun": "bash scripts/llm_optimization/run_rq1_seeded_rerun.sh",
+    "run_kangaroo_smoke": "python scripts/llm_optimization/llm_optimization_loop.py --game kangaroo --max-iters 2 --num-envs 4 --num-episodes 4 --max-steps 1000 --search-max-steps 1000 --param-samples 4 --cma-generations 1 --output-dir scripts/llm_optimization/runs/single_game/kangaroo_smoke_<date>",
+    "run_kangaroo_shaped_fresh": "bash scripts/llm_optimization/run_kangaroo_shaped_fresh_outer_loop.sh",
+    "render_kangaroo_policy": "python scripts/llm_optimization/experiments/kangaroo/render_policy_video.py --policy-dir scripts/llm_optimization/runs/unified_suite/kangaroo_smoke_20260429_152718/kangaroo --max-steps 450 --output scripts/llm_optimization/analysis/videos/kangaroo_policy_rollout.gif",
+    "summarize_rq1_seeded_reruns": "python scripts/llm_optimization/analysis/summarize_seeded_rq1_reruns.py --suite-dirs scripts/llm_optimization/runs/unified_suite/rq1_seeded_<run_id_1> scripts/llm_optimization/runs/unified_suite/rq1_seeded_<run_id_2>",
     "generate_rq4_figures": "python -m scripts.llm_optimization.analysis.generate_rq4_ablation_figures",
     "run_unified_suite_example": "python scripts/llm_optimization/run_unified_suite.py --games pong freeway asterix breakout skiing --max-iters 5 --num-episodes 16 --max-steps 10000"
   }

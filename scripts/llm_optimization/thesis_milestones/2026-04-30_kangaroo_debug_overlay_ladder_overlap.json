@@ -1,0 +1,110 @@
+{
+  "milestone_id": "2026-04-30_kangaroo_debug_overlay_ladder_overlap",
+  "created_at": "2026-04-30",
+  "project": {
+    "method_name": "LeGPS",
+    "method_expansion": "Language Guided Policy Search"
+  },
+  "why_this_milestone_exists": {
+    "purpose": "Record the new Kangaroo policy-debug renderer and the confirmed ladder-overlap failure mode in policy_v6.",
+    "trigger": "Video inspection suggested that the policy sends UP when the kangaroo overlaps the ladder by only one pixel, causing repeated jump/climb confusion."
+  },
+  "artifacts": {
+    "debug_renderer": "scripts/llm_optimization/experiments/kangaroo/render_policy_debug_video.py",
+    "debug_video": "scripts/llm_optimization/analysis/videos/kangaroo_resume3_policy_v6_debug.gif",
+    "debug_trace": "scripts/llm_optimization/analysis/traces/kangaroo_resume3_policy_v6_debug_trace.json",
+    "long_eval": "scripts/llm_optimization/analysis/evaluations/kangaroo_resume3_policy_v6_vectorized_128eps_50000steps.json",
+    "parameter_retune": "scripts/llm_optimization/analysis/evaluations/kangaroo_resume3_policy_v6_param_retune_cma6_eval32_50000steps.json",
+    "policy": "scripts/llm_optimization/runs/single_game/kangaroo_resume3_20260430_144102/policy_v6.py"
+  },
+  "debug_renderer_result": {
+    "steps": 816,
+    "total_reward": 200.0,
+    "reward_events": 1,
+    "mismatched_explanations": 0,
+    "action_counts": {
+      "UP": 212,
+      "RIGHT": 360,
+      "LEFT": 142,
+      "RIGHTFIRE": 102
+    },
+    "decision_reason_counts": {
+      "path_planning": 360,
+      "on_ladder_column_climb": 212,
+      "near_top_dismount": 142,
+      "punch_monkey_priority": 102
+    }
+  },
+  "confirmed_failure_mode": {
+    "summary": "The policy's on-ladder predicate is too permissive. It treats a one-pixel horizontal bounding-box overlap as enough to issue UP.",
+    "up_action_overlap": {
+      "up_actions": 212,
+      "up_actions_with_1px_overlap": 193,
+      "up_actions_with_full_8px_overlap": 19,
+      "min_overlap_px": 1.0,
+      "min_overlap_fraction_of_player_width": 0.125
+    },
+    "reward_event": {
+      "step": 613,
+      "action": "RIGHTFIRE",
+      "reason_stack": [
+        "path_planning:LEFT",
+        "on_ladder_column_climb:UP",
+        "punch_monkey_priority:RIGHTFIRE"
+      ],
+      "interpretation": "The monkey punch overrides the climb/path action. The policy aligns near the ladder as a side effect of approaching the monkey, then the weak on-ladder predicate keeps retriggering UP."
+    }
+  },
+  "high_budget_evaluation": {
+    "episodes": 128,
+    "max_steps": 50000,
+    "mean_return": 200.0,
+    "std_return": 0.0,
+    "min_return": 200.0,
+    "max_return": 200.0,
+    "episodes_above_200": 0,
+    "interpretation": "Increasing the evaluation horizon did not reveal hidden progress beyond the one-event 200-point plateau."
+  },
+  "parameter_only_retune": {
+    "optimizer": "cma-es",
+    "search_episodes": 4,
+    "search_max_steps": 5000,
+    "param_samples": 8,
+    "cma_generations": 6,
+    "eval_episodes": 32,
+    "eval_max_steps": 50000,
+    "base_avg_return": 200.0,
+    "retuned_avg_return": 200.0,
+    "selected": "base",
+    "interpretation": "A smaller API-free parameter-only retune did not improve policy_v6 beyond 200."
+  },
+  "interpretation": [
+    "The bottleneck is now more specific than just post-200 route planning: the current perception helper for being on a ladder is wrong.",
+    "The policy needs explicit parametric perception functions such as ladder overlap fraction, player-center band, feet-to-ladder-bottom window, and punch distance.",
+    "Those perception parameters should be tested and then fixed or narrowed before optimizing higher-level route logic, otherwise CMA-ES has too many coupled parameters to search effectively.",
+    "The debug renderer implements the requested right-side action/decision display and exports a JSON trace so individual frames can be inspected without guessing why an action was chosen."
+  ],
+  "rq_relevance": {
+    "RQ1": "Explains why the current Kangaroo policy remains stuck at 200 despite longer evaluation and parameter retuning.",
+    "RQ2": "Strongly relevant: the score comes from brittle local geometry and monkey-punch priority, not reliable route completion.",
+    "RQ3": "No adaptation evidence yet.",
+    "RQ4": "Parameter-only CMA-ES on policy_v6 did not improve beyond 200 in this smaller retune."
+  },
+  "next_steps": [
+    {
+      "priority": 1,
+      "step": "Build or prompt for a minimal policy_v6-style patch with a parametric _is_on_ladder helper.",
+      "why": "The current helper issues UP with only one pixel of overlap. The fix should require stronger overlap or center alignment before climbing."
+    },
+    {
+      "priority": 2,
+      "step": "Use the debug renderer after any Kangaroo change before paying for another LLM run.",
+      "why": "It shows action, decision reason, ladder overlap, and priority overrides frame by frame."
+    },
+    {
+      "priority": 3,
+      "step": "Separate low-level perception parameters from high-level route parameters.",
+      "why": "Once on-ladder and punch-distance predicates are validated, they should be fixed or tightly bounded so CMA-ES can search the remaining policy more effectively."
+    }
+  ]
+}

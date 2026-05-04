@@ -1,0 +1,34 @@
+# Kangaroo Policy Diagnosis
+
+## 1. Root cause
+The policy successfully executes the first-route punch for the 200 reward but then becomes stuck near the top of the first ladder column (x≈132, y≈132). The "near_top dismount" branch fires only briefly and the next-ladder selector re-targets the same ladder the player just climbed, so the agent oscillates in the danger column until a falling coconut kills it. There is no committed lateral traversal on the new platform and no exclusion of the just-used ladder.
+
+## 2. Evidence from metrics
+- `min_player_y=132`, `final_player_y=134.7`, `y_range=17`, `max_upward_progress=16`: only one platform of vertical progress.
+- `climb_rate=0.1375` but `up_action_rate=0.3396`: lots of UP issued but little time actually climbing — UP is the `default` branch firing when no condition matches, i.e., the policy is stalling at the top.
+- `score_events=1`, `final_score=200`: stable plateau, single reward.
+- `lives_lost=1`, `crash_rate=0.0012`: death from the coconut at the stall position, matching the known trace.
+- `horizontal_action_rate=0.66` with `x_range≈105`: lots of horizontal motion happens, but it's pre-climb traversal, not post-dismount.
+
+## 3. Policy logic causing it
+- `_select_next_ladder` is called with `lty + 4.0` as the new platform's `p_by`, but `_select_ladder`'s `reach_err = |lby - p_by|` then matches ladders whose *bottom* is near the *top* of the just-climbed ladder. On the new platform the player's actual `p_by` after dismount differs from `lty + 4.0`, and the just-used ladder's own `lby` is far below — fine — but the *primary* `_select_ladder` call (using current `p_by`) keeps re-selecting the same ladder once the player has stepped onto the new platform, because `reach_tol + 12` is generous and `lty < p_by - 4` still holds.
+- `near_top = on_column & (py < lty + top_dis)` requires the player to still be `on_column`. The dismount transitions out of `on_column` immediately (alignment lost), so the dismount branch lasts 1–2 frames and then UP (default) takes over again.
+- The default action is `UP`, which means whenever no traversal/climb/punch condition matches, the agent presses UP — keeping it pinned in the dangerous ladder column.
+- No "just-used ladder" memory or exclusion, and no platform-disambiguation on the next ladder selection.
+- Coconut dodge is gated by `~on_column`, but the stall happens just *above* the column where `on_column` is false yet the player is still in the column's x-band — dodge does fire but `cdx` sign logic only moves one step then UP-default returns.
+
+## 4. What to preserve
+- The full first-route contract: lower-platform approach, `_nearest_monkey` row test, `punch_right/punch_left` branch with RIGHTFIRE at x≈132, y≈148.
+- `_select_ladder` scoring (reach_err + 0.05·|cx-lcx|), and the upward+active+reachable filter.
+- `in_span` + `abs_align < climb_hold` climb predicate (rule 12 overlap-fraction style).
+- All six tuned parameters and their roles.
+- Punch branch priority above climb/dismount.
+
+## 5. What to change next
+- **Change the default action** from `UP` to `NOOP` (or to a sign-of-child-dx horizontal). UP-as-default is the silent stall-and-die mechanism.
+- **Persist dismount once triggered**: replace the instantaneous `near_top` gate with a "post-climb lateral commit" predicate based on geometry alone — e.g., `py < lty + top_dis` AND player is on (or just above) the new platform — without requiring `on_column`. This lets RIGHT/LEFT continue for several frames after column exit.
+- **Exclude the just-climbed ladder** from `_select_next_ladder` by penalizing ladders whose `lcx` is within `climb_hold` of the current `p_cx` AND whose `lby` is below `p_by` (i.e., the one we came up). Add a parametric `same_ladder_penalty`.
+- **Disambiguate "next platform" `p_by`** for the lookahead: use `lty + ph` (player standing on new platform top) rather than `lty + 4`, so reach_err matches the new platform's geometry.
+- **Strengthen coconut dodge near top**: drop the `~on_column` gate when `py < lty + top_dis + k`, so vertical-column hazards trigger horizontal evasion even while nominally climbing/dismounting.
+- **Add a tie-break to ladder selection** that prefers ladders whose `lcx` is on the side of the child's x, reducing oscillation between equidistant ladders.
+- Keep all changes parametric (1–2 new scalar params) and gated so the pre-200 path is bit-identical: do not modify the punch branch ordering, `_nearest_monkey`, or the primary `_select_ladder` call when player is still on the starting platform (e.g., `p_by > some_threshold`).

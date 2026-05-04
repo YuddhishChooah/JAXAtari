@@ -1,0 +1,34 @@
+# Kangaroo Policy Diagnosis
+
+## 1. Root cause
+The policy reliably collects the first 200-point reward by aligning under and climbing the x≈132 ladder, but then stalls at the top of that ladder. The "near_top dismount" branch fires only when `(py - on_top_y) < 8`, yet `_on_ladder_column` requires `bottom_below = lby >= pby - 4`, which becomes false once the player has actually risen onto the new platform. So the player oscillates between "on column / keep climbing UP" and "aligned with same ladder / UP" without ever entering the dismount branch long enough to leave the column. A falling coconut then kills the stationary player at x≈133, y≈129.
+
+## 2. Evidence from metrics
+- `min_player_y=132`, `final_player_y=137`, `y_range=17`, `max_upward_progress=16`: only one platform climbed, then stuck.
+- `score_events=1`, `final_score=200`: single reward, classic plateau.
+- `lives_lost=1`, `crash_rate=0.0013`: death from a hazard while idle in column, matching the trace at x≈133,y≈129.
+- `up_action_rate=0.28`, `climb_rate=0.17`: climbing happens, but the climb→dismount→next-ladder transition does not.
+- `x_range=108` with `horizontal_action_rate=0.72`: lots of sweeping before the climb, consistent with the working first-reward path; not the bottleneck.
+- `unique_action_count=4`: dismount/hazard branches are effectively unused at the top.
+
+## 3. Policy logic causing it
+- `_on_ladder_column` couples "in column" with `bottom_below`. Once the kangaroo's feet rise above the ladder bottom, `on_column` flips false even though it is still inside the ladder x-band. This kills the `near_top` dismount window.
+- `_select_best` excludes the current column via `in_col` using `exclude_pad=on_pad`. After climbing, the policy is now on the upper platform whose only reachable next ladder may share x-overlap with the just-used ladder column, so it is wrongly excluded; the fallback then reselects an unreachable ladder and the policy re-aligns with the same column, producing UP again.
+- The "primary" and "dismount" selectors are called with identical arguments (`d_lcx, d_lty = lcx, lty`), so dismount direction is not actually independent.
+- On-ladder hazard handling forces NOOP under thrown/overhead coconuts while `on_column & ~near_top`, which is exactly the death scenario: the policy holds still in the danger column instead of stepping off.
+- The "in column" overlap test (`pcx >= lx - on_pad`) accepts as little as ~3 px overlap, matching the known 1-pixel-overlap climb bug noted in the brief.
+
+## 4. What to preserve
+- The first-reward route: horizontal sweep + RIGHTFIRE near x≈132, y≈148, ladder selection by reach + height-weighted cost.
+- `_select_best` cost shape, asymmetric reach window (`reach_up`, `reach_tol`), and the `height_weight` term — these produced the stable 200.
+- Compact parametric form with the existing 7 tunables; do not add scripts or memory.
+- The punch-when-monkey-near branch (it is not the dominant scoring source here, per `punch_farming_pattern=0`).
+
+## 5. What to change next
+- Decouple "on ladder column" from `bottom_below`. Use a center-band test: `|pcx - ladder_center_x| < align_tol_param * ladder_w_frac` AND `ly <= py <= ly+lh+small`. This keeps `on_column` true through the climb and well into the dismount.
+- Replace the binary `near_top` with a proper dismount state: when `py <= lty + small_eps`, force a horizontal step (LEFT/RIGHT) for several frames by biasing toward the next ladder's lcx computed from the *upper* platform, i.e. recompute `_select_best` with a target `pby` set to the new platform height (`lty + ph`) so reachability is evaluated post-climb, not pre-climb.
+- Make the dismount selector actually different from the climb selector: pass a larger `exclude_pad` (e.g. `lw + on_pad`) so the just-used ladder column is fully excluded, preventing reselection of the same x≈132 ladder.
+- Change on-ladder hazard response from NOOP to active evasion: if a coconut is overhead/thrown and the player is near the ladder top, prefer the dismount horizontal action; if near the bottom, prefer DOWN to descend out of the column. Holding still in column is the observed death mode.
+- Tighten the column-overlap threshold: require the player center to lie inside `[lx, lx+lw]` (no `on_pad` slack) before issuing UP, to eliminate the 1-pixel-overlap spurious climbs.
+- Add one new parameter for "dismount hold frames" indirectly via a wider `align_tol`-like band on the upper platform, or a `dismount_pad` that grows the exclusion of the current column. Keep total params ≤ 8–9.
+- Do not rewrite the route-finding structure or the first-reward branch; constrain edits to (a) `_on_ladder_column` definition, (b) post-climb selector inputs, (c) hazard-on-ladder action.

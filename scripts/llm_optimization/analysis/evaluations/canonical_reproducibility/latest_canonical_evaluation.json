@@ -1,6 +1,6 @@
 {
-  "created_at": "2026-04-27 17:16:36",
-  "manifest_path": "C:\\Users\\yuddh\\OneDrive\\Desktop\\Msc AI and ML\\SoSe 2025\\Practical Lab 2\\JAXAtari\\scripts\\llm_optimization\\runs\\best_10000_steps\\manifest.json",
+  "created_at": "2026-04-28 13:00:53",
+  "manifest_path": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/best_10000_steps/manifest.json",
   "protocol": {
     "num_episodes": 32,
     "max_steps": 10000,
@@ -8,16 +8,16 @@
     "use_manifest_seeds": true
   },
   "runtime": {
-    "elapsed_seconds": 51.79318118095398,
-    "python_version": "3.12.8",
-    "platform": "Windows-11-10.0.26200-SP0",
-    "jax_version": "0.6.0",
-    "numpy_version": "1.26.4"
+    "elapsed_seconds": 109.50645399093628,
+    "python_version": "3.12.7",
+    "platform": "macOS-26.2-arm64-arm-64bit",
+    "jax_version": "0.10.0",
+    "numpy_version": "2.4.4"
   },
   "results": [
     {
       "game": "asterix",
-      "policy_path": "C:\\Users\\yuddh\\OneDrive\\Desktop\\Msc AI and ML\\SoSe 2025\\Practical Lab 2\\JAXAtari\\scripts\\llm_optimization\\runs\\best_10000_steps\\asterix\\policy.py",
+      "policy_path": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/best_10000_steps/asterix/policy.py",
       "seed": 20260438,
       "num_episodes": 32,
       "max_steps": 10000,
@@ -71,7 +71,7 @@
     },
     {
       "game": "breakout",
-      "policy_path": "C:\\Users\\yuddh\\OneDrive\\Desktop\\Msc AI and ML\\SoSe 2025\\Practical Lab 2\\JAXAtari\\scripts\\llm_optimization\\runs\\best_10000_steps\\breakout\\policy.py",
+      "policy_path": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/best_10000_steps/breakout/policy.py",
       "seed": 20260434,
       "num_episodes": 32,
       "max_steps": 10000,
@@ -125,7 +125,7 @@
     },
     {
       "game": "freeway",
-      "policy_path": "C:\\Users\\yuddh\\OneDrive\\Desktop\\Msc AI and ML\\SoSe 2025\\Practical Lab 2\\JAXAtari\\scripts\\llm_optimization\\runs\\best_10000_steps\\freeway\\policy.py",
+      "policy_path": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/best_10000_steps/freeway/policy.py",
       "seed": 20260435,
       "num_episodes": 32,
       "max_steps": 10000,
@@ -179,7 +179,7 @@
     },
     {
       "game": "pong",
-      "policy_path": "C:\\Users\\yuddh\\OneDrive\\Desktop\\Msc AI and ML\\SoSe 2025\\Practical Lab 2\\JAXAtari\\scripts\\llm_optimization\\runs\\best_10000_steps\\pong\\policy.py",
+      "policy_path": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/best_10000_steps/pong/policy.py",
       "seed": 20260432,
       "num_episodes": 32,
       "max_steps": 10000,
@@ -233,7 +233,7 @@
     },
     {
       "game": "skiing",
-      "policy_path": "C:\\Users\\yuddh\\OneDrive\\Desktop\\Msc AI and ML\\SoSe 2025\\Practical Lab 2\\JAXAtari\\scripts\\llm_optimization\\runs\\best_10000_steps\\skiing\\policy.py",
+      "policy_path": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/best_10000_steps/skiing/policy.py",
       "seed": 20260439,
       "num_episodes": 32,
       "max_steps": 10000,

@@ -1,0 +1,44 @@
+# Diagnosis
+
+## 1. Root cause
+The policy enters and crosses lanes without verifying that the destination lane is clear *along the entire vertical transition window*, and its danger model is too narrow (single horizon, narrow radius, evaluated only at the player's current x). It loses all 3 lives — survival, not routing, is the dominant bottleneck blocking the score from reaching DQN territory.
+
+## 2. Evidence from metrics
+- `hits_taken=3`, `lives_remaining=0`, `terminal_game_over=1`: every episode dies out.
+- `hit_rate_per_1000=1.15` is high; `avg_hit_enemy_gap=3.56` shows hits happen at very small x-gaps — the danger field is essentially zero until the enemy is right on top of the player.
+- `hit_diagonal_fraction=0.78`: most deaths occur during diagonal lane transitions → destination-lane danger is mis-evaluated.
+- `avg_collectibles_visible=0.57` and `item_pickup_rate=8.68/1000` are modest; `score_rate=434/1000` is decent when alive, so the score ceiling is bounded by early death, not by routing taste.
+- `avg_stage_index=3.7`, `topmost_stage_index=0`, `bottommost=7`: the agent already explores the full lane range, so a vertical bias is *not* the fix (per Useful Fact 17).
+- `respawn_rate=0.092`: ~9% of frames are non-productive recovery time.
+
+## 3. Policy logic causing it
+- **Danger evaluated only at `px`**, not at the destination lane's entry x. A diagonal move puts the player at a new x one step later, but danger uses current px for all lanes → destination lane danger is systematically underestimated.
+- **`danger_radius≈25` with exp falloff** means at gap=10 danger ≈ exp(-0.4) ≈ 0.67, but at gap=20 it drops to 0.45 — comparable to threshold 0.53. Combined with `danger_w=1.7` multiplier on a 300 constant, scoring is fine, but the *threshold gate* `danger < 0.53` lets the agent enter lanes where an enemy is ~20px away and closing.
+- **Single horizon=6** projection misses faster enemies or longer transitions. No multi-step sweep over the transition duration.
+- **No collision buffer / no width term**: the projected gap ignores enemy and player widths (`w` features unused).
+- **`safe_to_transition` only checks danger at destination** but not at the *adjacent* lane that the diagonal action actually traverses, and not at the player's *future x* after a step right/left.
+- **Stay bonus `switch_bias=14.7`** is large vs `value_w=0.62`; combined with `lane_dist_w=39.4` per lane, the agent strongly prefers staying — yet still suicides on the transitions it does make because those decisions ignore destination-x danger.
+- **Escape logic** picks adjacent lane by danger-at-px, not danger-at-new-x; "both adj bad → horizontal dodge" has no check that horizontal motion increases the gap to the actual enemy in the current lane within its arrival time.
+- **Directional `dir_factor`** caps at 1.5 only when sign matches; enemies moving away still register near-equal danger because `exp(-gap/25)` dominates.
+
+## 4. What to preserve
+- Compact parametric structure with ~7 scalars.
+- Lane-aligned indexing and value table from `visual_id`.
+- Two-frame dx prediction for both enemies and collectibles.
+- Value-weighted, reachability-penalized lane scoring framework.
+- Diagonal escape branch and current-lane stay logic.
+- Holding near x=80 fallback rather than edge-patrolling.
+
+## 5. What to change next
+- **Evaluate danger at the lane-entry x, not px.** For each candidate target lane, predict where the player will be after the transition (px ± step·k for k frames to reach lane) and compute danger of that lane's enemy at that future x and time.
+- **Multi-horizon danger sweep**: take the max danger over t ∈ {2, 4, 6, 8, 10}, not a single closed-form min-gap. Min-gap finds the *closest approach* but underweights enemies that arrive shortly after the player enters.
+- **Add a hard collision buffer** (parameter ~ 8–12 px) inside which danger is forced to 1.0 regardless of exp shape; use enemy width if available.
+- **Tighten `danger_thresh`** (or equivalently widen `danger_radius`) so that a 20-px gap to an approaching enemy already blocks lane entry. Current threshold admits clearly unsafe transitions.
+- **Penalize transition lanes**: when moving from lane A to lane B, also check danger in any lane crossed and at the new x. Add a `transition_danger_w` term separate from destination danger.
+- **Use enemy `orientation` (0/1/2) directly** to gate whether enemies approach the player's x; combine with dx sign as a consistency check rather than relying on dx alone (dx can be tiny when stationary).
+- **Asymmetric danger by approach direction**: enemy moving toward player's x should get a much larger multiplier than 1.5 (try 2.5–3) and enemy moving away should get <0.5.
+- **Reduce `lane_dist_w` (39 is huge)** so the agent will travel 2–3 lanes for a 200/300-point item; current weighting makes any 50-point neighbor dominate a 300-point distant item that is actually safer to reach. Re-balance with `value_w` accordingly.
+- **Lower `switch_bias`** so the agent doesn't get stuck in current lane when better safe items exist; the stay bonus currently rivals reaching a high-value lane.
+- **Abort-and-retreat path**: if the chosen action's resulting (lane, x) has danger above a stricter abort threshold, fall back to NOOP or one-step horizontal away from the threatening enemy rather than committing the diagonal.
+- **Treat `respawn_rate`-style stalls implicitly** by avoiding hits — no observation channel is needed; the death-avoidance changes above will reduce it.
+- Avoid the previous v3 direction (broad rewrite); keep the same controller skeleton and only refine danger evaluation, transition safety, and value/lane-distance balance.

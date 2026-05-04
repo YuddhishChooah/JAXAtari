@@ -1,0 +1,40 @@
+
+============================================================
+Game: KANGAROO
+Optimizer: cma-es
+Search Horizon: 1000 steps
+Evaluation Horizon: 1000 steps
+Output: scripts/llm_optimization/runs/unified_suite/kangaroo_smoke_20260429_152718/kangaroo
+============================================================
+
+No logger available for game: kangaroo
+============================================================
+LLM Policy Optimization Loop for JAXAtari KANGAROO
+============================================================
+
+============================================================
+Outer-loop step 1/1 (policy v1)
+============================================================
+Requesting initial policy from LLM...
+Saved policy to: scripts/llm_optimization/runs/unified_suite/kangaroo_smoke_20260429_152718/kangaroo/policy_v1.py
+Successfully loaded policy module
+
+Searching for optimal parameters (4 samples)...
+  CMA-ES: n=6 params, Î»=4 population, 1 generations
+    Gen 1: best=0.00, mean=0.00, Ïƒ=0.284, overall_best=0.00
+
+Results for iteration 1:
+  Search Return (1000 steps): 0.00
+  Average Return: 0.00
+  Player Score: 0.00
+  Enemy Score: 0.00
+  Win Rate: 0.00%
+  >>> New best overall!
+Checkpoint saved to: scripts/llm_optimization/runs/unified_suite/kangaroo_smoke_20260429_152718/kangaroo/optimization_checkpoint.json
+
+============================================================
+Optimization Complete!
+============================================================
+Best Score Achieved: 0.00
+Total Iterations: 1
+Results saved to: scripts/llm_optimization/runs/unified_suite/kangaroo_smoke_20260429_152718/kangaroo/optimization_results.json

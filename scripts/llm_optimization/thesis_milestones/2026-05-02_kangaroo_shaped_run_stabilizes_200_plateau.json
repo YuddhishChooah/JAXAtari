@@ -1,0 +1,95 @@
+{
+  "date": "2026-05-02",
+  "title": "Kangaroo shaped run stabilizes 200-point plateau",
+  "summary": "The first fresh Kangaroo run using the optional shaped route-progress objective completed. It made the first 200-point reward much more stable than the previous fresh reward-only run, but it still did not produce any episode above 200, so Kangaroo remains exploratory and not promotable.",
+  "context": {
+    "previous_milestone": "2026-05-01_kangaroo_shaped_objective_scaffold_added.json",
+    "run_directory": "scripts/llm_optimization/runs/single_game/kangaroo_20260501_223920_shaped_fresh_s20260501",
+    "run_type": "fresh from scratch with --kangaroo-shaped-objective",
+    "seed": 20260501
+  },
+  "run_result": {
+    "best_policy": "scripts/llm_optimization/runs/single_game/kangaroo_20260501_223920_shaped_fresh_s20260501/policy_v2.py",
+    "outer_loop_best_real_score": 200.0,
+    "outer_loop_best_shaped_score": 478.0,
+    "outer_loop_iterations": {
+      "policy_v1.py": {
+        "real_avg_return": 0.0,
+        "shaped_optimization_score": 89.0,
+        "diagnosis": "Reached some upward progress but no reward."
+      },
+      "policy_v2.py": {
+        "real_avg_return": 200.0,
+        "shaped_optimization_score": 478.0,
+        "diagnosis": "Recovered a stable first-reward route and became the best real-reward policy."
+      },
+      "policy_v3.py": {
+        "real_avg_return": 0.0,
+        "shaped_optimization_score": 236.0,
+        "diagnosis": "Improved shaped upward progress but failed real reward, confirming shaped score cannot be treated as task success."
+      }
+    }
+  },
+  "followup_evaluation": {
+    "policy": "scripts/llm_optimization/runs/single_game/kangaroo_20260501_223920_shaped_fresh_s20260501/policy_v2.py",
+    "params_source": "scripts/llm_optimization/runs/single_game/kangaroo_20260501_223920_shaped_fresh_s20260501/optimization_results.json:best_params",
+    "artifact": "scripts/llm_optimization/analysis/evaluations/kangaroo_shaped_fresh_20260501_policy_v2_bestparams_eval32_10000steps.json",
+    "episodes": 32,
+    "steps": 10000,
+    "seed": 20260501,
+    "mean": 193.75,
+    "std": 34.79852726768764,
+    "min": 0.0,
+    "max": 200.0,
+    "histogram": {
+      "0": 1,
+      "200": 31
+    },
+    "episodes_above_200": 0
+  },
+  "negative_control": {
+    "policy": "scripts/llm_optimization/runs/single_game/kangaroo_20260501_223920_shaped_fresh_s20260501/policy_v3.py",
+    "artifact": "scripts/llm_optimization/analysis/evaluations/kangaroo_shaped_fresh_20260501_policy_v3_bestparams_eval32_10000steps.json",
+    "mean": 0.0,
+    "max": 0.0,
+    "interpretation": "The higher shaped route-progress score did not translate into real reward."
+  },
+  "behavioral_trace": {
+    "trace": "scripts/llm_optimization/analysis/traces/kangaroo_shaped_fresh_20260501_policy_v2_route_trace.json",
+    "video": "scripts/llm_optimization/analysis/videos/kangaroo_shaped_fresh_20260501_policy_v2.gif",
+    "summary": {
+      "steps": 830,
+      "total_reward": 200.0,
+      "reward_events": 1,
+      "first_reward_step": 601,
+      "first_reward_action": "RIGHTFIRE",
+      "first_reward_position": {
+        "x": 132.0,
+        "y": 148.0
+      },
+      "life_loss_step": 829,
+      "life_loss_position": {
+        "x": 133.0,
+        "y": 132.0
+      },
+      "post_reward_max_upward_progress": 16.0
+    }
+  },
+  "interpretation": [
+    "The shaped objective helped stabilize the known first 200-point reward: the follow-up evaluation reached 200 in 31 of 32 episodes.",
+    "It did not solve the next route stage: no follow-up episode exceeded 200, and the trace still shows one reward event followed by life loss.",
+    "The shaped objective is useful as an experimental scaffold, but it has not yet produced canonical Kangaroo evidence.",
+    "The run also demonstrates why real reward must remain the final metric: policy_v3 had a nonzero shaped score and more upward progress but scored 0 under real reward."
+  ],
+  "rq_mapping": {
+    "RQ1": "Improves Kangaroo first-reward reliability compared with the previous fresh reward-only run, but does not add Kangaroo as a covered game.",
+    "RQ2": "Behavioral trace confirms the policy is still a shallow first-reward route rather than a robust ladder-routing solution.",
+    "RQ4": "Shows that changing the CMA-ES objective can alter search behavior, but shaped-objective evidence must remain separate from pure reward-only CMA-ES evidence."
+  },
+  "recommended_next_steps": [
+    "Do not run another broad Kangaroo outer loop immediately.",
+    "Patch or extend the Kangaroo debug renderer so it can explain policy_v2's new parameter/function layout, then inspect the post-200 decision stack.",
+    "If continuing Kangaroo, make the next change narrowly target post-200 behavior after the first RIGHTFIRE reward while preserving the stable 200-point route.",
+    "Keep the current shaped run as exploratory evidence and avoid promoting Kangaroo until a policy exceeds 200 under standardized real-reward evaluation and passes behavioral inspection."
+  ]
+}

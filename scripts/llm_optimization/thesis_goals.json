@@ -13,7 +13,7 @@
   },
   "milestone_log": {
     "index": "scripts/llm_optimization/thesis_milestones/index.json",
-    "latest_milestone": "scripts/llm_optimization/thesis_milestones/2026-04-27_project_status_after_rq4_first_pass.json",
+    "latest_milestone": "scripts/llm_optimization/thesis_milestones/2026-05-03_kangaroo_top_ladder_transition_probe.json",
     "rule": "When the thesis state changes meaningfully, add a new dated JSON milestone instead of overwriting previous snapshots."
   },
   "method_protocol": {
@@ -32,6 +32,7 @@
     ],
     "reproducibility_requirements": [
       "Save policy code, parameters, seed, model name, provider, evaluation horizon, number of episodes, and runtime metadata.",
+      "Save exact LLM system prompts, user prompts, raw responses, and extracted outputs for future outer-loop runs.",
       "Redact API keys in all saved artifacts.",
       "Keep a single command path for rerunning canonical policy evaluation.",
       "Use multiple seeded reruns before making strong claims about robustness."
@@ -48,10 +49,37 @@
         "Standardized evaluation budget and seeds.",
         "Comparison against verified random, human, and neural baselines when available."
       ],
-      "current_evidence": [
-        "Canonical 10000-step best policies exist for Pong, Freeway, Asterix, Breakout, and Skiing.",
-        "Current results include multiple human-normalized scores above or near human level.",
-        "Breakout remains meaningfully below DQN and is an important improvement target."
+    "current_evidence": [
+      "Canonical 10000-step best policies exist for Pong, Freeway, Asterix, Breakout, and Skiing.",
+      "The documented canonical evaluation command reproduced all five stored scores exactly on a local macOS setup after API-free reproducibility-path fixes.",
+      "A first five-game seeded RQ1 rerun completed: Pong matched canonical performance, Breakout exceeded canonical, and Freeway, Asterix, and Skiing were below canonical.",
+      "Kangaroo is wired for exploratory LeGPS onboarding runs, but it does not yet have a canonical 10000-step policy.",
+      "The first Kangaroo LLM smoke run completed with valid artifacts and saved LLM input/output, but scored 0.0 in both the 1000-step smoke evaluation and a 10000-step API-free follow-up check.",
+      "The first Kangaroo failure was diagnosed as an UP-only controller with no horizontal movement, no reward events, and one life lost; Kangaroo logger metrics and a rollout renderer now exist.",
+      "The second Kangaroo smoke run completed with two LLM iterations and saved LLM input/output. It avoided pure UP-only behavior but policy_v2 overcorrected into horizontal-only dithering, still scoring 0.0.",
+      "After the second smoke run, Kangaroo route context was refined so prompt text, feedback, and demo code identify reachable ladders using player-bottom and ladder-bottom alignment.",
+      "The third Kangaroo smoke run produced the first nonzero Kangaroo score: policy_v2 averaged 100.0 in the short 1000-step run, but a 16-episode 10000-step API-free follow-up averaged only 12.5 with one scoring episode.",
+      "A resumed Kangaroo run produced policy_v3, which scored 200.0 in all eight 4000-step run-evaluation episodes and averaged 162.5 over a 16-episode 10000-step API-free follow-up. It is stronger than smoke3 but still plateaus at one 200-point reward event.",
+      "A second Kangaroo continuation produced policy_v6, which scored exactly 200.0 in all 16 episodes of a 10000-step follow-up. A rollout trace shows the 200-point event is a RIGHTFIRE reward at x=132,y=148, followed later by a life loss, so this is stable plateau evidence rather than a solved route.",
+      "A detailed post-200 trace for policy_v6 shows the life loss occurs when a falling coconut reaches x≈133,y≈129 while the player remains near x≈132,y≈132 after the 200-point event.",
+      "A targeted trace-guided Kangaroo continuation generated policy_v7, but it regressed to 0.0; the retained best LLM-run policy before manual patching remained policy_v6 at the stable 200-point plateau.",
+      "A high-budget policy_v6 evaluation over 128 episodes with a 50000-step cap stayed exactly at 200.0, and a smaller parameter-only CMA-ES retune also stayed at 200.0.",
+      "A debug overlay trace confirmed that policy_v6's on-ladder predicate is too permissive: 193 of 212 UP actions were triggered with only one pixel of player-ladder overlap.",
+      "A trace-guided API-free patch separated strict ladder-climb perception from route-column exclusion. The base patch-2 candidate averaged 2634.38 over 128 episodes with a 50000-step cap, and the local CMA-ES retuned patch-2 candidate averaged 2656.25 under the same high-budget protocol.",
+                "Exact replay of one 3600-point retuned patch-2 episode and one 200-point retuned patch-2 episode shows both traces contain zero UP actions. The high score comes from repeated lower-platform RIGHTFIRE monkey rewards, so the retuned patch-2 candidate is not yet a canonical covered-game policy.",
+                "Kangaroo prompt context and logger feedback now explicitly flag score-without-climbing and punch-farming behavior, so future outer-loop feedback should not treat high lower-platform punch reward as task success.",
+                "A follow-up anti-punch-farming Kangaroo outer loop completed, but all five generated rewrites scored 0.0 and the retained best remained policy_v6 at 200.0. The failure was diagnosed as overcorrecting the punch-farming warning by suppressing the first useful RIGHTFIRE reward branch.",
+                "Kangaroo logger and prompt feedback now distinguish punch farming from first-reward suppression using first_reward_suppressed_pattern and no_fire_scoreless_pattern.",
+                "A fresh anti-punch-overcorrection Kangaroo rerun completed with the same retained best of 200.0. One generated policy reached avg_return=75.0, but four of five new candidates were flagged as first-reward suppression, so Kangaroo remains exploratory.",
+                "Kangaroo continuation prompts now include a hard preservation contract for the stable 200-point baseline: preserve the lower-platform route, monkey-threat detection, danger/punch parameter semantics, and first RIGHTFIRE branch while modifying only post-200/top-of-ladder logic.",
+                "A fresh-from-scratch Kangaroo run using the revised architecture recovered a 200.0 policy without resuming from the previous best, but its 32-episode 10000-step follow-up averaged only 93.75, with 17 zero-score episodes and 15 episodes at 200.",
+                "Kangaroo now has an optional shaped route-progress search objective behind --kangaroo-shaped-objective. This is not canonical performance evidence yet; it is an explicitly labeled scaffold to test whether CMA-ES can escape the first-reward plateau while real reward remains the final reporting metric.",
+                "The first shaped-objective Kangaroo fresh run stabilized the first reward: policy_v2 averaged 193.75 over 32 episodes with a 10000-step cap using saved CMA-ES best_params, with 31 episodes at 200 and one at 0. It still had zero episodes above 200.",
+                "The shaped policy_v2 debug trace exactly explains all actions and shows post-200 failure comes from repeated monkey_in_punch_priority RIGHTFIRE overriding route/dismount behavior near the top ladder state.",
+                "Two local post-200 guard patches preserved the stable 200-point behavior but did not improve beyond it. Action probes show the policy reaches a y=132 ladder-top trap where no atomic action escapes before life loss.",
+                "A bounded top-ladder transition sequence probe tested 216 short forced-action candidates from the y=140 post-reward state. No candidate exceeded 200; the best short prefix, DOWNRIGHTx24 + DOWNLEFTx16, delayed failure but a longer replay still died at score 200 near x=126,y=132.",
+      "Current results include multiple human-normalized scores above or near human level.",
+      "Breakout remains meaningfully below DQN and is an important improvement target."
       ]
     },
     {
@@ -67,7 +95,17 @@
       "current_evidence": [
         "Pong and Freeway have prior video/mod inspection.",
         "Asterix and Skiing exposed why metric/objective validation is necessary.",
-        "A formal RQ2 test suite is not implemented yet."
+                "Kangaroo retuned patch-2 is a concrete example of misleading score improvement: one replay reaches 3600 points with 18 punch rewards and zero UP actions, meaning it does not demonstrate robust ladder navigation.",
+                "Kangaroo logger metrics now include score_without_climb_pattern and punch_farming_pattern to identify this shortcut automatically in future runs.",
+                "The later anti-punch-farming run is a complementary failure case: removing or broadly gating FIRE avoids punch farming but also destroys the known first reward, so RQ2 evaluation must distinguish shortcut prevention from task progress.",
+                "A second anti-punch rerun confirmed that preserving task-relevant sub-behaviors matters: preventing one shortcut is not enough if the generated policy destroys the first legitimate reward route.",
+                "The fresh Kangaroo run's best policy is not flagged as punch farming or first-reward suppression, but it still only reaches the shallow first-event route and never exceeds 200 in the 32-episode follow-up.",
+                "The shaped Kangaroo objective explicitly penalizes lower-platform punch farming without upward progress, but any resulting policy still needs video/debug inspection before it can count as intended-task behavior.",
+                "A trace and GIF of the shaped run's best policy show one RIGHTFIRE reward at x=132,y=148 followed by life loss at x=133,y=132, so it remains a shallow first-reward policy rather than a robust route solution.",
+                "The stack-style debug renderer now shows the exact logical stack and final reason per frame for shaped policy_v2; this supports diagnosing whether score comes from intended route logic or a priority shortcut.",
+                "The post-200 guard probes show the current failure is not only a punch-priority shortcut; it is also a top-of-ladder transition/mechanics failure that needs a targeted action-sequence probe.",
+                "The bounded top-ladder transition probe rules out a simple one- or two-block forced-action prefix as enough to solve the post-200 failure; the remaining problem is a staged route/mechanics problem.",
+                "A formal RQ2 test suite is not implemented yet."
       ]
     },
     {
@@ -96,7 +134,8 @@
       "current_evidence": [
         "An optimizer=none path is available for LLM-only ablation runs.",
         "A first optimizer=none suite has been run on Pong, Freeway, Asterix, Breakout, and Skiing with 5 outer-loop iterations and 10000-step evaluations.",
-        "The first RQ4 result shows CMA-ES is especially important for Asterix and Breakout, moderately useful for Pong and Freeway, and nearly neutral on the current Skiing policy."
+        "The first RQ4 result shows CMA-ES is especially important for Asterix and Breakout, moderately useful for Pong and Freeway, and nearly neutral on the current Skiing policy.",
+        "For Kangaroo only, an optional shaped search objective has been added. Any run using it must be interpreted separately from pure reward-only CMA-ES evidence."
       ]
     }
   ],
@@ -109,7 +148,9 @@
       "skiing"
     ],
     "candidate_next_games": [
-      "seaquest",
+      "seaquest"
+    ],
+    "exploratory_onboarding_games": [
       "kangaroo"
     ],
     "deferred_or_uncertain": [
@@ -133,6 +174,14 @@
     {
       "risk": "Manual debugging can turn the method into hidden hand engineering.",
       "mitigation": "Separate infrastructure/context fixes from final policy search, and document why each fix was necessary."
+    },
+    {
+      "risk": "Repeated targeted rewrites on one game can overfit effort to a single environment while reducing game coverage.",
+      "mitigation": "Document regressions, freeze partial progress when returns diminish, and move to the next game when broader coverage is the current thesis priority."
+    },
+    {
+      "risk": "A shaped objective can improve the optimizer signal while weakening the purity of reward-only evaluation.",
+      "mitigation": "Use shaping only as an explicitly labeled Kangaroo scaffold, keep real reward as the final reported metric, and separate shaped runs from canonical evidence."
     }
   ],
   "next_milestones": [
@@ -154,9 +203,13 @@
       "milestone": "RQ2 shortcut probes",
       "description": "Define task simplifications and shortcut tests for the current games."
     },
+        {
+            "milestone": "Kangaroo shaped scaffold test",
+            "description": "Completed first pass, stack inspection, local guard patches, and a bounded top-ladder sequence probe. The current blocker remains a top-of-ladder transition trap; no short tested forced-action prefix exceeded 200."
+        },
     {
       "milestone": "Next game onboarding",
-      "description": "Add Seaquest or Kangaroo through the single-game onboarding protocol, then rerun the unified regression suite."
+      "description": "Treat Kangaroo as partial exploratory progress for now and onboard Seaquest through the single-game protocol."
     }
   ],
   "working_reminder": {

@@ -1,0 +1,66 @@
+{
+  "date": "2026-04-30",
+  "title": "Kangaroo retuned trace comparison reveals punch farming",
+  "summary": "Exact replay of one high-scoring and one failing retuned patch-2 Kangaroo episode shows that the improved score comes from repeated monkey punching on the lower platform, not from robust ladder climbing. The policy remains useful exploratory evidence but should not be treated as a solved Kangaroo policy.",
+  "context": {
+    "previous_milestone": "2026-04-30_kangaroo_parametric_ladder_patch_breaks_200_plateau.json",
+    "reason_for_followup": "Patch-2 retuned broke the 200-point plateau under high-budget evaluation, but the short debug trace still did not show UP actions or ladder climbing."
+  },
+  "changes": [
+    {
+      "path": "scripts/llm_optimization/experiments/kangaroo/render_policy_debug_video.py",
+      "purpose": "Added --episode-index and --split-count so the renderer can replay the exact subkey used by vectorized evaluation, plus --trace-only for long JSON traces without huge videos."
+    }
+  ],
+  "evidence": {
+    "high_scoring_episode": {
+      "source_evaluation": "scripts/llm_optimization/analysis/evaluations/kangaroo_policy_v6_overlap_patch2_retuned_vectorized_128eps_50000steps.json",
+      "episode_index": 0,
+      "trace": "scripts/llm_optimization/analysis/traces/kangaroo_policy_v6_overlap_patch2_retuned_ep000_success_trace.json",
+      "video": "scripts/llm_optimization/analysis/videos/kangaroo_policy_v6_overlap_patch2_retuned_ep000_success_first1000_debug.gif",
+      "steps": 5112,
+      "total_reward": 3600.0,
+      "reward_events": 18,
+      "up_actions": 0,
+      "action_counts": {
+        "RIGHT": 2241,
+        "LEFT": 2430,
+        "RIGHTFIRE": 441
+      },
+      "reward_event_pattern": "All 18 reward events were RIGHTFIRE at approximately x=126,y=148 with punch_monkey_priority."
+    },
+    "failing_episode": {
+      "source_evaluation": "scripts/llm_optimization/analysis/evaluations/kangaroo_policy_v6_overlap_patch2_retuned_vectorized_128eps_50000steps.json",
+      "episode_index": 6,
+      "trace": "scripts/llm_optimization/analysis/traces/kangaroo_policy_v6_overlap_patch2_retuned_ep006_fail200_trace.json",
+      "video": "scripts/llm_optimization/analysis/videos/kangaroo_policy_v6_overlap_patch2_retuned_ep006_fail200_debug.gif",
+      "steps": 857,
+      "total_reward": 200.0,
+      "reward_events": 1,
+      "up_actions": 0,
+      "action_counts": {
+        "RIGHT": 538,
+        "LEFT": 229,
+        "RIGHTFIRE": 90
+      },
+      "failure_pattern": "The policy gets the first RIGHTFIRE reward at x=126,y=148, then continues firing while a monkey remains close; the episode terminates before a second reward."
+    }
+  },
+  "interpretation": [
+    "The score improvement is real and reproducible for the replayed vectorized episode key.",
+    "The mechanism is not robust ladder routing. Both the success and failure traces contain zero UP actions.",
+    "Patch-2 fixed a harmful ladder-overlap bug and revealed a strong lower-platform monkey-farming behavior, but it did not solve the intended Kangaroo navigation problem.",
+    "This is strong RQ2 evidence: high reward can still be behaviorally misleading, so video/trace audits are necessary before claiming task success."
+  ],
+  "rq_mapping": {
+    "RQ1": "The retuned patch-2 candidate can achieve high Kangaroo reward in many episodes, but the mechanism is narrow.",
+    "RQ2": "The trace comparison shows a shortcut-like behavior: repeated punching on the lower platform rather than robustly climbing toward the child.",
+    "RQ4": "The parameter search helped expose and tune a useful behavior, but the optimized parameters did not guarantee intended task structure."
+  },
+  "recommended_next_steps": [
+    "Do not promote patch-2 retuned to canonical Kangaroo coverage yet.",
+    "If continuing Kangaroo, the next policy work should explicitly require ladder-climbing route state, not just higher score.",
+    "Use exact episode-index replay when comparing vectorized evaluation outcomes.",
+    "For thesis progress, this is a good point to freeze Kangaroo as exploratory evidence and move on to broader game coverage unless Kangaroo becomes the immediate priority."
+  ]
+}

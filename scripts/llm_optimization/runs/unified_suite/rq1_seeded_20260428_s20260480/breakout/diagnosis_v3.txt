@@ -1,0 +1,29 @@
+## 1. Root cause
+The "lead" term is dead code — it is multiplied by `0.0` — so the policy only chases the ball's current x position with a static dead zone. There is no predictive interception, no use of ball velocity, and `urgency_y`/`urgency_scale`/`lead_gain` are effectively unused (CMA-ES has nothing to calibrate). On top of that, `lead_gain` was driven negative (-0.27), confirming the optimizer found the parameter inert and drifted it. Episodes also end well before clearing the board (only 38% of blocks broken with 4 lives still in hand), suggesting the agent stalls or fails to keep rallies going, not that it dies.
+
+## 2. Evidence from metrics
+- `block_clear_percentage = 0.38` with `lives_remaining = 4` and `lives_lost = 1`: episodes are terminating by length/stagnation, not by losing the ball. The policy is not aggressive enough to finish.
+- `avg_ball_tracking_error = 2.6` ≈ `dead_zone = 2.63`: paddle is permanently sitting one dead-zone away from the ball — classic reactive-only controller signature.
+- `max_ball_tracking_error = 76`: large transient misses, consistent with no velocity prediction (paddle reacts late on fast diagonal returns).
+- `avg_paddle_movement = 1.65`/frame and `total_paddle_movement = 7128`: heavy oscillation, again because control is purely positional with no hysteresis beyond the dead zone.
+- Best `lead_gain` is negative and `urgency_*` parameters look arbitrary — CMA-ES signal that those knobs do nothing.
+
+## 3. Policy logic causing it
+- `_target_x` returns `ball_x + lead * ball_x * 0.0`, i.e. exactly `ball_x`. The whole urgency/lead computation is a no-op.
+- No state-free velocity proxy: the policy has access only to `obs_flat`, but it ignores `ball.orientation` (index 15) and `ball.state` (14), which encode direction information that could substitute for velocity.
+- FIRE is only issued when `ball_active < 0.5`. If Breakout keeps `ball_active=1` after a life loss but requires FIRE to relaunch, the agent can stall — consistent with episodes ending with lives unspent and low clear rate.
+- Dead zone (~2.6) is comparable to tracking error, so the paddle alternates NOOP/RIGHT/LEFT around the ball, explaining the high per-frame movement.
+
+## 4. What to preserve
+- The compact 3–8 parameter structure and the `dead_zone` + `paddle_offset` formulation.
+- The `paddle_center = player.x + offset` convention (offset ~7.9 is well-tuned).
+- The simple `where`-based action selection.
+- Treating descending-ball regime as higher urgency (the *idea* is right, just unused).
+
+## 5. What to change next
+- **Make the lead term actually multiply something.** Use `ball.orientation` (obs[15]) as a sign for horizontal direction and add `lead_gain * orientation_sign` (optionally scaled by a y-based urgency) to the target x. This gives CMA-ES a real knob.
+- **Add a vertical urgency gate that shrinks the dead zone when the ball is low** (e.g. effective dead zone = `dead_zone * (1 - urgency)`), instead of leaving urgency disconnected. This will reduce both `avg_ball_tracking_error` and oscillation simultaneously.
+- **Issue FIRE more liberally**: also fire when `lives` decreased recently is not observable statelessly, but firing whenever the ball is in the upper region AND not moving (ball_y small or ball.state indicates idle) is safe. Simpler: FIRE when `ball_active < 0.5` OR `ball_y < small_threshold` — guards against missed relaunches that the metrics suggest are happening.
+- **Use asymmetric dead zone / hysteresis** by widening dead zone when ball is high (urgency low) to cut the 7128-pixel paddle travel and reduce jitter-induced misses.
+- **Drop the redundant `urgency_scale`** (it's collinear with `lead_gain` and `urgency_y`) so CMA-ES has fewer degenerate directions; keep ~4–5 meaningful parameters: `dead_zone`, `paddle_offset`, `lead_gain`, `urgency_y`, and one FIRE threshold.
+- Avoid the previous failed rewrite direction (broad restructuring that scored 68); keep the current control skeleton and only wire urgency/lead into the target and dead zone.

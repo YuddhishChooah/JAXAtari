@@ -1,0 +1,38 @@
+# Diagnosis: Kangaroo Policy Underperformance
+
+## 1. Root cause
+The policy successfully climbs the first ladder once but fails to chain a second climb. After dismounting onto the second platform, ladder selection re-locks on a ladder it cannot actually reach (or re-targets the same just-climbed ladder), so the agent sweeps horizontally on the second platform without ever finding a valid next ladder. Upward progress effectively caps at one platform height.
+
+## 2. Evidence from metrics
+- `max_upward_progress = 21.3` and `y_range = 22.3`: only one platform's worth of climbing achieved, despite 818 steps.
+- `climb_rate = 0.38` is high — the agent does climb, but only on a single ladder, repeatedly or for a long stretch.
+- `horizontal_action_rate = 0.80` combined with `x_range = 103`: heavy horizontal sweeping after the climb, consistent with no valid next ladder being selected.
+- `score_events = 0.33`, `final_score = 66.7`: roughly one scoring event per episode (probably the bell/first platform reward), no further progression.
+- `lives_lost = 1` with `crash_rate = 0.001`: deaths are not from constant crashing — likely a coconut/monkey hit during the long horizontal sweep.
+- `fire_action_rate = 0.02`: punching/jump-dodge is barely used, so hazards are not being mitigated during traversal.
+
+## 3. Policy logic causing it
+- `_select_ladder` uses an asymmetric reach window `[pby - reach_tol/2, pby + reach_tol]` (~7 above to 14 below feet). On the second platform, the next ladder's bottom is at the *new* platform level; if `player_h` or platform geometry shifts the feet position by even a few pixels, the window misses it. The `useful = lty < py - upward_bias` filter with `upward_bias≈10` further excludes ladders whose top is only modestly above.
+- After climbing, `_on_ladder_column` may remain true while the player is partway up because `bottom_at_or_below = lby >= pby - 4` is generous; the agent keeps choosing UP rather than dismounting cleanly, then exits at an x where no new ladder qualifies.
+- The fallback when `has_valid=False` drifts toward `child_x` (or `pcx + 30`), which produces the long horizontal sweep with no replanning, and the agent never tries jumping (FIRE) to mount a ladder it just barely misses on the y axis.
+- Hazard handling only triggers `FIRE`/sidestep when *off* a column; during the long horizontal sweep there is no proactive dodge tuning, and `punch_dx≈14` is small relative to `danger_dx≈16`, so the punch rarely fires.
+- Ladder cost `dx - 0.05*height_gap` is essentially x-only; ties break toward whichever ladder is horizontally closest, which can re-select the just-used ladder behind the agent.
+
+## 4. What to preserve
+- The geometric reachability concept using `player_bottom_y` vs `ladder_bottom_y`.
+- The on-column detection and near-top dismount branch (the structural skeleton is correct).
+- The threat scanning structure for monkeys, thrown coconuts, and overhead falling coconuts.
+- The compact CMA-ES-tunable parameter set; do not expand it dramatically.
+- Avoidance of UP-only and horizontal-only degenerate behaviors (already handled).
+
+## 5. What to change next
+- **Symmetric, slightly larger reach window**: test `|ladder_bottom_y - player_bottom_y| < reach_tol` with `reach_tol` allowed to grow (~12–20). The current asymmetry biases against second-platform ladders.
+- **Exclude the ladder you just climbed**: after dismount, prefer ladders whose `lcx` is on the side of forward progress, or filter out any ladder whose column currently contains the player. A simple rule: require `|lcx - pcx| > on_ladder_pad + lw/2` when `on_column` was true in this frame.
+- **Cost should reward height progress, not punish it**: change cost to roughly `dx - k * (py - lty)` with k larger (e.g., 0.3–1.0) so taller useful ladders are preferred over lateral near-misses; tune k as a parameter.
+- **Stronger dismount**: when `near_top`, force a couple of frames of horizontal motion off the column before re-evaluating climb logic, otherwise re-selection can snap back to UP.
+- **Replanning fallback**: if no ladder is valid, sweep deterministically toward the *farther* horizontal edge from the start (or alternate via a parameter-controlled bias) rather than toward `child_x`, which is far away and produces aimless travel.
+- **Use FIRE as a jump to bridge small reach gaps**: when a ladder is *almost* reachable (within `1.5*reach_tol`) and aligned in x, emit FIRE; this is cheap and could unlock the second climb if the geometry is borderline.
+- **Tighten hazard response during traversal**: enable punch when `|monkey_dx| < punch_dx` regardless of on/off column, and lower the gap between `punch_dx` and `danger_dx` so the policy actually fires before being hit. The 0.02 fire rate confirms this never engages.
+- **Orientation use**: `player_orientation` (obs_flat[7]) can pick `RIGHTFIRE` vs `LEFTFIRE` more reliably than sign of `monkey_dx` when the monkey is directly overhead.
+
+Net: the policy is one structural fix away (next-ladder selection on the new platform) from chaining climbs; secondary tuning of reach tolerance and cost weighting will unlock multi-platform progress.

@@ -1,0 +1,88 @@
+
+============================================================
+Game: KANGAROO
+Optimizer: cma-es
+Search Horizon: 2000 steps
+Evaluation Horizon: 4000 steps
+Output: scripts/llm_optimization/runs/single_game/kangaroo_resume_20260430_113346
+============================================================
+
+Logger initialized for kangaroo
+============================================================
+LLM Policy Optimization Loop for JAXAtari KANGAROO
+============================================================
+Resuming from previous best policy: scripts/llm_optimization/runs/unified_suite/kangaroo_smoke3_20260429_160438/kangaroo/policy_v2.py
+Previous best score: 100.00
+
+Refreshed resumed-best metrics with current logger:
+  Average Return: 50.00
+  final_score: 66.667
+  noop_rate: 0.011
+
+============================================================
+Outer-loop step 1/2 (policy v3)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts/llm_optimization/runs/single_game/kangaroo_resume_20260430_113346/diagnosis_v3.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts/llm_optimization/runs/single_game/kangaroo_resume_20260430_113346/policy_v3.py
+Successfully loaded policy module
+
+Searching for optimal parameters (4 samples)...
+  CMA-ES will use policy defaults because resumed params are incompatible (missing=['align_tol', 'danger_r', 'height_weight', 'jump_gap', 'on_pad', 'reach_tol'], extra=['danger_dx', 'danger_dy', 'ladder_align_tol', 'ladder_reach_tol', 'on_ladder_pad', 'upward_bias']).
+  CMA-ES: n=7 params, Î»=4 population, 1 generations
+    Gen 1: best=200.00, mean=187.50, Ïƒ=0.277, overall_best=200.00
+
+Results for iteration 3:
+  Search Return (2000 steps): 200.00
+  Average Return: 200.00
+  Player Score: 200.00
+  Enemy Score: 0.00
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 22 metrics
+    average_steps: 824.667
+    reward_total: 200.000
+    score_events: 1.000
+    final_score: 200.000
+    lives_lost: 1.000
+  >>> New best overall!
+Checkpoint saved to: scripts/llm_optimization/runs/single_game/kangaroo_resume_20260430_113346/optimization_checkpoint.json
+
+============================================================
+Outer-loop step 2/2 (policy v4)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts/llm_optimization/runs/single_game/kangaroo_resume_20260430_113346/diagnosis_v4.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts/llm_optimization/runs/single_game/kangaroo_resume_20260430_113346/policy_v4.py
+Successfully loaded policy module
+
+Searching for optimal parameters (4 samples)...
+  CMA-ES will use policy defaults because resumed params are incompatible (missing=['reach_above', 'reach_below'], extra=['jump_gap', 'reach_tol']).
+  CMA-ES: n=7 params, Î»=4 population, 1 generations
+    Gen 1: best=0.00, mean=0.00, Ïƒ=0.273, overall_best=0.00
+
+Results for iteration 4:
+  Search Return (2000 steps): 0.00
+  Average Return: 0.00
+  Player Score: 0.00
+  Enemy Score: 0.00
+  Win Rate: 0.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 22 metrics
+    average_steps: 673.667
+    reward_total: 0.000
+    score_events: 0.000
+    final_score: 0.000
+    lives_lost: 1.000
+Checkpoint saved to: scripts/llm_optimization/runs/single_game/kangaroo_resume_20260430_113346/optimization_checkpoint.json
+
+============================================================
+Optimization Complete!
+============================================================
+Best Score Achieved: 200.00
+Total Iterations: 4
+Results saved to: scripts/llm_optimization/runs/single_game/kangaroo_resume_20260430_113346/optimization_results.json

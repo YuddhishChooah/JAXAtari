@@ -1,0 +1,39 @@
+# Diagnosis
+
+## 1. Root cause
+The policy under-estimates danger during vertical transitions and uses a single-point danger evaluation at the player's current x for every lane. Lanes are scored as "safe" before the agent commits to a diagonal move, but the actual collision occurs at the destination lane's x trajectory while the player is mid-transition. Combined with a too-small `danger_radius` (~25 px) and a hard `danger_thresh` gate, the agent confidently enters lanes that become unsafe one or two frames later.
+
+## 2. Evidence from metrics
+- `hits_taken=3`, `lives_remaining=0`, `terminal_game_over=1`: every episode ends by attrition, not by clock.
+- `hit_diagonal_fraction=0.7778`: hits overwhelmingly happen during diagonal lane transitions.
+- `avg_hit_enemy_gap=3.56`: enemies are essentially touching the player at hit time — the danger model failed to flag them in advance.
+- `avg_collectibles_visible=0.57` and `item_pickup_rate_per_1000=8.68`: items are sparse, so each death wastes a large amount of harvest time; survival dominates score.
+- `score_rate_per_1000=434`: per-life harvesting is fine; total score is bounded by life count, confirming survival is the bottleneck.
+- `avg_stage_index=3.70`, `topmost=0`, `bottommost=7`: full lane reachability is already achieved; vertical bias is not the issue.
+- `respawn_rate=0.092`: ~10% of frames are dead time, further compressing score.
+
+## 3. Policy logic causing it
+- `_danger_at_x` evaluates enemy danger only at `px` (the player's current x), not at the destination lane's enemy trajectory at the *arrival time*. So a lane the player is moving into looks safe whenever the enemy currently sits far from `px`, even if it will sweep through the arrival point.
+- Danger projection horizon is fixed at 6 frames and `danger_radius≈25`; the exponential falls off too fast, so an enemy 30–40 px away with inbound velocity gets a near-zero danger.
+- `dest_dangerous = danger[target_lane] > danger_thresh` re-uses the same `px`-anchored danger array, so the abort condition is essentially the same flawed check.
+- `danger_w * danger * 300` vs `danger_thresh=0.53`: the *scoring* uses scaled danger but the *gating* uses raw danger. Threshold scale inconsistency (rule 16) makes the safety mask too permissive.
+- No collision buffer in width: enemy/player widths (`w`, `h` features 2–3, 24–32) are ignored, so "gap" is point-to-point.
+- Diagonal commits aren't validated against enemy motion in the lane being crossed — there's no per-lane time-to-collision check.
+- `switch_bias=14.7` is large vs `lane_dist_w * 1` step = 39 — actually fine, but the `value_w=0.62` and small VALUE magnitudes mean lane-distance dominates; the agent rarely commits to far high-value items, reducing harvest density between deaths.
+
+## 4. What to preserve
+- Two-frame velocity estimation and the `_projected_min_gap` closed form.
+- Value-table weighting via `collect.visual_id` (rule 4/10).
+- Reachability-style lane-distance penalty and the active-collectible gating in `score_value`.
+- The fallback to `best_safe_lane` when no safe valuable item exists.
+- The compact param dict — it's the right surface for tuning.
+
+## 5. What to change next
+- **Per-lane danger at destination x, not player x.** For each candidate lane, project the enemy in *that* lane and compute time-to-overlap with the player's *arrival* x and *arrival* time (≈ |lane_dist| × frames_per_lane). Compare enemy bounding-box overlap, not point gap.
+- **Add an explicit collision buffer.** Use enemy half-width + player half-width + a safety margin (a tunable param, e.g. `safety_margin`). Treat any projected overlap within the transition window as hard-unsafe.
+- **Unify danger scaling.** Either drop the `*300` in scoring or scale `danger_thresh` by the same factor; right now the gating threshold and scoring magnitudes live on different scales.
+- **Increase effective lookahead.** Use a transition-time-dependent horizon (lanes_to_cross × ~8 frames) rather than fixed 6, since diagonal moves take multiple frames.
+- **Veto diagonals into lanes whose enemy is inbound.** Add a check: if `sign(enemy_dx) == sign(px - enemy_x)` and projected TTC < transition_time + buffer, forbid that diagonal and prefer a horizontal hold or a one-lane diagonal in the opposite vertical direction.
+- **Commit-and-hold for high-value targets.** Once a 200/300-point item is selected and reachable safely, reduce switching churn (raise effective `switch_bias` only for value≥200) so the agent doesn't oscillate between lanes and waste frames.
+- **Soft danger in scoring, hard danger in gating.** Keep the exponential danger as a soft penalty for ranking, but add a separate hard veto (overlap-in-window) that removes a lane from contention regardless of value.
+- **Do not widen upper-lane bias** (rule 17); `topmost_stage_index=0` confirms reachability is fine. Spend parameter budget on destination-lane safety instead.

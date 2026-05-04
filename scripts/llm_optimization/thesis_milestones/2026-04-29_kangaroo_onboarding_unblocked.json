@@ -1,0 +1,80 @@
+{
+  "milestone_id": "2026-04-29_kangaroo_onboarding_unblocked",
+  "created_at": "2026-04-29",
+  "project": {
+    "method_name": "LeGPS",
+    "method_expansion": "Language Guided Policy Search"
+  },
+  "why_this_milestone_exists": {
+    "purpose": "Record that Kangaroo is now wired into the LeGPS pipeline as the next exploratory game.",
+    "trigger": "The thesis goal shifted toward maximizing game coverage before running more full RQ suites."
+  },
+  "change_made": {
+    "summary": "Kangaroo can now be selected by the single-game optimization loop and the unified suite runner without being added to the five-game canonical default suite.",
+    "files": [
+      {
+        "path": "scripts/llm_optimization/llm_optimization_loop.py",
+        "details": [
+          "Replaced the obsolete Kangaroo 111-feature prompt draft with the measured 440-feature flattened object-centric layout.",
+          "Added Kangaroo to GAME_PROMPT_SPECS with objective, action mapping, design principles, failure modes, improvement guidelines, and benchmark context.",
+          "Added Kangaroo-specific critical implementation feedback so future LLM rewrites are reminded of the correct observation indices and compact action mapping.",
+          "Updated demo-mode Kangaroo policy indices so the API-free smoke path uses the current wrapper layout."
+        ]
+      },
+      {
+        "path": "scripts/llm_optimization/run_unified_suite.py",
+        "details": [
+          "Added Kangaroo to supported --games choices while preserving the existing five-game default list."
+        ]
+      },
+      {
+        "path": "scripts/llm_optimization/run_rq1_seeded_rerun.sh",
+        "details": [
+          "Added a GAMES environment override so targeted seeded suites can run Kangaroo without changing the default five-game RQ1 command."
+        ]
+      }
+    ]
+  },
+  "validation": [
+    {
+      "command": "python -m py_compile scripts/llm_optimization/llm_optimization_loop.py scripts/llm_optimization/run_unified_suite.py",
+      "result": "passed"
+    },
+    {
+      "command": "bash -n scripts/llm_optimization/run_rq1_seeded_rerun.sh",
+      "result": "passed"
+    },
+    {
+      "command": "python scripts/llm_optimization/run_unified_suite.py --help | rg \"kangaroo|games\" -n",
+      "result": "passed; Kangaroo appears as an accepted --games choice"
+    },
+    {
+      "command": "python scripts/llm_optimization/llm_optimization_loop.py --game kangaroo --demo --num-envs 2 --num-episodes 2 --max-steps 200 --search-max-steps 100 --param-samples 2 --cma-generations 1 --output-dir /tmp/jaxatari_kangaroo_demo_smoke --quiet",
+      "result": "passed; API-free Kangaroo environment/evaluator path ran end to end, with the simple smoke policy scoring 0.0 in the toy 200-step check"
+    }
+  ],
+  "scope_note": "This is an onboarding/infrastructure milestone, not a thesis result. Kangaroo does not yet have a canonical 10000-step LeGPS policy, seeded rerun evidence, RQ2 probes, or RQ4 ablation evidence.",
+  "rq_relevance": {
+    "RQ1": "Prepares broader game coverage by making Kangaroo runnable through the LeGPS outer-loop path.",
+    "RQ2": "No direct evidence yet; later Kangaroo probes would be needed to test whether policies navigate properly or exploit shortcuts.",
+    "RQ3": "Kangaroo has mod infrastructure that may be useful later, but adaptation experiments are not started.",
+    "RQ4": "No optimizer ablation has been run for Kangaroo yet."
+  },
+  "next_steps": [
+    {
+      "priority": 1,
+      "step": "Run a short Kangaroo LLM outer-loop smoke run with saved llm_io artifacts.",
+      "why": "This checks whether the LLM can generate syntactically valid Kangaroo policy code from the new prompt context before spending a full 10000-step budget."
+    },
+    {
+      "priority": 2,
+      "step": "If the smoke run is valid, run a proper 10000-step Kangaroo single-game outer loop.",
+      "why": "Kangaroo should become evidence only after a standardized longer-horizon run."
+    },
+    {
+      "priority": 3,
+      "step": "Only promote a Kangaroo policy to best_10000_steps after canonical reevaluation.",
+      "why": "This keeps exploratory onboarding separate from accepted thesis evidence."
+    }
+  ]
+}

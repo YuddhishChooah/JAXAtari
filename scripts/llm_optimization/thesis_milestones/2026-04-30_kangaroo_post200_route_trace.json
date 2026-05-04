@@ -1,0 +1,120 @@
+{
+  "milestone_id": "2026-04-30_kangaroo_post200_route_trace",
+  "created_at": "2026-04-30",
+  "project": {
+    "method_name": "LeGPS",
+    "method_expansion": "Language Guided Policy Search"
+  },
+  "why_this_milestone_exists": {
+    "purpose": "Record the detailed route trace added after policy_v6 stabilized the 200-point Kangaroo plateau.",
+    "trigger": "The previous milestone showed stable 200-point behavior but not why the policy failed after the reward event."
+  },
+  "artifacts": {
+    "trace_tool": "scripts/llm_optimization/experiments/kangaroo/trace_policy_route.py",
+    "trace_json": "scripts/llm_optimization/analysis/traces/kangaroo_resume2_20260430_141111_policy_v6_route_trace.json",
+    "policy": "scripts/llm_optimization/runs/single_game/kangaroo_resume2_20260430_141111/policy_v6.py",
+    "source_results": "scripts/llm_optimization/runs/single_game/kangaroo_resume2_20260430_141111/optimization_results.json"
+  },
+  "trace_protocol": {
+    "seed": 20260480,
+    "max_steps": 1000,
+    "window_start": 560,
+    "window_end": 840,
+    "policy_dir": "scripts/llm_optimization/runs/single_game/kangaroo_resume2_20260430_141111"
+  },
+  "trace_result": {
+    "steps": 816,
+    "total_reward": 200.0,
+    "reward_events": 1,
+    "life_losses": 1,
+    "first_reward": {
+      "step": 613,
+      "action": "RIGHTFIRE",
+      "reward": 200.0,
+      "player_x": 132.0,
+      "player_y": 148.0,
+      "score_after": 200,
+      "lives_after": 3,
+      "nearest_monkey": {
+        "x": 143.0,
+        "y": 157.0,
+        "dx": 7.0,
+        "dy": 9.0,
+        "state": 2.0
+      }
+    },
+    "post_reward": {
+      "min_player_y": 132.0,
+      "max_upward_progress_after_reward": 16.0,
+      "dominant_behavior": "The policy stays around the x=132 ladder/top area after the reward rather than transitioning to the next route."
+    },
+    "life_loss": {
+      "step": 815,
+      "action": "LEFT",
+      "player_x": 132.0,
+      "player_y": 132.0,
+      "score_after": 200,
+      "lives_after": 2,
+      "nearest_falling_coconut": {
+        "x": 133.0,
+        "y": 129.0,
+        "dx": -3.0,
+        "dy": -3.0,
+        "distance": 4.242640687119285
+      }
+    },
+    "nearby_route_geometry_at_life_loss": {
+      "current_ladder": {
+        "x": 132.0,
+        "top_y": 132.0,
+        "bottom_y": 168.0,
+        "bottom_diff_from_player": 12.0
+      },
+      "next_upward_candidate_seen_in_trace": {
+        "x": 20.0,
+        "top_y": 84.0,
+        "bottom_y": 120.0,
+        "bottom_diff_from_player": -36.0
+      }
+    }
+  },
+  "interpretation": [
+    "The stable 200-point behavior is a single RIGHTFIRE reward event near a monkey at x≈143,y≈157, while the player is at x≈132,y≈148.",
+    "After the reward, the policy reaches or remains near x≈132,y≈132 and does not make useful post-reward route progress.",
+    "The life loss occurs when a falling coconut reaches almost the same position as the player: falling coconut x≈133,y≈129 while the player is x≈132,y≈132.",
+    "The next paid LLM run should not merely optimize the first 200 points. It should preserve the first reward, then explicitly step/jump out of the x≈132 falling-coconut column and target the next route."
+  ],
+  "code_changes_after_analysis": [
+    {
+      "path": "scripts/llm_optimization/experiments/kangaroo/trace_policy_route.py",
+      "change": "Added a reusable Kangaroo route tracer that records action, reward, score, lives, player state, nearby ladders, and nearby hazards for a selected rollout window."
+    },
+    {
+      "path": "scripts/llm_optimization/llm_optimization_loop.py",
+      "change": "Added trace-derived Kangaroo prompt and feedback guidance for the post-200 falling-coconut failure."
+    }
+  ],
+  "rq_relevance": {
+    "RQ1": "Clarifies that the current Kangaroo policy reliably achieves one reward event but has not solved the route.",
+    "RQ2": "Strongly relevant: the trace prevents overinterpreting the score and explains the behavioral shortcut/plateau.",
+    "RQ3": "No adaptation evidence yet.",
+    "RQ4": "No optimizer ablation evidence yet."
+  },
+  "next_steps": [
+    {
+      "priority": 1,
+      "step": "Use the route trace in the next Kangaroo prompt or feedback before any paid continuation.",
+      "why": "The known bottleneck is now concrete: after the 200-point RIGHTFIRE event, avoid staying at x≈132,y≈132 until a falling coconut hits."
+    },
+    {
+      "priority": 2,
+      "step": "If continuing Kangaroo, resume from policy_v6 and constrain the LLM to preserve the first reward while changing only post-reward transition and hazard handling.",
+      "why": "policy_v6 is stable at 200; broad rewrites risk losing the useful first-event behavior."
+    },
+    {
+      "priority": 3,
+      "step": "If the next targeted attempt still plateaus at 200, freeze Kangaroo as partial coverage and move to another game.",
+      "why": "The thesis goal is broader game coverage, not unlimited spending on one game."
+    }
+  ]
+}

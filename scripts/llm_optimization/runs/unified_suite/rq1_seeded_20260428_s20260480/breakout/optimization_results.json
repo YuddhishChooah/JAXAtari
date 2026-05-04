@@ -1,0 +1,268 @@
+{
+  "best_score": 293.0625,
+  "seed": 20260483,
+  "config": {
+    "llm_provider": "anthropic",
+    "llm_model": "claude-opus-4-7",
+    "api_key": "<redacted>",
+    "max_tokens": 8192,
+    "temperature": null,
+    "num_parallel_envs": 8,
+    "max_steps_per_episode": 10000,
+    "num_eval_episodes": 16,
+    "frame_stack_size": 0,
+    "search_max_steps": 10000,
+    "optimizer": "cma-es",
+    "num_param_samples": 16,
+    "param_perturbation_scale": 0.3,
+    "cma_es_generations": 5,
+    "max_iterations": 5,
+    "target_score": 1000000000.0,
+    "diagnostic_refinement": true,
+    "resume_from_results": false,
+    "resume_best_params_for_cma": true,
+    "refresh_resume_metrics": true,
+    "stop_on_strong_best": false,
+    "output_dir": "scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/breakout",
+    "verbose": true,
+    "save_intermediate": true,
+    "seed": 20260483
+  },
+  "runtime": {
+    "timestamp": "2026-04-28 18:22:06",
+    "python_version": "3.12.7 (v3.12.7:0b05ead877f, Sep 30 2024, 23:18:00) [Clang 13.0.0 (clang-1300.0.29.30)]",
+    "platform": "macOS-26.2-arm64-arm-64bit",
+    "numpy_version": "2.4.4",
+    "jax_version": "0.10.0",
+    "git_commit": "4a89eee554f2005fdb40a0c1292a3ba80bc87ffe"
+  },
+  "best_params": {
+    "dead_zone": 3.024578094482422,
+    "lead_gain": 0.2559308707714081,
+    "paddle_offset": 7.707454204559326,
+    "tight_factor": 1.4166321754455566,
+    "urgency_y": 120.18161010742188
+  },
+  "best_metrics": {
+    "avg_return": 293.0625,
+    "avg_player_score": 293.0625,
+    "avg_enemy_score": 0.0,
+    "win_rate": 1.0,
+    "total_rewards": [
+      348.0,
+      139.0,
+      425.0,
+      382.0,
+      309.0,
+      343.0,
+      126.0,
+      421.0,
+      187.0,
+      199.0,
+      244.0,
+      397.0,
+      143.0,
+      184.0,
+      428.0,
+      414.0
+    ],
+    "player_scores": [
+      348.0,
+      139.0,
+      425.0,
+      382.0,
+      309.0,
+      343.0,
+      126.0,
+      421.0,
+      187.0,
+      199.0,
+      244.0,
+      397.0,
+      143.0,
+      184.0,
+      428.0,
+      414.0
+    ],
+    "enemy_scores": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "search_avg_return": 389.125,
+    "search_avg_player_score": 389.125,
+    "search_avg_enemy_score": 0.0,
+    "search_win_rate": 1.0,
+    "logger_metrics": {
+      "blocks_broken": 91.0,
+      "blocks_remaining": 17.0,
+      "block_clear_percentage": 0.8425925925925926,
+      "avg_ball_tracking_error": 3.189252278820375,
+      "max_ball_tracking_error": 71.66666666666667,
+      "total_paddle_movement": 14654.333333333334,
+      "avg_paddle_movement": 1.705277648489435,
+      "lives_remaining": 4.666666666666667,
+      "lives_lost": 0.3333333333333333,
+      "final_score": 332.0,
+      "block_clear_rate": 10.67462019660411,
+      "max_hit_streak": 91.0,
+      "avg_hit_streak": 91.0,
+      "episode_length": 8531.666666666666
+    }
+  },
+  "history": [
+    {
+      "iteration": 1,
+      "metrics": {
+        "avg_return": 280.1875,
+        "avg_player_score": 280.1875,
+        "avg_enemy_score": 0.0,
+        "win_rate": 1.0,
+        "search_avg_return": 392.0,
+        "search_avg_player_score": 392.0,
+        "search_avg_enemy_score": 0.0,
+        "search_win_rate": 1.0,
+        "logger_metrics": {
+          "blocks_broken": 41.0,
+          "blocks_remaining": 67.0,
+          "block_clear_percentage": 0.3796296296296296,
+          "avg_ball_tracking_error": 2.617607415468337,
+          "max_ball_tracking_error": 76.33333333333333,
+          "total_paddle_movement": 7128.666666666667,
+          "avg_paddle_movement": 1.6528824521863914,
+          "lives_remaining": 4.0,
+          "lives_lost": 1.0,
+          "final_score": 80.0,
+          "block_clear_rate": 9.51721564929675,
+          "max_hit_streak": 41.0,
+          "avg_hit_streak": 41.0,
+          "episode_length": 4240.333333333333
+        }
+      },
+      "best_params": {
+        "dead_zone": 2.6342217922210693,
+        "lead_gain": -0.2741442322731018,
+        "paddle_offset": 7.903141021728516,
+        "urgency_scale": 0.8010910749435425,
+        "urgency_y": 140.2244110107422
+      },
+      "filepath": "scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/breakout/policy_v1.py"
+    },
+    {
+      "iteration": 2,
+      "metrics": {
+        "avg_return": 68.3125,
+        "avg_player_score": 68.3125,
+        "avg_enemy_score": 0.0,
+        "win_rate": 1.0,
+        "search_avg_return": 173.375,
+        "search_avg_player_score": 173.375,
+        "search_avg_enemy_score": 0.0,
+        "search_win_rate": 1.0
+      },
+      "best_params": {
+        "center_bias": 0.3037242889404297,
+        "dead_zone_base": 3.3621819019317627,
+        "dead_zone_urgency": 1.3014731407165527,
+        "lead_gain": 5.054619312286377,
+        "paddle_offset": 8.953503608703613,
+        "urgency_y": 139.53224182128906
+      },
+      "filepath": "scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/breakout/policy_v2.py"
+    },
+    {
+      "iteration": 3,
+      "metrics": {
+        "avg_return": 30.8125,
+        "avg_player_score": 30.8125,
+        "avg_enemy_score": 0.0,
+        "win_rate": 1.0,
+        "search_avg_return": 148.75,
+        "search_avg_player_score": 148.75,
+        "search_avg_enemy_score": 0.0,
+        "search_win_rate": 1.0
+      },
+      "best_params": {
+        "dead_zone": 2.98419189453125,
+        "fire_y": 39.8968620300293,
+        "lead_gain": 6.328329563140869,
+        "paddle_offset": 7.594006538391113,
+        "urgency_y": 120.22040557861328
+      },
+      "filepath": "scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/breakout/policy_v3.py"
+    },
+    {
+      "iteration": 4,
+      "metrics": {
+        "avg_return": 167.25,
+        "avg_player_score": 167.25,
+        "avg_enemy_score": 0.0,
+        "win_rate": 1.0,
+        "search_avg_return": 281.625,
+        "search_avg_player_score": 281.625,
+        "search_avg_enemy_score": 0.0,
+        "search_win_rate": 1.0
+      },
+      "best_params": {
+        "aim_bias": -0.0447712205350399,
+        "dead_zone": 1.6109505891799927,
+        "far_dz_mult": 1.8052332401275635,
+        "lead_gain": 4.216188430786133,
+        "paddle_offset": 7.9594221115112305,
+        "urgency_y": 120.07830047607422
+      },
+      "filepath": "scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/breakout/policy_v4.py"
+    },
+    {
+      "iteration": 5,
+      "metrics": {
+        "avg_return": 293.0625,
+        "avg_player_score": 293.0625,
+        "avg_enemy_score": 0.0,
+        "win_rate": 1.0,
+        "search_avg_return": 389.125,
+        "search_avg_player_score": 389.125,
+        "search_avg_enemy_score": 0.0,
+        "search_win_rate": 1.0,
+        "logger_metrics": {
+          "blocks_broken": 91.0,
+          "blocks_remaining": 17.0,
+          "block_clear_percentage": 0.8425925925925926,
+          "avg_ball_tracking_error": 3.189252278820375,
+          "max_ball_tracking_error": 71.66666666666667,
+          "total_paddle_movement": 14654.333333333334,
+          "avg_paddle_movement": 1.705277648489435,
+          "lives_remaining": 4.666666666666667,
+          "lives_lost": 0.3333333333333333,
+          "final_score": 332.0,
+          "block_clear_rate": 10.67462019660411,
+          "max_hit_streak": 91.0,
+          "avg_hit_streak": 91.0,
+          "episode_length": 8531.666666666666
+        }
+      },
+      "best_params": {
+        "dead_zone": 3.024578094482422,
+        "lead_gain": 0.2559308707714081,
+        "paddle_offset": 7.707454204559326,
+        "tight_factor": 1.4166321754455566,
+        "urgency_y": 120.18161010742188
+      },
+      "filepath": "scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/breakout/policy_v5.py"
+    }
+  ],
+  "best_policy_path": "scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/breakout/policy_v5.py"
+}

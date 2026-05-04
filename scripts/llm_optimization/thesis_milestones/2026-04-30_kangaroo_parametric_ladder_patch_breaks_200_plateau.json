@@ -1,0 +1,100 @@
+{
+  "date": "2026-04-30",
+  "title": "Kangaroo parametric ladder patch breaks the 200-point plateau",
+  "summary": "A manual API-free Kangaroo patch separated low-level ladder-climb perception from route-selection exclusion. The retuned patch-2 policy improved high-budget Kangaroo evaluation from the previous stable 200.0 plateau to mean 2656.25 over 128 episodes with a 50000-step cap, but it is still exploratory and not yet a canonical covered-game policy.",
+  "context": {
+    "previous_best": "policy_v6 from scripts/llm_optimization/runs/single_game/kangaroo_resume3_20260430_144102 remained stuck at exactly 200.0 over 128 episodes with a 50000-step cap.",
+    "observed_failure": "The debug overlay showed policy_v6 triggered UP from on_ladder_column_climb with only one pixel of player-ladder overlap, which caused repeated false climb behavior.",
+    "quentin_feedback_addressed": "The follow-up used explicit parametric ladder predicates and debug traces showing action, logical decision stack, ladder overlap, and priority override reason."
+  },
+  "changes": [
+    {
+      "path": "scripts/llm_optimization/experiments/kangaroo/policy_v6_overlap_patch2.py",
+      "purpose": "Keeps strict ladder-overlap perception while adding route_exclude_x_tol so route planning ignores ladders in the current x-column when choosing a dismount target."
+    },
+    {
+      "path": "scripts/llm_optimization/experiments/kangaroo/policy_v6_overlap_patch2_retuned.py",
+      "purpose": "Stores the local CMA-ES retuned parameters for the same patch-2 policy logic."
+    },
+    {
+      "path": "scripts/llm_optimization/experiments/kangaroo/render_policy_debug_video.py",
+      "purpose": "Updated the debug explanation path so the rendered trace understands the new route_exclude_x_tol parameter."
+    }
+  ],
+  "evidence": {
+    "strict_patch1_result": {
+      "artifact": "scripts/llm_optimization/analysis/evaluations/kangaroo_policy_v6_overlap_patch_eval32_10000steps.json",
+      "result": "The first strict overlap patch scored 0.0 over 32 episodes because it got stuck at the ladder top choosing RIGHT toward the same ladder column."
+    },
+    "patch2_short_debug": {
+      "trace": "scripts/llm_optimization/analysis/traces/kangaroo_policy_v6_overlap_patch2_debug_trace.json",
+      "video": "scripts/llm_optimization/analysis/videos/kangaroo_policy_v6_overlap_patch2_debug.gif",
+      "result": "850-step diagnostic trace reached reward 200.0 with zero explanation mismatches."
+    },
+    "patch2_32_episode_eval": {
+      "artifact": "scripts/llm_optimization/analysis/evaluations/kangaroo_policy_v6_overlap_patch2_eval32_10000steps.json",
+      "mean": 2400.0,
+      "min": 200.0,
+      "max": 3600.0,
+      "episodes_above_200": 24,
+      "episodes": 32,
+      "steps": 10000
+    },
+    "patch2_high_budget_eval": {
+      "artifact": "scripts/llm_optimization/analysis/evaluations/kangaroo_policy_v6_overlap_patch2_vectorized_128eps_50000steps.json",
+      "mean": 2634.38,
+      "min": 200.0,
+      "max": 3600.0,
+      "episodes_above_200": 108,
+      "episodes": 128,
+      "steps": 50000
+    },
+    "patch2_retune": {
+      "artifact": "scripts/llm_optimization/analysis/evaluations/kangaroo_policy_v6_overlap_patch2_retune_cma6_eval32_10000steps.json",
+      "base_32_episode_mean": 2400.0,
+      "retuned_32_episode_mean": 2568.75,
+      "retuned_episodes_above_200": 27,
+      "retuned_params": {
+        "ladder_center_tol": 3.1794726848602295,
+        "min_ladder_overlap_frac": 0.21243366599082947,
+        "route_exclude_x_tol": 14.426636695861816
+      }
+    },
+    "retuned_high_budget_eval": {
+      "artifact": "scripts/llm_optimization/analysis/evaluations/kangaroo_policy_v6_overlap_patch2_retuned_vectorized_128eps_50000steps.json",
+      "mean": 2656.25,
+      "min": 200.0,
+      "max": 3600.0,
+      "episodes_above_200": 108,
+      "episodes": 128,
+      "steps": 50000
+    },
+    "retuned_debug": {
+      "trace": "scripts/llm_optimization/analysis/traces/kangaroo_policy_v6_overlap_patch2_retuned_debug_trace.json",
+      "video": "scripts/llm_optimization/analysis/videos/kangaroo_policy_v6_overlap_patch2_retuned_debug.gif",
+      "result": "850-step diagnostic trace reached reward 200.0, had zero explanation mismatches, and selected only RIGHT, LEFT, and RIGHTFIRE in the first 850 steps."
+    }
+  },
+  "interpretation": [
+    "This is the first Kangaroo evidence that clearly breaks the stable 200-point plateau under a large local evaluation budget.",
+    "The result supports Quentin's recommendation to expose intermediate predicates and tune their numeric thresholds instead of relying on a single hard-coded overlap rule.",
+    "The policy is still not a canonical solved Kangaroo policy. The short debug trace shows the first reward comes from horizontal routing plus punching, not from a clean demonstrated ladder-climbing sequence.",
+    "The remaining failures at 200.0 mean the policy is still brittle and should stay in exploratory Kangaroo artifacts until standardized 10000-step promotion criteria are defined and met."
+  ],
+  "rq_mapping": {
+    "RQ1": "Positive exploratory evidence that LeGPS-style interpretable code plus local parameter search can improve Kangaroo beyond the earlier plateau.",
+    "RQ2": "The debug trace remains necessary because higher score alone does not prove the policy uses intended ladder mechanics robustly.",
+    "RQ4": "The local CMA-ES retune gave a modest 32-episode improvement, supporting the role of numeric parameter search for perceptual thresholds."
+  },
+  "risks": [
+    "Manual patching can weaken the unified-method claim if presented as normal LeGPS output; it must be labeled as trace-guided exploratory repair.",
+    "The retuned high-budget mean is only slightly higher than the base patch-2 high-budget mean, so the retuned variant should be treated as current candidate, not definitive proof of robust improvement.",
+    "The policy still has 20 of 128 high-budget episodes at or near the old 200 plateau, so Kangaroo is not yet robustly solved."
+  ],
+  "recommended_next_steps": [
+    "Render or trace longer successful retuned episodes to understand how the policy reaches 3600 and where 200-point failures diverge.",
+    "Keep patch-2 and retuned patch-2 separate from canonical best policies until a promotion protocol is chosen.",
+    "If continuing Kangaroo, focus on robust ladder-climbing perception and route-state decomposition rather than another broad LLM rewrite.",
+    "If prioritizing thesis coverage, freeze Kangaroo as exploratory progress and continue onboarding the next game while preserving these artifacts."
+  ]
+}

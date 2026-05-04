@@ -1,0 +1,67 @@
+{
+  "date": "2026-05-02",
+  "title": "Kangaroo post-200 guard probe",
+  "summary": "Two API-free post-200 guard patches preserved the stable first 200-point reward but did not exceed the plateau. Action probes show the policy enters a ladder-top state where no atomic action can escape before life loss.",
+  "context": {
+    "previous_milestone": "2026-05-02_kangaroo_shaped_policy_debug_stack.json",
+    "base_policy": "scripts/llm_optimization/runs/single_game/kangaroo_20260501_223920_shaped_fresh_s20260501/policy_v2.py",
+    "base_result": "The shaped policy_v2 reached 200 in 31 of 32 standardized follow-up episodes but never exceeded 200."
+  },
+  "patches_tested": {
+    "post200_guard": {
+      "policy": "scripts/llm_optimization/experiments/kangaroo/policy_shaped_v2_post200_guard.py",
+      "change": "Disable monkey punch priority when the player is already on a ladder column and near the ladder top.",
+      "evaluation": "scripts/llm_optimization/analysis/evaluations/kangaroo_shaped_v2_post200_guard_eval32_10000steps.json",
+      "mean": 193.75,
+      "max": 200.0,
+      "episodes_above_200": 0,
+      "trace": "scripts/llm_optimization/analysis/traces/kangaroo_shaped_v2_post200_guard_route_trace.json",
+      "terminal_action": "LEFT",
+      "terminal_position": {
+        "x": 132.0,
+        "y": 132.0
+      }
+    },
+    "post200_guard_dodge": {
+      "policy": "scripts/llm_optimization/experiments/kangaroo/policy_shaped_v2_post200_guard_dodge.py",
+      "change": "Use the post-200 punch guard and let coconut danger override near-top dismount.",
+      "evaluation": "scripts/llm_optimization/analysis/evaluations/kangaroo_shaped_v2_post200_guard_dodge_eval32_10000steps.json",
+      "mean": 193.75,
+      "max": 200.0,
+      "episodes_above_200": 0,
+      "trace": "scripts/llm_optimization/analysis/traces/kangaroo_shaped_v2_post200_guard_dodge_route_trace.json",
+      "terminal_action": "RIGHT",
+      "terminal_position": {
+        "x": 132.0,
+        "y": 132.0
+      }
+    }
+  },
+  "action_probe": {
+    "artifact": "scripts/llm_optimization/analysis/traces/kangaroo_shaped_v2_post200_action_probe.json",
+    "probe_step_610": {
+      "state": "After first reward, player at x=132,y=140 with score 200.",
+      "finding": "Horizontal actions do not dismount. UP moves to y=132, while DOWN and DOWN-diagonal actions move back downward toward y=156."
+    },
+    "probe_step_805": {
+      "state": "Near terminal failure, player at x=132,y=132 with falling coconut at x=133,y=121.",
+      "finding": "No atomic action among the 18 available actions moves the player or avoids the imminent life loss."
+    }
+  },
+  "interpretation": [
+    "The post-200 failure is not solved by simply lowering monkey punch priority.",
+    "The policy reaches a ladder-top trap: by y=132 it is too late for any action to escape.",
+    "At y=140 the controller should not continue UP into y=132, but the available immediate alternatives either freeze horizontally or move back down the ladder.",
+    "The next useful work is a staged mechanics probe to discover the correct transition at the first ladder/top boundary, not another broad LLM run."
+  ],
+  "rq_mapping": {
+    "RQ1": "Shows that local guards preserve the stable first reward but do not create a higher-scoring Kangaroo policy.",
+    "RQ2": "Strengthens the behavioral diagnosis: the plateau is a route-transition/mechanics failure, not only punch farming.",
+    "RQ4": "Shows that parameter/search shaping alone is insufficient unless the policy structure exposes the correct top-of-ladder transition."
+  },
+  "recommended_next_steps": [
+    "Build a small top-of-ladder transition probe that searches short action sequences from the y=140 state and scores whether the player reaches a new platform or next ladder without losing a life.",
+    "Only after identifying a working transition sequence should the policy or prompt be updated.",
+    "Do not promote any of the post-200 guard patches; they remain exploratory negative results."
+  ]
+}

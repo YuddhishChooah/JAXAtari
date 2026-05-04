@@ -1,0 +1,35 @@
+# Diagnosis
+
+## 1. Root cause
+The policy combines two opposing failure modes: it hesitates too often on the current lane (NOOP 22% of frames) yet still collides frequently (0.68 collisions/crossing). The threat scoring uses an asymmetric and partly inverted notion of "approach," and the next-lane gating is stricter than the current-lane gating, which both stalls UP and fails to flag the actual incoming car on entry.
+
+## 2. Evidence from metrics
+- `time_efficiency` 2.85 with `avg_crossing_time` 347 frames — far above the ~200-frame floor (`min_crossing_time` 209), so the chicken is waiting ~140 extra frames per crossing.
+- `hesitation_rate` 0.22 is high for an UP/NOOP controller targeting DQN-level scores.
+- `collision_rate` 0.68 and `near_miss_count` 1533 — waiting is not even buying safety; collisions still happen, meaning the threat model misses real hits.
+- `down_action_rate` 0 — DOWN escape is unused, so collisions are taken head-on rather than dodged.
+- `avg_upward_progress` 0.005 vs `up_action_rate` 0.78 — UP commands often don't translate into Y motion (likely commanded UP while between-lane logic is fine, but stall happens at lane centers).
+
+## 3. Policy logic causing it
+- `approach = dx * sign(signed)`: with `signed = chicken_cx - car_cx`, this flags a car as "closing" only when it moves *away from its own position toward the chicken's side*. For a car already past the chicken moving further away, this still computes a positive approach when signs align oddly; conversely, a car approaching from behind with `signed` near zero gets `sign(0)=0`, zeroing the approach term — exactly the highest-danger geometry is silently ignored.
+- TTC uses `|signed| - half_sum` in numerator but `approach` (already a closing rate) — when overlap is imminent but not yet closing per the sign test, TTC is set to the safe branch (`cur_gap + 50`), under-reporting threats.
+- `entry_ttc=8.5` > `safe_ttc=5.9` and `entry_margin=2.4` > `current_slack≈2`. The next-lane gate is *stricter* than the current-lane gate, so the chicken often sits on a safe lane refusing to enter an equally safe next lane → hesitation without safety gain.
+- `between_lanes` forces UP unconditionally once moving; combined with no DOWN escape, an unlucky entry leads to guaranteed collision.
+- Single `next_lane` lookahead but no projected chicken-Y at entry time: overlap is checked at *current* frame geometry, missing cars that will arrive in the 4–6 frames the chicken needs to traverse.
+- Lane membership test `|cy - target_y| < 6` may miss cars that span lane boundaries on tall sprites; fine, but slack on x (`current_slack=2`) is small while `entry_margin` is large — inverted priorities.
+
+## 4. What to preserve
+- Compact 5-parameter structure and UP/NOOP-dominant control.
+- Two-lane scope (current + immediate next), per Insight 12.
+- `between_lanes → UP` commit rule (prevents mid-lane oscillation).
+- Per-lane dx estimate from prev/curr.
+- Single-call `policy(obs_flat, params)` signature.
+
+## 5. What to change next
+- **Fix the closing-speed sign**: define threat by predicted future overlap, e.g. project `car_cx + k*dx` for k in a small horizon and test interval overlap with the chicken's x-extent. Avoid `sign(signed)` which collapses at zero.
+- **Make next-lane gate looser or equal to current-lane gate**, not stricter. `entry_ttc ≤ safe_ttc` and `entry_margin ≤ current_slack` better reflect Insight 11.
+- **Project chicken arrival**: evaluate next-lane overlap at t≈4–6 frames ahead (time to traverse one lane), not at t=0. This removes spurious "next lane unsafe now" stalls and catches actual entry collisions.
+- **Add a minimal DOWN escape**: if `cur_margin` is strongly negative AND lane below is clearly safe, emit DOWN; otherwise never. This addresses the 49 collisions without raising hesitation.
+- **Reduce hesitation floor**: when both lanes' projected overlaps are merely "marginal" (small positive), prefer UP rather than NOOP — current collisions show waiting isn't actually safer.
+- **Tighten lane-membership y-tolerance** (e.g., 4) and **widen x slack symmetrically** so the same physical safety budget is used on current and next lane.
+- Re-tune so `safe_ttc` and `entry_ttc` land in 4–6 range, `entry_margin` ≤ 1.5; expect higher up-rate, lower hesitation, similar or lower collisions.

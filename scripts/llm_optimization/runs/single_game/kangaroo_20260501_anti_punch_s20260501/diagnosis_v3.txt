@@ -1,0 +1,34 @@
+# Kangaroo Policy Diagnosis
+
+## 1. Root cause
+The policy reliably earns the first 200-point reward near x≈132, y≈148, then becomes trapped in/near that same ladder column at y≈132. It cannot complete the dismount-and-traverse-to-next-ladder transition, and a falling coconut kills it while it lingers there. The "near_top" dismount branch and the "on_column → climb" branch are mutually defeating: the dismount target reselects the same column the player just climbed.
+
+## 2. Evidence from metrics
+- `min_player_y=132`, `final_player_y=137.33`, `y_range=17`, `max_upward_progress=16`: the player climbs exactly one platform and stays there.
+- `score_events=1`, `reward_total=200`: single-event plateau, matching the known stable-200 trace.
+- `lives_lost=1`, `crash_rate=0.0013`: the death is the documented falling-coconut hit at x≈133, y≈129.
+- `climb_rate=0.1742` with `up_action_rate=0.2797`: climbing happens, but only on one ladder.
+- `horizontal_action_rate=0.7203`, `x_range=108`: lots of lateral motion after the climb, but never aligned/committed to a second ladder.
+- `unique_action_count=4`: action repertoire collapses post-climb (no FIRE-jump, no diagonal recovery).
+
+## 3. Policy logic causing it
+- `_select_best` is called twice with **identical arguments** for primary and dismount; `d_lcx` is the same ladder selection logic, so the "dismount" still excludes only the *current* column via `in_col`, but after climbing to the top platform the player's `pcx` is still inside that column → the next ladder picked is fine in principle, but...
+- `near_top` triggers when `(py - on_top_y) < 8.0`, while `on_column & ~near_top → UP` keeps firing UP. The `_on_ladder_column` test uses `in_x = (pcx >= lx - on_pad) & (pcx <= lx + lw + on_pad)` with `on_pad≈3.2`. Per insight #12, this is essentially a 1-pixel overlap test — the player is treated as "on column" even when standing adjacent on the platform, so it climbs back instead of traversing.
+- The reachability test `diff < reach_tol` with `reach_tol≈15.5` and `reach_up≈28` is asymmetric in the wrong direction for the *upper* platform: from y≈132, the next ladder's bottom is far below feet, so `has_valid` is false and only `has_fb` (nearest-by-x) fires — which re-selects the just-climbed ladder once `in_col` becomes false after a small sidestep.
+- Falling-coconut handler issues NOOP while `on_column & ~near_top`, freezing the player directly under the coconut instead of stepping off the ladder.
+- Dismount direction defaults to `RIGHT` when child is to the right; on the upper platform the next ladder may be left, so dismount and next-ladder selection disagree and oscillate (explains high horizontal rate, no progress).
+
+## 4. What to preserve
+- The first-reward route: starting-platform horizontal motion to the x≈132 ladder and the climb that yields the 200-point event (insight #11).
+- Compact parameter set and the `_select_best` / `_on_ladder_column` / `_threats` decomposition.
+- Punch-in-range logic for monkeys (it isn't the failure mode here).
+- Asymmetric reach window concept; just retune, don't remove.
+
+## 5. What to change next
+- **Stricter on-column test**: replace 1-pixel `on_pad` overlap with a center-band test, e.g. `|pcx - (lx + lw/2)| < band` with `band` parametric and small (~2–3 px). This stops phantom climbs after dismount (insight #12).
+- **Distinct dismount selector**: when `near_top`, force `_select_best` to additionally exclude the ladder the player just climbed (track via "ladder whose top is closest to current py"), not just current x-column. Otherwise dismount target == current ladder.
+- **Latch a horizontal commit after near_top**: once `near_top` fires, prefer horizontal motion until `|pcx - next_lcx| < align_tol` AND feet are clearly on the new platform (`pby` close to platform y). This breaks the climb-up/step-off/climb-up oscillation. Implement statelessly via geometric guard: suppress the `on_column → UP` branch while `py < on_top_y + small` AND a different ladder is the current target.
+- **Reach window for upper platforms**: increase `reach_tol` upward asymmetry or add a second parameter for "ladder bottom far below feet is OK if its top is above us" so the second ladder qualifies as `has_valid` instead of falling back to nearest-by-x.
+- **Coconut-on-ladder response**: replace NOOP with a parametric step-off (LEFT/RIGHT based on `fc_dx` sign), or FIRE-jump dismount. Standing still at x≈132 under a coconut is the documented death.
+- **Keep the change local**: do not touch starting-platform logic; gate all new behavior on `py < start_y - threshold` (i.e., only after the first climb) so the 200-point route is preserved (insights #10, #11).
+- **Avoid rewarding lateral-only or punch-only behavior**: keep the up-action share roughly where it is; the new logic should raise `min_player_y` below 132, not raise punch rate.

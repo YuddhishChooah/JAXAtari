@@ -1,0 +1,132 @@
+{
+  "milestone_id": "2026-04-30_kangaroo_resume_v3_stable_first_reward",
+  "created_at": "2026-04-30",
+  "project": {
+    "method_name": "LeGPS",
+    "method_expansion": "Language Guided Policy Search"
+  },
+  "why_this_milestone_exists": {
+    "purpose": "Record the first Kangaroo resume run after smoke3, which produced a more stable first-reward policy.",
+    "trigger": "A resume-style run started from the first-scoring smoke3 policy and improved the best Kangaroo score from 100.0 to 200.0."
+  },
+  "run": {
+    "run_id": "kangaroo_resume_20260430_113346",
+    "source_run": "kangaroo_smoke3_20260429_160438",
+    "run_dir": "scripts/llm_optimization/runs/single_game/kangaroo_resume_20260430_113346",
+    "game": "kangaroo",
+    "status": "completed",
+    "seed": 20260480,
+    "protocol": {
+      "provider": "anthropic",
+      "model": "claude-opus-4-7",
+      "resume_from_results": true,
+      "max_iters": 2,
+      "num_envs": 8,
+      "num_episodes": 8,
+      "max_steps": 4000,
+      "search_max_steps": 2000,
+      "optimizer": "cma-es",
+      "param_samples": 4,
+      "cma_generations": 1
+    }
+  },
+  "artifacts": {
+    "results": "scripts/llm_optimization/runs/single_game/kangaroo_resume_20260430_113346/optimization_results.json",
+    "best_policy": "scripts/llm_optimization/runs/single_game/kangaroo_resume_20260430_113346/policy_v3.py",
+    "regressed_policy": "scripts/llm_optimization/runs/single_game/kangaroo_resume_20260430_113346/policy_v4.py",
+    "diagnosis_v3": "scripts/llm_optimization/runs/single_game/kangaroo_resume_20260430_113346/diagnosis_v3.txt",
+    "diagnosis_v4": "scripts/llm_optimization/runs/single_game/kangaroo_resume_20260430_113346/diagnosis_v4.txt",
+    "llm_io_dir": "scripts/llm_optimization/runs/single_game/kangaroo_resume_20260430_113346/llm_io",
+    "policy_v3_gif": "scripts/llm_optimization/analysis/videos/kangaroo_resume_20260430_113346_policy_v3.gif",
+    "followup_eval": "scripts/llm_optimization/analysis/evaluations/kangaroo_resume_20260430_113346_followup_eval.json"
+  },
+  "result": {
+    "best_score": 200.0,
+    "best_policy": "policy_v3.py",
+    "policy_v3_run_eval": {
+      "num_episodes": 8,
+      "max_steps": 4000,
+      "avg_return": 200.0,
+      "total_rewards": [
+        200.0,
+        200.0,
+        200.0,
+        200.0,
+        200.0,
+        200.0,
+        200.0,
+        200.0
+      ],
+      "score_events": 1.0,
+      "lives_lost": 1.0,
+      "max_upward_progress": 24.0,
+      "x_range": 108.66666666666667,
+      "up_action_rate": 0.2675208239334958,
+      "horizontal_action_rate": 0.7324791760665041
+    },
+    "policy_v4_regression": {
+      "avg_return": 0.0,
+      "reason": "The second resumed rewrite explored a different reach-window structure and regressed to zero, so policy_v3 remains the saved best."
+    },
+    "followup_10000_step_eval": {
+      "num_episodes": 16,
+      "max_steps": 10000,
+      "avg_return": 162.5,
+      "nonzero_episodes": 13,
+      "max_episode_return": 200.0,
+      "logged_avg_reward": 200.0,
+      "logged_max_upward_progress": 24.0,
+      "logged_x_range": 109.0
+    },
+    "rendered_seed_summary": {
+      "steps": 616,
+      "total_reward": 200.0,
+      "reward_events": 1,
+      "final_score": 200,
+      "final_lives": 2,
+      "x_range": [
+        23.0,
+        132.0
+      ],
+      "y_range": [
+        132.0,
+        149.0
+      ]
+    }
+  },
+  "interpretation": [
+    "Kangaroo has moved from occasional reward to a more stable first-reward policy. The best resumed policy scored 200.0 in all eight run-evaluation episodes.",
+    "The 16-episode, 10000-step API-free follow-up averaged 162.5 with 13 scoring episodes out of 16, which is substantially stronger than smoke3's 12.5 average.",
+    "This still should not be counted as a solved or covered Kangaroo policy. The logger and rendered rollout show a single 200-point event, one life lost, and only about one platform of upward progress.",
+    "The next Kangaroo goal is not to rediscover the first 200 points; it is to preserve policy_v3's first-ladder path and extend it to the second-platform next ladder."
+  ],
+  "code_changes_after_analysis": [
+    {
+      "path": "scripts/llm_optimization/llm_optimization_loop.py",
+      "change": "Added Kangaroo prompt and feedback guidance for the new first-reward plateau: preserve the working 200-point path, then improve second-platform next-ladder selection."
+    }
+  ],
+  "rq_relevance": {
+    "RQ1": "Positive but incomplete Kangaroo evidence: LeGPS can now produce a repeatable first-reward policy, but not a full route to Joey.",
+    "RQ2": "The behavior is interpretable and diagnosable: the policy reliably reaches one reward but plateaus at the first-platform route stage.",
+    "RQ3": "No adaptation evidence yet.",
+    "RQ4": "No optimizer ablation evidence yet."
+  },
+  "next_steps": [
+    {
+      "priority": 1,
+      "step": "Continue Kangaroo from policy_v3, not policy_v4.",
+      "why": "policy_v3 is the current best; policy_v4 regressed to zero."
+    },
+    {
+      "priority": 2,
+      "step": "Focus the next rewrite on second-platform next-ladder selection while preserving the first 200-point path.",
+      "why": "The current bottleneck is a first-reward plateau, not initial ladder selection."
+    },
+    {
+      "priority": 3,
+      "step": "Only consider a longer-budget Kangaroo run after the policy exceeds the 200-point plateau in a short follow-up.",
+      "why": "The present policy is stable enough for first reward but still does not show multi-platform progress."
+    }
+  ]
+}

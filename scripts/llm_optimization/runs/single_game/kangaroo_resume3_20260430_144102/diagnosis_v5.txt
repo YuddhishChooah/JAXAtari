@@ -1,0 +1,36 @@
+# Kangaroo Policy Diagnosis
+
+## 1. Root cause
+The policy successfully climbs the first ladder (gaining ~200 points and ~24px upward), but fails to chain a second climb. After dismount it enters a horizontal sweep that never re-acquires a valid next ladder, so the agent oscillates on the second platform until a hazard kills it. The ladder selection and dismount logic are tuned for the *initial* platform geometry only.
+
+## 2. Evidence from metrics
+- `max_upward_progress = 24` and `min_player_y = 124`: only one platform of height gained, then plateau.
+- `climb_rate = 0.238` vs `horizontal_action_rate = 0.728`: most time spent traversing, not climbing — consistent with one successful climb followed by long aimless horizontal motion.
+- `score_events = 1`, `final_score = 200`: exactly one scoring event, matching the "first ladder, then stuck" pattern.
+- `lives_lost = 1` despite low `crash_rate`: death occurs from prolonged exposure on the second platform, not from a climbing fault.
+- `unique_action_count = 5`: limited behavioral repertoire after dismount.
+- `x_range = 108`: wide horizontal sweeping confirms the fallback sweep is dominating after the first climb.
+
+## 3. Policy logic causing it
+- `_select_ladder` requires `lty < py - 4.0` (strictly above current head). Right after dismount, `py` has just decreased; the next ladder's top may not satisfy this margin, or `bottom_diff < reach_tol` fails because `reach_tol≈15.7` is too tight for the second platform's ladder geometry.
+- `not_current` exclusion uses `on_column & in_col`, but `on_column` is recomputed per step. Just after dismount the player is still partly in the old column for several frames, suppressing valid candidates.
+- The "sweep fallback" (`pcx < 80 ? +40 : -40`) activates whenever no ladder qualifies. It pulls the agent away from the actual next ladder rather than searching for *any* upward ladder with a relaxed reach test.
+- `near_top` dismount picks `RIGHT` when `dx_to_target == NOOP`, hard-coding a direction that may be wrong on upper platforms.
+- Hazard handling: `any_thrown & ~on_column → FIRE` causes a stationary jump that does not dodge; combined with horizontal sweep this produces the death.
+- `height_weight = 1.06` makes tall ladders attractive even when far in x, encouraging selection of unreachable distant ladders over reachable nearer ones on platform 2.
+
+## 4. What to preserve
+- The first-ladder success path: reach test using `player_bottom_y` vs `ladder_bottom_y`, alignment threshold, and the climb-while-on-column rule. This is what produces the 87.5% 200-point baseline.
+- Compact parameterization (7 scalars) — CMA-ES is finding a working basin.
+- Monkey punch logic and the on-column climb persistence.
+- Exclusion of the just-climbed ladder (concept is correct; only the implementation is sticky).
+
+## 5. What to change next
+- **Two-tier ladder selection**: first try strict reach; if none, relax `reach_tol` (e.g. 1.8×) before falling back to a sweep. Make the relaxation a tunable parameter.
+- **Stable "just-climbed" memoryless exclusion**: exclude a ladder whose `lby` is within reach AND whose `lty` is at or above current `py` (i.e. the one we just exited) by testing `lty >= py - small_margin`, not by re-detecting column membership.
+- **Directional dismount**: choose dismount direction by comparing `pcx` to the *next* candidate ladder's `lcx`, not a hard-coded RIGHT. If no candidate, dismount toward screen center.
+- **Replace blind sweep with directed search**: when no ladder is reachable, move toward the x of the nearest *active upward* ladder regardless of reach, so the agent walks until it becomes reachable.
+- **Reduce `height_weight` influence on platform 2**: cap height bonus or use `min(height_gap, ph*k)` so x-distance dominates selection of the *next* ladder rather than a far tall one.
+- **Better hazard response**: thrown coconut → step perpendicular to its dx (LEFT/RIGHT away), not stationary FIRE. Only FIRE-punch when monkey is in punch range and aligned in y.
+- **Add a child-x bias only when on the top platform** (e.g. `py < threshold`) so horizontal motion converges to the rescue rather than sweeping.
+- Keep the parameter count small: add at most 2–3 new scalars (`reach_relax`, `dismount_bias`, `top_platform_y`).

@@ -1,0 +1,97 @@
+{
+  "milestone_id": "2026-04-30_kangaroo_resume3_targeted_regression",
+  "created_at": "2026-04-30",
+  "project": {
+    "method_name": "LeGPS",
+    "method_expansion": "Language Guided Policy Search"
+  },
+  "why_this_milestone_exists": {
+    "purpose": "Record the completed trace-guided Kangaroo continuation after the policy_v6 post-200 route trace.",
+    "trigger": "A targeted paid outer-loop continuation generated policy_v7, but the new policy regressed to zero instead of improving beyond the stable 200-point plateau."
+  },
+  "artifacts": {
+    "run_dir": "scripts/llm_optimization/runs/single_game/kangaroo_resume3_20260430_144102",
+    "results": "scripts/llm_optimization/runs/single_game/kangaroo_resume3_20260430_144102/optimization_results.json",
+    "run_log": "scripts/llm_optimization/runs/single_game/kangaroo_resume3_20260430_144102/resume3_outerloop_20260430_144133.log",
+    "generated_policy": "scripts/llm_optimization/runs/single_game/kangaroo_resume3_20260430_144102/policy_v7.py",
+    "retained_best_policy": "scripts/llm_optimization/runs/single_game/kangaroo_resume3_20260430_144102/policy_v6.py",
+    "llm_diagnosis_io": "scripts/llm_optimization/runs/single_game/kangaroo_resume3_20260430_144102/llm_io/v07_diagnosis.json",
+    "llm_rewrite_io": "scripts/llm_optimization/runs/single_game/kangaroo_resume3_20260430_144102/llm_io/v07_policy_rewrite.json",
+    "prior_trace": "scripts/llm_optimization/analysis/traces/kangaroo_resume2_20260430_141111_policy_v6_route_trace.json"
+  },
+  "run_protocol": {
+    "game": "kangaroo",
+    "seed": 20260480,
+    "resume_from": "scripts/llm_optimization/runs/single_game/kangaroo_resume3_20260430_144102/policy_v6.py",
+    "max_iterations": 1,
+    "num_parallel_envs": 8,
+    "num_eval_episodes": 8,
+    "search_max_steps": 2000,
+    "max_steps_per_episode": 4000,
+    "optimizer": "cma-es",
+    "num_param_samples": 6,
+    "cma_es_generations": 2,
+    "diagnostic_refinement": true,
+    "llm_provider": "anthropic",
+    "api_key_saved": false
+  },
+  "result": {
+    "policy_v7": {
+      "search_avg_return": 0.0,
+      "avg_return": 0.0,
+      "avg_player_score": 0.0,
+      "win_rate": 0.0,
+      "logger_metrics": {
+        "reward_total": 0.0,
+        "score_events": 0.0,
+        "final_score": 0.0,
+        "lives_lost": 1.0,
+        "max_upward_progress": 24.0,
+        "horizontal_action_rate": 0.9416590827821628,
+        "climb_rate": 0.6106502092922634
+      }
+    },
+    "retained_best": {
+      "policy": "policy_v6.py",
+      "best_score": 200.0,
+      "avg_return": 200.0,
+      "avg_player_score": 200.0,
+      "score_events": 1.0,
+      "lives_lost": 1.0
+    }
+  },
+  "interpretation": [
+    "The trace-derived diagnosis was useful: it correctly identified the post-200 stall and falling-coconut death near x=132,y=132.",
+    "The generated policy_v7 did not preserve the working first-reward route. It returned to 0.0 score, so the attempt is a regression rather than a Kangaroo improvement.",
+    "CMA-ES could not recover this rewrite within the small targeted budget because the policy structure changed the reachable behavior before the numeric parameters could help.",
+    "The current Kangaroo status remains partial exploratory coverage: stable one-event 200-point behavior exists, but Kangaroo is not solved and should not be promoted to canonical coverage."
+  ],
+  "decision": {
+    "short_term": "Do not run another same-style paid Kangaroo continuation immediately.",
+    "recommended_direction": "Either freeze Kangaroo as partial coverage and move to Seaquest to maximize game count, or do API-free/manual route analysis before any further paid Kangaroo call.",
+    "reason": "The thesis priority is broader game coverage with honest evidence. The last targeted rewrite consumed a paid LLM step and made the policy worse."
+  },
+  "rq_relevance": {
+    "RQ1": "Negative but useful evidence: LeGPS can reach a stable first Kangaroo reward, but the latest targeted continuation failed to improve it.",
+    "RQ2": "Relevant because the trace and regression prevent overclaiming the 200-point score as real task completion.",
+    "RQ3": "No adaptation evidence yet.",
+    "RQ4": "No optimizer ablation evidence yet."
+  },
+  "next_steps": [
+    {
+      "priority": 1,
+      "step": "Mark Kangaroo as exploratory partial progress, not a covered game.",
+      "why": "The best policy is stable at one 200-point event but still loses a life and does not complete the route."
+    },
+    {
+      "priority": 2,
+      "step": "Move to Seaquest onboarding if the immediate goal is maximizing game coverage.",
+      "why": "Another same-style Kangaroo continuation is now lower value than testing whether the method transfers to another environment."
+    },
+    {
+      "priority": 3,
+      "step": "If Kangaroo is revisited, use a minimal patch against policy_v6 or local route analysis before paying for another LLM rewrite.",
+      "why": "policy_v7 shows that broad structural rewrites can destroy the existing first-reward route."
+    }
+  ]
+}

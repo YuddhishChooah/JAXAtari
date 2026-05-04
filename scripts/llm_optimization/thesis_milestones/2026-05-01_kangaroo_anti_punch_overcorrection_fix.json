@@ -1,0 +1,88 @@
+{
+  "date": "2026-05-01",
+  "title": "Kangaroo anti-punch overcorrection diagnosed and fixed",
+  "summary": "The anti-punch-farming Kangaroo outer loop completed but did not improve on the stable 200-point baseline. All five new policies scored 0.0 because the prompt pressure against punch farming caused the generated code to suppress the first useful RIGHTFIRE reward path. The logger and prompt feedback now distinguish repeated punch farming from first-reward suppression.",
+  "context": {
+    "previous_milestone": "2026-05-01_kangaroo_anti_punch_farming_feedback.json",
+    "run_directory": "scripts/llm_optimization/runs/single_game/kangaroo_20260501_anti_punch_s20260501",
+    "retained_best_policy": "scripts/llm_optimization/runs/single_game/kangaroo_resume3_20260430_144102/policy_v6.py",
+    "retained_best_score": 200.0,
+    "new_policy_scores": {
+      "policy_v1.py": 0.0,
+      "policy_v2.py": 0.0,
+      "policy_v3.py": 0.0,
+      "policy_v4.py": 0.0,
+      "policy_v5.py": 0.0
+    }
+  },
+  "diagnosis": [
+    "The run correctly avoided the earlier high-score-without-UP punch-farming shortcut.",
+    "It overcorrected by treating anti-punch-farming as if FIRE/punch should be removed or broadly gated.",
+    "Several generated policies gated the punch predicate with conditions such as `& ~on_column`, which blocks the known first reward that happens near the first ladder/platform segment.",
+    "A local logger replay of policy_v5 produced reward_total=0.0, score_events=0.0, fire_action_rate=0.0, punch_action_rate=0.0, climb_rate=0.6166, x_range=104.0, max_upward_progress=16.0, first_reward_suppressed_pattern=1.0, and no_fire_scoreless_pattern=1.0."
+  ],
+  "changes": [
+    {
+      "path": "scripts/llm_optimization/core/logger.py",
+      "purpose": "Added first_reward_suppressed_pattern and no_fire_scoreless_pattern so Kangaroo can detect scoreless policies that move/climb but almost never use FIRE."
+    },
+    {
+      "path": "scripts/llm_optimization/llm_optimization_loop.py",
+      "purpose": "Updated Kangaroo prompt context, design principles, failure modes, and improvement guidelines to state that anti-punch-farming must not remove the first useful RIGHTFIRE branch."
+    },
+    {
+      "path": "scripts/llm_optimization/llm_optimization_loop.py",
+      "purpose": "Added feedback that explicitly warns against broad `& ~on_column` gates on `punch_in_range` after a scoring baseline regresses to zero."
+    },
+    {
+      "path": "scripts/llm_optimization/llm_optimization_loop.py",
+      "purpose": "Future failed-candidate history entries now preserve logger_metrics, and recent-failed-candidate prompt context includes Kangaroo-specific failure flags."
+    },
+    {
+      "path": "scripts/llm_optimization/run_kangaroo_anti_punch_outer_loop.sh",
+      "purpose": "Changed the default output stamp to include the current date/time and the overcorrection-fix label so the next run starts in a fresh folder unless OUTPUT_DIR is explicitly provided."
+    }
+  ],
+  "verification": {
+    "commands": [
+      ".venv/bin/python -m py_compile scripts/llm_optimization/core/logger.py scripts/llm_optimization/llm_optimization_loop.py",
+      ".venv/bin/python - <<'PY' ... policy_v5 and patch2-retuned logger replay ... PY"
+    ],
+    "policy_v5_check": {
+      "policy": "scripts/llm_optimization/runs/single_game/kangaroo_20260501_anti_punch_s20260501/policy_v5.py",
+      "reward_total": 0.0,
+      "score_events": 0.0,
+      "fire_action_rate": 0.0,
+      "punch_action_rate": 0.0,
+      "climb_rate": 0.6166241432028268,
+      "first_reward_suppressed_pattern": 1.0,
+      "no_fire_scoreless_pattern": 1.0,
+      "punch_farming_pattern": 0.0
+    },
+    "patch2_retuned_check": {
+      "policy": "scripts/llm_optimization/experiments/kangaroo/policy_v6_overlap_patch2_retuned.py",
+      "reward_total": 466.6666666666667,
+      "score_events": 2.3333333333333335,
+      "up_action_rate": 0.0,
+      "punch_action_rate": 0.0725799086757991,
+      "first_reward_suppressed_pattern": 0.0,
+      "punch_farming_pattern": 0.6666666666666666,
+      "score_without_climb_pattern": 1.0
+    }
+  },
+  "interpretation": [
+    "Kangaroo remains exploratory and should not be promoted.",
+    "Reward alone is insufficient, but forbidding the useful first punch is also wrong.",
+    "The next Kangaroo attempt should preserve the stable first 200-point route, then modify only post-200 ladder-route, dismount, and hazard logic."
+  ],
+  "rq_mapping": {
+    "RQ1": "Documents a failed Kangaroo expansion attempt and the retained 200-point baseline.",
+    "RQ2": "Improves shortcut detection by separating punch farming from first-reward suppression.",
+    "RQ4": "Keeps CMA-ES useful by giving it policy structures with the correct first-reward branch instead of optimizing a scoreless no-FIRE policy."
+  },
+  "recommended_next_steps": [
+    "Rerun Kangaroo from the stable 200-point policy with a fresh output stamp and the updated feedback.",
+    "Inspect the first new candidate's logger metrics before spending many more outer-loop iterations.",
+    "Only interpret a high score as progress if the trace also shows nonzero UP/climb route behavior."
+  ]
+}

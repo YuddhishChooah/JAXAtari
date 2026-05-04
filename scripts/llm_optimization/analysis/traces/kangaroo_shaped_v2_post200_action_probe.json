@@ -1,0 +1,2055 @@
+{
+  "created_at": "2026-05-02 21:41:58",
+  "policy": "scripts/llm_optimization/experiments/kangaroo/policy_shaped_v2_post200_guard_dodge.py",
+  "seed": 20260501,
+  "probes": [
+    {
+      "start": {
+        "step": 610,
+        "score": 200,
+        "lives": 3,
+        "player_x": 132.0,
+        "player_y": 140.0,
+        "falling_x": 111.0,
+        "falling_y": 9.0,
+        "falling_active": 1.0,
+        "reward_before_probe": 200.0
+      },
+      "repeat_frames": 24,
+      "actions": [
+        {
+          "action": 0,
+          "action_name": "NOOP",
+          "done": false,
+          "reward": 0.0,
+          "moved": false,
+          "final": {
+            "x": 132.0,
+            "y": 140.0,
+            "lives": 3
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            }
+          ]
+        },
+        {
+          "action": 1,
+          "action_name": "FIRE",
+          "done": false,
+          "reward": 0.0,
+          "moved": false,
+          "final": {
+            "x": 132.0,
+            "y": 140.0,
+            "lives": 3
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            }
+          ]
+        },
+        {
+          "action": 2,
+          "action_name": "UP",
+          "done": false,
+          "reward": 0.0,
+          "moved": true,
+          "final": {
+            "x": 132.0,
+            "y": 132.0,
+            "lives": 3
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            }
+          ]
+        },
+        {
+          "action": 3,
+          "action_name": "RIGHT",
+          "done": false,
+          "reward": 0.0,
+          "moved": false,
+          "final": {
+            "x": 132.0,
+            "y": 140.0,
+            "lives": 3
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            }
+          ]
+        },
+        {
+          "action": 4,
+          "action_name": "LEFT",
+          "done": false,
+          "reward": 0.0,
+          "moved": false,
+          "final": {
+            "x": 132.0,
+            "y": 140.0,
+            "lives": 3
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            }
+          ]
+        },
+        {
+          "action": 5,
+          "action_name": "DOWN",
+          "done": false,
+          "reward": 0.0,
+          "moved": true,
+          "final": {
+            "x": 132.0,
+            "y": 156.0,
+            "lives": 3
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 132.0,
+              "y": 156.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 156.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 156.0,
+              "lives": 3
+            }
+          ]
+        },
+        {
+          "action": 6,
+          "action_name": "UPRIGHT",
+          "done": false,
+          "reward": 0.0,
+          "moved": true,
+          "final": {
+            "x": 132.0,
+            "y": 132.0,
+            "lives": 3
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            }
+          ]
+        },
+        {
+          "action": 7,
+          "action_name": "UPLEFT",
+          "done": false,
+          "reward": 0.0,
+          "moved": true,
+          "final": {
+            "x": 132.0,
+            "y": 132.0,
+            "lives": 3
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            }
+          ]
+        },
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "done": false,
+          "reward": 0.0,
+          "moved": true,
+          "final": {
+            "x": 134.0,
+            "y": 156.0,
+            "lives": 3
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 134.0,
+              "y": 156.0,
+              "lives": 3
+            },
+            {
+              "x": 134.0,
+              "y": 156.0,
+              "lives": 3
+            },
+            {
+              "x": 134.0,
+              "y": 156.0,
+              "lives": 3
+            }
+          ]
+        },
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "done": false,
+          "reward": 0.0,
+          "moved": true,
+          "final": {
+            "x": 130.0,
+            "y": 156.0,
+            "lives": 3
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 130.0,
+              "y": 156.0,
+              "lives": 3
+            },
+            {
+              "x": 130.0,
+              "y": 156.0,
+              "lives": 3
+            },
+            {
+              "x": 130.0,
+              "y": 156.0,
+              "lives": 3
+            }
+          ]
+        },
+        {
+          "action": 10,
+          "action_name": "UPFIRE",
+          "done": false,
+          "reward": 0.0,
+          "moved": true,
+          "final": {
+            "x": 132.0,
+            "y": 132.0,
+            "lives": 3
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            }
+          ]
+        },
+        {
+          "action": 11,
+          "action_name": "RIGHTFIRE",
+          "done": false,
+          "reward": 0.0,
+          "moved": false,
+          "final": {
+            "x": 132.0,
+            "y": 140.0,
+            "lives": 3
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            }
+          ]
+        },
+        {
+          "action": 12,
+          "action_name": "LEFTFIRE",
+          "done": false,
+          "reward": 0.0,
+          "moved": false,
+          "final": {
+            "x": 132.0,
+            "y": 140.0,
+            "lives": 3
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            }
+          ]
+        },
+        {
+          "action": 13,
+          "action_name": "DOWNFIRE",
+          "done": false,
+          "reward": 0.0,
+          "moved": true,
+          "final": {
+            "x": 132.0,
+            "y": 156.0,
+            "lives": 3
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 132.0,
+              "y": 156.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 156.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 156.0,
+              "lives": 3
+            }
+          ]
+        },
+        {
+          "action": 14,
+          "action_name": "UPRIGHTFIRE",
+          "done": false,
+          "reward": 0.0,
+          "moved": true,
+          "final": {
+            "x": 132.0,
+            "y": 132.0,
+            "lives": 3
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            }
+          ]
+        },
+        {
+          "action": 15,
+          "action_name": "UPLEFTFIRE",
+          "done": false,
+          "reward": 0.0,
+          "moved": true,
+          "final": {
+            "x": 132.0,
+            "y": 132.0,
+            "lives": 3
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            }
+          ]
+        },
+        {
+          "action": 16,
+          "action_name": "DOWNRIGHTFIRE",
+          "done": false,
+          "reward": 0.0,
+          "moved": true,
+          "final": {
+            "x": 134.0,
+            "y": 156.0,
+            "lives": 3
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 134.0,
+              "y": 156.0,
+              "lives": 3
+            },
+            {
+              "x": 134.0,
+              "y": 156.0,
+              "lives": 3
+            },
+            {
+              "x": 134.0,
+              "y": 156.0,
+              "lives": 3
+            }
+          ]
+        },
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "done": false,
+          "reward": 0.0,
+          "moved": true,
+          "final": {
+            "x": 130.0,
+            "y": 156.0,
+            "lives": 3
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 140.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 130.0,
+              "y": 156.0,
+              "lives": 3
+            },
+            {
+              "x": 130.0,
+              "y": 156.0,
+              "lives": 3
+            },
+            {
+              "x": 130.0,
+              "y": 156.0,
+              "lives": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "start": {
+        "step": 805,
+        "score": 200,
+        "lives": 3,
+        "player_x": 132.0,
+        "player_y": 132.0,
+        "falling_x": 133.0,
+        "falling_y": 121.0,
+        "falling_active": 1.0,
+        "reward_before_probe": 200.0
+      },
+      "repeat_frames": 12,
+      "actions": [
+        {
+          "action": 0,
+          "action_name": "NOOP",
+          "done": true,
+          "reward": 0.0,
+          "moved": false,
+          "final": {
+            "x": 132.0,
+            "y": 132.0,
+            "lives": 2
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 2
+            }
+          ]
+        },
+        {
+          "action": 1,
+          "action_name": "FIRE",
+          "done": true,
+          "reward": 0.0,
+          "moved": false,
+          "final": {
+            "x": 132.0,
+            "y": 132.0,
+            "lives": 2
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 2
+            }
+          ]
+        },
+        {
+          "action": 2,
+          "action_name": "UP",
+          "done": true,
+          "reward": 0.0,
+          "moved": false,
+          "final": {
+            "x": 132.0,
+            "y": 132.0,
+            "lives": 2
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 2
+            }
+          ]
+        },
+        {
+          "action": 3,
+          "action_name": "RIGHT",
+          "done": true,
+          "reward": 0.0,
+          "moved": false,
+          "final": {
+            "x": 132.0,
+            "y": 132.0,
+            "lives": 2
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 2
+            }
+          ]
+        },
+        {
+          "action": 4,
+          "action_name": "LEFT",
+          "done": true,
+          "reward": 0.0,
+          "moved": false,
+          "final": {
+            "x": 132.0,
+            "y": 132.0,
+            "lives": 2
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 2
+            }
+          ]
+        },
+        {
+          "action": 5,
+          "action_name": "DOWN",
+          "done": true,
+          "reward": 0.0,
+          "moved": false,
+          "final": {
+            "x": 132.0,
+            "y": 132.0,
+            "lives": 2
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 2
+            }
+          ]
+        },
+        {
+          "action": 6,
+          "action_name": "UPRIGHT",
+          "done": true,
+          "reward": 0.0,
+          "moved": false,
+          "final": {
+            "x": 132.0,
+            "y": 132.0,
+            "lives": 2
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 2
+            }
+          ]
+        },
+        {
+          "action": 7,
+          "action_name": "UPLEFT",
+          "done": true,
+          "reward": 0.0,
+          "moved": false,
+          "final": {
+            "x": 132.0,
+            "y": 132.0,
+            "lives": 2
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 2
+            }
+          ]
+        },
+        {
+          "action": 8,
+          "action_name": "DOWNRIGHT",
+          "done": true,
+          "reward": 0.0,
+          "moved": false,
+          "final": {
+            "x": 132.0,
+            "y": 132.0,
+            "lives": 2
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 2
+            }
+          ]
+        },
+        {
+          "action": 9,
+          "action_name": "DOWNLEFT",
+          "done": true,
+          "reward": 0.0,
+          "moved": false,
+          "final": {
+            "x": 132.0,
+            "y": 132.0,
+            "lives": 2
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 2
+            }
+          ]
+        },
+        {
+          "action": 10,
+          "action_name": "UPFIRE",
+          "done": true,
+          "reward": 0.0,
+          "moved": false,
+          "final": {
+            "x": 132.0,
+            "y": 132.0,
+            "lives": 2
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 2
+            }
+          ]
+        },
+        {
+          "action": 11,
+          "action_name": "RIGHTFIRE",
+          "done": true,
+          "reward": 0.0,
+          "moved": false,
+          "final": {
+            "x": 132.0,
+            "y": 132.0,
+            "lives": 2
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 2
+            }
+          ]
+        },
+        {
+          "action": 12,
+          "action_name": "LEFTFIRE",
+          "done": true,
+          "reward": 0.0,
+          "moved": false,
+          "final": {
+            "x": 132.0,
+            "y": 132.0,
+            "lives": 2
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 2
+            }
+          ]
+        },
+        {
+          "action": 13,
+          "action_name": "DOWNFIRE",
+          "done": true,
+          "reward": 0.0,
+          "moved": false,
+          "final": {
+            "x": 132.0,
+            "y": 132.0,
+            "lives": 2
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 2
+            }
+          ]
+        },
+        {
+          "action": 14,
+          "action_name": "UPRIGHTFIRE",
+          "done": true,
+          "reward": 0.0,
+          "moved": false,
+          "final": {
+            "x": 132.0,
+            "y": 132.0,
+            "lives": 2
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 2
+            }
+          ]
+        },
+        {
+          "action": 15,
+          "action_name": "UPLEFTFIRE",
+          "done": true,
+          "reward": 0.0,
+          "moved": false,
+          "final": {
+            "x": 132.0,
+            "y": 132.0,
+            "lives": 2
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 2
+            }
+          ]
+        },
+        {
+          "action": 16,
+          "action_name": "DOWNRIGHTFIRE",
+          "done": true,
+          "reward": 0.0,
+          "moved": false,
+          "final": {
+            "x": 132.0,
+            "y": 132.0,
+            "lives": 2
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 2
+            }
+          ]
+        },
+        {
+          "action": 17,
+          "action_name": "DOWNLEFTFIRE",
+          "done": true,
+          "reward": 0.0,
+          "moved": false,
+          "final": {
+            "x": 132.0,
+            "y": 132.0,
+            "lives": 2
+          },
+          "first_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            }
+          ],
+          "last_positions": [
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 3
+            },
+            {
+              "x": 132.0,
+              "y": 132.0,
+              "lives": 2
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

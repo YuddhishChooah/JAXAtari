@@ -6,13 +6,163 @@
     "update_rule": "Do not overwrite old milestones. Add a new milestone file and update latest_milestone when the thesis state meaningfully changes.",
     "scope": "Milestones should capture interpretation, evidence status, known risks, and next steps. They should not store API keys or private credentials."
   },
-  "latest_milestone": "2026-04-27_project_status_after_rq4_first_pass.json",
+  "latest_milestone": "2026-05-03_kangaroo_top_ladder_transition_probe.json",
   "milestones": [
     {
       "date": "2026-04-27",
       "file": "2026-04-27_project_status_after_rq4_first_pass.json",
       "title": "Project status after canonical reproducibility and first RQ4 ablation",
       "summary": "The project has a working LeGPS prototype, canonical reproducibility for five games, and first optimizer-ablation evidence, but still lacks seeded reruns, systematic shortcut tests, and broader environment coverage."
+    },
+    {
+      "date": "2026-04-28",
+      "file": "2026-04-28_local_canonical_reproducibility_unblocked.json",
+      "title": "Local canonical reproducibility command unblocked and rerun",
+      "summary": "The documented API-free canonical evaluation command now runs from a fresh local setup, all five canonical policies reproduced their stored 10000-step scores exactly on macOS, and an RQ1 seeded-rerun aggregation script is ready."
+    },
+    {
+      "date": "2026-04-28",
+      "file": "2026-04-28_rq1_seeded_rerun_first_pass.json",
+      "title": "First completed RQ1 seeded rerun suite",
+      "summary": "A five-game seeded RQ1 rerun completed. Pong matched canonical performance, Breakout exceeded the current canonical score, and Freeway, Asterix, and Skiing were below canonical, making this useful mixed stability evidence."
+    },
+    {
+      "date": "2026-04-29",
+      "file": "2026-04-29_llm_io_audit_logging.json",
+      "title": "LLM input/output audit logging",
+      "summary": "Future LeGPS outer-loop runs now save exact LLM system prompts, user prompts, raw responses, and extracted outputs under each game run's llm_io directory, improving auditability when provider-level seed control is unavailable."
+    },
+    {
+      "date": "2026-04-29",
+      "file": "2026-04-29_kangaroo_onboarding_unblocked.json",
+      "title": "Kangaroo onboarding unblocked",
+      "summary": "Kangaroo is now selectable in the LeGPS single-game loop and unified suite runner with measured 440-feature prompt context, while the canonical default suite remains the existing five games."
+    },
+    {
+      "date": "2026-04-29",
+      "file": "2026-04-29_kangaroo_smoke_first_pass.json",
+      "title": "First Kangaroo smoke run completed",
+      "summary": "The first LLM-generated Kangaroo smoke run completed with saved llm_io audit artifacts and valid policy code, but scored 0.0 in both the 1000-step smoke evaluation and a 10000-step API-free follow-up check."
+    },
+    {
+      "date": "2026-04-29",
+      "file": "2026-04-29_kangaroo_up_only_failure_diagnosed.json",
+      "title": "Kangaroo UP-only failure diagnosed",
+      "summary": "The first zero-score Kangaroo policy was diagnosed as an UP-only controller with no horizontal movement, no reward events, and one life lost. A reusable Kangaroo renderer and logger metrics were added for future repair attempts."
+    },
+    {
+      "date": "2026-04-29",
+      "file": "2026-04-29_kangaroo_smoke2_horizontal_failure.json",
+      "title": "Second Kangaroo smoke run exposed horizontal-only failure",
+      "summary": "The second Kangaroo smoke run completed with two LLM iterations and full LLM audit artifacts. It avoided the pure UP-only failure but overcorrected into horizontal dithering, still scoring 0.0."
+    },
+    {
+      "date": "2026-04-29",
+      "file": "2026-04-29_kangaroo_route_context_refined.json",
+      "title": "Kangaroo route context refined",
+      "summary": "After two zero-score Kangaroo smoke runs, the prompt, feedback rules, and demo policy now define ladder reachability using player-bottom and ladder-bottom alignment, including the Level 1 first-ladder sanity check."
+    },
+    {
+      "date": "2026-04-29",
+      "file": "2026-04-29_kangaroo_smoke3_first_score.json",
+      "title": "Third Kangaroo smoke run produced first score",
+      "summary": "The third Kangaroo smoke run produced the first nonzero Kangaroo LeGPS score, but a 16-episode 10000-step API-free follow-up averaged only 12.5, so Kangaroo remains exploratory and not yet covered."
+    },
+    {
+      "date": "2026-04-30",
+      "file": "2026-04-30_kangaroo_resume_v3_stable_first_reward.json",
+      "title": "Kangaroo resume run stabilized first reward",
+      "summary": "A resume-style Kangaroo run from smoke3 produced policy_v3, which scored 200.0 in all eight run-evaluation episodes and averaged 162.5 over a 16-episode 10000-step follow-up, but still plateaus at one reward event."
+    },
+    {
+      "date": "2026-04-30",
+      "file": "2026-04-30_kangaroo_resume2_v6_stable_200_plateau.json",
+      "title": "Kangaroo resume2 stabilized the 200-point plateau",
+      "summary": "A second Kangaroo continuation produced policy_v6, which scored exactly 200.0 in all 16 episodes of a 10000-step follow-up, but the trace shows this is still one reward event followed by a life loss."
+    },
+    {
+      "date": "2026-04-30",
+      "file": "2026-04-30_kangaroo_post200_route_trace.json",
+      "title": "Kangaroo post-200 route trace",
+      "summary": "A detailed policy_v6 trace shows the 200-point reward comes from RIGHTFIRE at x≈132,y≈148, then the policy stalls near x≈132,y≈132 until a falling coconut causes life loss."
+    },
+    {
+      "date": "2026-04-30",
+      "file": "2026-04-30_kangaroo_resume3_targeted_regression.json",
+      "title": "Kangaroo trace-guided continuation regressed",
+      "summary": "A targeted continuation from policy_v6 generated policy_v7, but policy_v7 scored 0.0; the retained best remains policy_v6 at the stable 200-point plateau."
+    },
+    {
+      "date": "2026-04-30",
+      "file": "2026-04-30_kangaroo_debug_overlay_ladder_overlap.json",
+      "title": "Kangaroo debug overlay confirmed ladder-overlap failure",
+      "summary": "A new debug renderer shows policy_v6 chose UP from on_ladder_column_climb 212 times, including 193 times with only one pixel of player-ladder overlap; longer evaluation and a parameter-only retune stayed at 200."
+    },
+    {
+      "date": "2026-04-30",
+      "file": "2026-04-30_kangaroo_parametric_ladder_patch_breaks_200_plateau.json",
+      "title": "Kangaroo parametric ladder patch breaks the 200-point plateau",
+      "summary": "A trace-guided API-free patch separated strict ladder perception from route-column exclusion; the retuned patch-2 candidate reached mean 2656.25 over 128 episodes with a 50000-step cap, but remains exploratory rather than canonical."
+    },
+    {
+      "date": "2026-04-30",
+      "file": "2026-04-30_kangaroo_retuned_trace_comparison_reveals_punch_farming.json",
+      "title": "Kangaroo retuned trace comparison reveals punch farming",
+      "summary": "Exact replay of one 3600-point and one 200-point retuned patch-2 episode shows zero UP actions in both traces; the high score comes from repeated RIGHTFIRE monkey rewards on the lower platform, not robust ladder climbing."
+    },
+    {
+      "date": "2026-05-01",
+      "file": "2026-05-01_kangaroo_anti_punch_farming_feedback.json",
+      "title": "Kangaroo anti-punch-farming feedback added",
+      "summary": "Kangaroo prompt context and logger feedback now explicitly flag score-without-climbing and punch-farming behavior, so future outer-loop runs are pushed toward ladder-route progress instead of the lower-platform monkey shortcut."
+    },
+    {
+      "date": "2026-05-01",
+      "file": "2026-05-01_kangaroo_anti_punch_overcorrection_fix.json",
+      "title": "Kangaroo anti-punch overcorrection diagnosed and fixed",
+      "summary": "The anti-punch-farming Kangaroo outer loop produced five zero-score rewrites by suppressing the first useful RIGHTFIRE branch; prompt and logger feedback now distinguish punch farming from first-reward suppression."
+    },
+    {
+      "date": "2026-05-01",
+      "file": "2026-05-01_kangaroo_preservation_contract_after_failed_rerun.json",
+      "title": "Kangaroo preservation contract added after failed rerun",
+      "summary": "A fresh Kangaroo rerun still failed to beat the 200-point baseline, so the prompt now treats the lower-platform route, monkey-threat detection, and first RIGHTFIRE branch as hard preservation constraints."
+    },
+    {
+      "date": "2026-05-01",
+      "file": "2026-05-01_kangaroo_fresh_run_reaches_unstable_200.json",
+      "title": "Kangaroo fresh run reaches unstable 200-point policy",
+      "summary": "A from-scratch Kangaroo run using the revised architecture recovered a 200-point first-reward policy, but a 32-episode 10000-step follow-up averaged only 93.75 and never exceeded 200."
+    },
+    {
+      "date": "2026-05-01",
+      "file": "2026-05-01_kangaroo_shaped_objective_scaffold_added.json",
+      "title": "Kangaroo shaped objective scaffold added",
+      "summary": "Kangaroo now has an optional shaped route-progress search objective and a fresh-run launcher; real reward remains the reported and best-policy selection metric."
+    },
+    {
+      "date": "2026-05-02",
+      "file": "2026-05-02_kangaroo_shaped_run_stabilizes_200_plateau.json",
+      "title": "Kangaroo shaped run stabilizes 200-point plateau",
+      "summary": "The first shaped-objective Kangaroo run stabilized the first 200-point reward in 31 of 32 standardized follow-up episodes, but no episode exceeded 200 and the trace still shows one reward event followed by life loss."
+    },
+    {
+      "date": "2026-05-02",
+      "file": "2026-05-02_kangaroo_shaped_policy_debug_stack.json",
+      "title": "Kangaroo shaped policy debug stack",
+      "summary": "The debug renderer now explains the shaped run's policy_v2 exactly; the trace shows post-200 failure is repeated monkey_in_punch_priority RIGHTFIRE overriding ladder/dismount behavior until life loss."
+    },
+    {
+      "date": "2026-05-02",
+      "file": "2026-05-02_kangaroo_post200_guard_probe.json",
+      "title": "Kangaroo post-200 guard probe",
+      "summary": "Two local post-200 guard patches preserved the 200-point plateau but did not exceed it; action probes show the policy enters a ladder-top state where no atomic action can escape before life loss."
+    },
+    {
+      "date": "2026-05-03",
+      "file": "2026-05-03_kangaroo_top_ladder_transition_probe.json",
+      "title": "Kangaroo top-ladder transition probe",
+      "summary": "A bounded sequence probe from the y=140 post-reward state found no short forced action block above 200; the best short prefix delays failure but still dies at the same ladder-top trap under longer replay."
     }
   ]
 }

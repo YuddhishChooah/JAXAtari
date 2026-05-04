@@ -1,0 +1,63 @@
+{
+  "date": "2026-05-03",
+  "title": "Kangaroo top-ladder transition probe",
+  "summary": "A bounded API-free sequence probe from Kangaroo's y=140 post-reward state found no short forced action block that exceeds the 200-point plateau. The best short block keeps the player alive briefly, but a longer replay still returns to the same ladder-top death state at score 200.",
+  "context": {
+    "previous_milestone": "2026-05-02_kangaroo_post200_guard_probe.json",
+    "base_policy": "scripts/llm_optimization/experiments/kangaroo/policy_shaped_v2_post200_guard_dodge.py",
+    "starting_state": "After the first 200-point reward, at global step 610 with player x=132,y=140, score=200, lives=3."
+  },
+  "probe_artifacts": {
+    "script": "scripts/llm_optimization/experiments/kangaroo/probe_top_ladder_transition.py",
+    "bounded_probe": "scripts/llm_optimization/analysis/traces/kangaroo_top_ladder_transition_probe.json",
+    "long_replay_trace": "scripts/llm_optimization/analysis/traces/kangaroo_top_ladder_best_prefix_long_trace.json"
+  },
+  "bounded_probe": {
+    "policy": "scripts/llm_optimization/experiments/kangaroo/policy_shaped_v2_post200_guard_dodge.py",
+    "seed": 20260501,
+    "target_step": 610,
+    "continue_steps": 40,
+    "beam_size": 4,
+    "single_candidates": 72,
+    "second_candidates": 144,
+    "total_candidates": 216,
+    "above_200_count": 0,
+    "alive_count": 216,
+    "best_total_reward": 200.0,
+    "best_score": 200,
+    "top_short_block": "DOWNRIGHTx24 + DOWNLEFTx16"
+  },
+  "long_replay_check": {
+    "forced_prefix": "DOWNRIGHTx24 + DOWNLEFTx16 from global step 610",
+    "result": "The prefix delays the failure but does not solve it.",
+    "terminal_global_step": 799,
+    "terminal_action": "RIGHT",
+    "total_reward": 200.0,
+    "score": 200,
+    "lives": 2,
+    "terminal_position": {
+      "x": 126.0,
+      "y": 132.0
+    },
+    "falling_object": {
+      "x": 129.0,
+      "y": 129.0
+    }
+  },
+  "interpretation": [
+    "The post-200 failure is not fixed by one simple forced action prefix from the y=140 state.",
+    "The best short sequence only keeps the player alive over the short horizon; once control returns to the policy for longer, it still cycles back into the y=132 ladder-top trap.",
+    "This makes another broad paid outer-loop run on the same prompt unlikely to be efficient unless the policy is given a more explicit top-ladder transition routine or a better mechanics-discovery target.",
+    "Kangaroo should remain exploratory for now. The current thesis direction is either a faster staged mechanics probe for Kangaroo or moving to the next game to increase environment coverage."
+  ],
+  "rq_mapping": {
+    "RQ1": "Confirms that the current Kangaroo shaped/guarded policy family still does not produce a standardized policy above the 200-point plateau.",
+    "RQ2": "Adds stronger behavioral evidence that the failure is a top-ladder transition/mechanics problem, not only reward farming or monkey-punch priority.",
+    "RQ4": "Shows that the shaped search scaffold and local parameter/policy guards are not enough unless the policy exposes the correct transition behavior."
+  },
+  "recommended_next_steps": [
+    "Do not launch another broad Kangaroo outer loop from the same setup as the main next action.",
+    "If continuing Kangaroo, build a faster staged transition search with an explicit success target: reach a new platform, reach the next ladder route, or score above 200 before returning control to the policy.",
+    "If prioritizing thesis coverage, freeze Kangaroo as exploratory evidence and onboard Seaquest next."
+  ]
+}

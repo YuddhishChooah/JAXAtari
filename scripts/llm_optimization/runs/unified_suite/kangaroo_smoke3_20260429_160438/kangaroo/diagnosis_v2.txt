@@ -1,0 +1,37 @@
+# Kangaroo Policy Diagnosis
+
+## 1. Root cause
+The policy reaches a ladder and climbs partway, but it has no mechanism to **leave** the ladder once it reaches the top. It keeps re-selecting the same ladder (or none), oscillates horizontally on the upper platform without identifying the next reachable ladder, and never accumulates score events. The "reachable ladder" gate is also too tight and one-shot: when `player_bottom_y` shifts mid-climb, no ladder satisfies the `reach_tol` test, so the controller flips back to horizontal-only behavior at a partially-climbed height.
+
+## 2. Evidence from metrics
+- `climb_rate=0.61` but `up_action_rate=0.047`: the player is *in* the climb state often, yet the policy almost never issues UP. The action is being overridden (likely by the horizontal-target branch) while on the ladder.
+- `max_upward_progress=24`, `min_player_y=124`: only one platform-level of progress, consistent with climbing one ladder and then stalling.
+- `horizontal_action_rate=0.94`: dominant behavior is left/right, even while in climb state — confirms the climb branch is being bypassed.
+- `score_events=0`, `reward_total=0`: never reached a fruit, enemy contact, or level transition despite 805 steps.
+- `x_range=105`: large horizontal sweeping at the stalled height — classic "lost on upper platform" pattern.
+- `lives_lost=1` with `fire_action_rate=0.011`: hazard handling effectively never triggers; the agent dies to a passing coconut/monkey while wandering.
+
+## 3. Policy logic causing it
+- **Climb gate collapses mid-climb.** `on_ladder_band = aligned & has_valid` requires a *new* valid ladder match every frame. While climbing, `player_bottom_y` decreases past `ladder_bottom_y`, so `reach_err` grows beyond `reach_tol≈12`, `has_valid` becomes False, and the policy switches to horizontal motion mid-ladder. That explains 61% climb-state vs 4.7% UP actions.
+- **No "currently climbing" detection.** Nothing reads the climbing state from the observation or infers it from x-alignment with a ladder column. A second predicate (player x inside any active ladder's x-band AND a ladder extends above) is missing.
+- **Ladder selection is symmetric in y.** `reach_err = |lby - pby|` accepts ladders whose bottoms are *above* the feet (i.e., already-climbed ladders) just as readily as ones below — under some configurations this picks unreachable ladders. The "useful" check uses `lty < pby - upward_bias`, which is satisfied by almost every ladder on the screen.
+- **Fallback target is the child x.** When no valid ladder is found (frequent, per above), the policy walks toward `child_x` blindly, ignoring intermediate platform geometry. This produces the 105-wide horizontal sweep with no progress.
+- **Threat handling is weak.** `punch_dx≈14` with `danger_dy≈12` means coconuts falling from above are rarely "punchable" and the FIRE-jump fallback only fires when `~on_ladder_band`, which is most of the time but mistimed.
+- **No hysteresis / commitment.** Every frame re-selects a ladder and re-decides; there is no notion of "I am committed to climbing this column until top reached."
+
+## 4. What to preserve
+- Compact parametric structure with CMA-ES-tunable scalars.
+- The geometric `_select_ladder` helper using `ladder_bottom_y` vs `player_bottom_y`.
+- Threat scan over monkeys + thrown + falling coconuts.
+- Single-call `policy(obs_flat, params)` signature with no state.
+- Distinction between horizontal traversal and climbing.
+
+## 5. What to change next
+- **Add a "currently on ladder column" predicate** that is independent of `reach_tol`: player x-center lies within some active ladder's `[lx, lx+lw]` AND that ladder's top is above `player_y` AND its bottom is at-or-below `player_y+player_h`. While true, force UP (or UPFIRE if a thrown coconut is overhead).
+- **Asymmetric reach test.** Require `ladder_bottom_y >= player_bottom_y - small_eps` (ladder bottom at or below the feet, not above). This prevents selecting already-traversed ladders.
+- **Top-of-ladder dismount logic.** When `player_y` is within a small tolerance of the current ladder's top, switch to horizontal mode and pick the *next* ladder whose bottom is near the new `player_bottom_y`. Make this transition explicit, not implicit.
+- **Bias next-ladder selection by direction, not just |dx|.** After climbing, score candidate ladders by a weighted combination of `|dx|` and "is above current platform"; consider preferring ladders whose top y is meaningfully smaller than current `player_y` by more than one platform height.
+- **Reduce horizontal dominance on ladder.** Ensure the climb branch wins over the horizontal-target branch whenever the on-ladder predicate holds — currently the alignment check fails as soon as the ladder selector loses the ladder.
+- **Hazard response tuning.** Separate vertical-coconut handling (UPFIRE or sidestep) from monkey-punch handling; widen `danger_dy` for falling coconuts since they approach from above. Consider a "duck/sidestep on ladder" fallback rather than abandoning the climb.
+- **Add an x-commitment parameter.** A small parameter that biases the policy to keep moving toward the previously chosen ladder column when within some band, reducing oscillation. Achievable statelessly by selecting the ladder via a smooth cost (dx + λ·height_gap) so frame-to-frame selection is stable.
+- **Sanity-check the upward_bias=7.2 value.** With platform spacing ~24 px, this is fine, but combined with the symmetric reach test it may be filtering out the correct next ladder. Re-derive thresholds from the 24-px progress observation.

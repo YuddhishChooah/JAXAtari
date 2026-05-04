@@ -1,0 +1,96 @@
+{
+  "milestone_id": "2026-04-29_kangaroo_smoke_first_pass",
+  "created_at": "2026-04-29",
+  "project": {
+    "method_name": "LeGPS",
+    "method_expansion": "Language Guided Policy Search"
+  },
+  "why_this_milestone_exists": {
+    "purpose": "Record the first LLM-generated Kangaroo smoke run after wiring Kangaroo into the LeGPS pipeline.",
+    "trigger": "Kangaroo onboarding was unblocked and the user launched the short smoke run from Terminal."
+  },
+  "run": {
+    "run_id": "kangaroo_smoke_20260429_152718",
+    "suite_dir": "scripts/llm_optimization/runs/unified_suite/kangaroo_smoke_20260429_152718",
+    "game": "kangaroo",
+    "status": "completed",
+    "elapsed_seconds": 120.19715189933777,
+    "seed": 20260480,
+    "protocol": {
+      "provider": "anthropic",
+      "model": "claude-opus-4-7",
+      "max_iters": 1,
+      "num_envs": 4,
+      "num_episodes": 4,
+      "max_steps": 1000,
+      "search_max_steps": 1000,
+      "optimizer": "cma-es",
+      "param_samples": 4,
+      "cma_generations": 1
+    }
+  },
+  "artifacts": {
+    "manifest": "scripts/llm_optimization/runs/unified_suite/kangaroo_smoke_20260429_152718/manifest.json",
+    "results": "scripts/llm_optimization/runs/unified_suite/kangaroo_smoke_20260429_152718/kangaroo/optimization_results.json",
+    "policy": "scripts/llm_optimization/runs/unified_suite/kangaroo_smoke_20260429_152718/kangaroo/policy_v1.py",
+    "llm_io": "scripts/llm_optimization/runs/unified_suite/kangaroo_smoke_20260429_152718/kangaroo/llm_io/v01_initial_policy.json",
+    "stdout_log": "scripts/llm_optimization/runs/unified_suite/kangaroo_smoke_20260429_152718/kangaroo/outerloop.out.log",
+    "stderr_log": "scripts/llm_optimization/runs/unified_suite/kangaroo_smoke_20260429_152718/kangaroo/outerloop.err.log"
+  },
+  "result": {
+    "best_score": 0.0,
+    "avg_return": 0.0,
+    "total_rewards": [
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "best_params": {
+      "climb_y_margin": 4.243370056152344,
+      "danger_x": 19.899015426635742,
+      "danger_y": 16.331241607666016,
+      "ladder_align_tol": 8.086297988891602,
+      "ladder_y_bias": 1.5231276750564575,
+      "punch_dist": 17.188852310180664
+    },
+    "logger_metrics": null
+  },
+  "api_free_followup_check": {
+    "description": "The generated smoke policy was reevaluated locally for 4 episodes and 10000 steps without another LLM call.",
+    "avg_return": 0.0,
+    "total_rewards": [
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "interpretation": [
+    "The Kangaroo pipeline is operational: the LLM generated syntactically valid policy code, CMA-ES ran, result snapshots were written, and the new llm_io audit artifact was saved.",
+    "The first Kangaroo policy is not successful. It produced zero reward in both the short 1000-step smoke evaluation and the follow-up 10000-step API-free reevaluation.",
+    "This should not be counted as RQ1 success evidence. It is onboarding evidence and an early failure signal for Kangaroo policy quality."
+  ],
+  "known_limits": [
+    "There is no Kangaroo-specific logger yet, so feedback to the LLM currently lacks behavioral diagnostics such as ladder reach, vertical progress, deaths, action rates, or fruit collection.",
+    "The smoke run used only one outer-loop iteration, four evaluation episodes, four CMA-ES samples, and one CMA-ES generation. It was intentionally cheap and should not be treated as a full budget attempt.",
+    "The generated policy used the correct observed index families but still failed to score, so more budget alone may or may not be sufficient."
+  ],
+  "next_steps": [
+    {
+      "priority": 1,
+      "step": "Inspect Kangaroo behavior with a short rollout or video before spending a full run budget.",
+      "why": "A zero-score policy needs behavioral diagnosis: whether it is stuck, moving to the wrong ladder, dying, or simply not reaching reward events."
+    },
+    {
+      "priority": 2,
+      "step": "Add minimal Kangaroo diagnostics if needed: vertical progress, ladder alignment, action rates, deaths, and score events.",
+      "why": "Without logger feedback, later LLM iterations may receive only score=0 and have little basis for targeted repair."
+    },
+    {
+      "priority": 3,
+      "step": "Run a longer Kangaroo outer-loop attempt only after the failure mode is understood.",
+      "why": "This keeps API spending aligned with thesis evidence quality."
+    }
+  ]
+}

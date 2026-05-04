@@ -1,0 +1,35 @@
+## 1. Root cause
+The policy successfully passes all 20 gates (gate_pass_rate=1.0) but is far too slow: average_speed_y≈1.14 over ~2209 steps, accumulating a large per-frame time penalty. DOWN is never used (down_action_rate=0), and turning is too frequent (40% of steps), so the skier rarely tucks at high-speed headings. The reported best return (-3716) and the metrics episode (-13679) suggest evaluation variance, but the structural issue is identical: time-penalty-dominated returns from low downhill speed.
+
+## 2. Evidence from metrics
+- down_action_rate = 0 → tuck branch never fires despite a tuck_angle parameter of ~9.6°.
+- turn_rate = 0.40, noop_rate = 0.60 → LEFT/RIGHT used heavily, NOOP fills the rest, DOWN absent.
+- average_speed_y = 1.14 with average_steps = 2209 → episodes are extremely long.
+- average_gate_center_error = 12 (acceptable, gates pass), so accuracy is fine; the loss is time, not missed gates.
+- flag_collisions = 1.33 → minor, not the dominant cost.
+- gates_passed = 20, missed_gates = 0 → terminal penalty is small; the negative return is dominated by frame penalties.
+
+## 3. Policy logic causing it
+- `near_straight = |signed| < tuck_angle (~9.6°)`: the discrete heading sequence has no orientation with |signed|<22.5° except exactly 22.5° from "straight/slight" notches. After signed conversion, headings 337.5→-22.5 and 22.5→+22.5 both have |signed|=22.5, which exceeds tuck_angle≈9.6 → DOWN never selected.
+- `heading_gain=2.18` with `max_heading=28.9` and lateral errors of ~12 px saturates desired heading near ±28°, so the tracker keeps requesting strong turns; combined with `heading_dead≈5.2`, the controller oscillates around the gate center rather than committing to straight-down notches.
+- The forward branch only emits DOWN when near-straight; otherwise NOOP. So even when error is small, if the skier is at ±22.5° (the fastest legal heading), it does NOOP instead of DOWN.
+- Tree avoidance shift (28 px) can push target_x outside the gate window (gate is 32 px wide), causing extra correction cycles.
+- Gate selection uses `fy >= skier_y - 8` and adds a 1000-px penalty for fy<skier_y-8; logic is fine but there's no hysteresis, so target can flip between the two gates and induce extra turns.
+
+## 4. What to preserve
+- Gate-center targeting at flag_x+16 with active-gate filtering.
+- Signed-orientation conversion and proportional heading control with deadband.
+- Tree-threat detection structure (in-path × near-y).
+- Compact parameter set; no state/recurrence.
+- Current accuracy (gate_pass_rate=1.0) — do not regress on missed gates.
+
+## 5. What to change next
+- Make DOWN the default forward action whenever the heading is in the "fast" notch set, not only near 0°. Practically: trigger DOWN when |signed| ≤ ~22.5° + small epsilon (e.g., raise tuck_angle bound or use a separate `down_angle` parameter ~25°). This alone should massively cut step count.
+- Use DOWN as the non-turning action universally (replace NOOP fallback with DOWN); NOOP only when a turn is being committed or when |signed| is in the slow zone (>45°) and a correction is pending. Holding DOWN does not change heading, so it's safe.
+- Reduce `heading_gain` and/or `max_heading` so the desired heading rarely exceeds ±22.5°. The skier should bias toward the fast notches (-22.5 / +22.5) and only escalate to ±45° when lateral error is large (e.g., >20 px). Consider a piecewise/clamped mapping rather than linear with a high cap.
+- Increase `heading_dead` (e.g., ~10–15°) to prevent micro-oscillations between ±22.5° notches; this directly lowers turn_rate and lengthens DOWN streaks.
+- Add gate-selection hysteresis: prefer the previously selected gate unless it's clearly behind, to avoid target flipping.
+- Cap `tree_shift` so target_x stays within [flag_x+4, flag_x+28]; current 27.5 px shift can exit the gate.
+- Optionally add an "emergency only" turn gate: skip turning when |err_x| is small (<6 px) regardless of heading, letting natural drift carry through.
+
+Net effect target: turn_rate ↓ to ~0.15–0.20, down_action_rate ↑ to ~0.6+, average_speed_y ↑, average_steps ↓ substantially, while keeping gates_passed=20.

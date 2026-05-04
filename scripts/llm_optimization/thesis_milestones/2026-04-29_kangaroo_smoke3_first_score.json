@@ -1,0 +1,134 @@
+{
+  "milestone_id": "2026-04-29_kangaroo_smoke3_first_score",
+  "created_at": "2026-04-29",
+  "project": {
+    "method_name": "LeGPS",
+    "method_expansion": "Language Guided Policy Search"
+  },
+  "why_this_milestone_exists": {
+    "purpose": "Record the third Kangaroo smoke run, which is the first Kangaroo run to produce a nonzero LeGPS score.",
+    "trigger": "The route-context refinement was tested with a short Kangaroo smoke run."
+  },
+  "run": {
+    "run_id": "kangaroo_smoke3_20260429_160438",
+    "suite_dir": "scripts/llm_optimization/runs/unified_suite/kangaroo_smoke3_20260429_160438",
+    "game": "kangaroo",
+    "status": "completed",
+    "elapsed_seconds": 300.38249230384827,
+    "seed": 20260480,
+    "protocol": {
+      "provider": "anthropic",
+      "model": "claude-opus-4-7",
+      "max_iters": 2,
+      "num_envs": 4,
+      "num_episodes": 4,
+      "max_steps": 1000,
+      "search_max_steps": 1000,
+      "optimizer": "cma-es",
+      "param_samples": 4,
+      "cma_generations": 1
+    }
+  },
+  "artifacts": {
+    "manifest": "scripts/llm_optimization/runs/unified_suite/kangaroo_smoke3_20260429_160438/manifest.json",
+    "results": "scripts/llm_optimization/runs/unified_suite/kangaroo_smoke3_20260429_160438/kangaroo/optimization_results.json",
+    "policy_v1": "scripts/llm_optimization/runs/unified_suite/kangaroo_smoke3_20260429_160438/kangaroo/policy_v1.py",
+    "policy_v2": "scripts/llm_optimization/runs/unified_suite/kangaroo_smoke3_20260429_160438/kangaroo/policy_v2.py",
+    "diagnosis_v2": "scripts/llm_optimization/runs/unified_suite/kangaroo_smoke3_20260429_160438/kangaroo/diagnosis_v2.txt",
+    "llm_io_dir": "scripts/llm_optimization/runs/unified_suite/kangaroo_smoke3_20260429_160438/kangaroo/llm_io",
+    "policy_v2_gif": "scripts/llm_optimization/analysis/videos/kangaroo_smoke3_20260429_160438_policy_v2.gif",
+    "followup_eval": "scripts/llm_optimization/analysis/evaluations/kangaroo_smoke3_20260429_160438_followup_eval.json"
+  },
+  "result": {
+    "best_score": 100.0,
+    "best_policy": "policy_v2.py",
+    "policy_v1_summary": {
+      "avg_return": 0.0,
+      "score_events": 0.0,
+      "lives_lost": 1.0,
+      "max_upward_progress": 24.0,
+      "x_range": 105.0,
+      "up_action_rate": 0.04716925221867687,
+      "horizontal_action_rate": 0.9416590827821628,
+      "climb_rate": 0.6106502092922634
+    },
+    "policy_v2_summary": {
+      "avg_return": 100.0,
+      "total_rewards": [
+        0.0,
+        200.0,
+        200.0,
+        0.0
+      ],
+      "score_events": 0.3333333333333333,
+      "lives_lost": 1.0,
+      "max_upward_progress": 21.333333333333332,
+      "x_range": 104.0,
+      "up_action_rate": 0.21741856308836094,
+      "horizontal_action_rate": 0.7773793560793062,
+      "climb_rate": 0.33449004177292424,
+      "up_only_failure": 0.0,
+      "horizontal_only_failure": 0.0
+    },
+    "followup_10000_step_eval": {
+      "num_episodes": 16,
+      "max_steps": 10000,
+      "avg_return": 12.5,
+      "nonzero_episodes": 1,
+      "max_episode_return": 200.0,
+      "logged_avg_reward": 0.0,
+      "logged_max_upward_progress": 24.0,
+      "logged_x_range": 104.25
+    },
+    "rendered_seed_summary": {
+      "steps": 794,
+      "total_reward": 0.0,
+      "reward_events": 0,
+      "final_score": 0,
+      "final_lives": 2,
+      "x_range": [
+        23.0,
+        127.0
+      ],
+      "y_range": [
+        124.0,
+        149.0
+      ]
+    }
+  },
+  "interpretation": [
+    "This is the first positive Kangaroo LeGPS evidence: the third smoke run produced a policy with nonzero score during the short 1000-step evaluation.",
+    "The result is not stable enough to count Kangaroo as covered. In a 16-episode, 10000-step API-free follow-up, only one episode scored, giving an average return of 12.5.",
+    "The policy no longer matches the earlier UP-only or horizontal-only failure modes, but it still usually reaches only the first higher platform and then fails to convert route progress into reliable rewards.",
+    "The next work should stay in smoke-run/debug mode rather than promoting Kangaroo to the canonical covered-game set."
+  ],
+  "code_changes_after_analysis": [
+    {
+      "path": "scripts/llm_optimization/llm_optimization_loop.py",
+      "change": "Added Kangaroo prompt and feedback guidance for the new failure mode: climb-state action being overridden by horizontal movement and first-platform sweeping without next-ladder selection."
+    }
+  ],
+  "rq_relevance": {
+    "RQ1": "Early positive but weak evidence for Kangaroo: LeGPS can now produce occasional reward, but not a reliable policy.",
+    "RQ2": "The video and logger show that the behavior is not simply UP-only or horizontal-only, but the policy still appears brittle and route-incomplete.",
+    "RQ3": "No adaptation evidence yet.",
+    "RQ4": "No optimizer ablation evidence yet."
+  },
+  "next_steps": [
+    {
+      "priority": 1,
+      "step": "Run another short Kangaroo smoke or resume-style attempt focused on first-platform dismount and next-ladder selection.",
+      "why": "The policy has moved from zero-score failure to occasional reward, but most longer episodes still score 0."
+    },
+    {
+      "priority": 2,
+      "step": "Use GIF and logger metrics before increasing the budget.",
+      "why": "The current policy still loses a life, usually stops around y=124, and does not reliably score."
+    },
+    {
+      "priority": 3,
+      "step": "Do not count Kangaroo as covered until a longer standardized run and API-free reevaluation produce stable positive returns.",
+      "why": "One scoring episode out of sixteen is not enough thesis evidence for a successful game."
+    }
+  ]
+}

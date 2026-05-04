@@ -2,6 +2,8 @@
 Core helpers for the active LeGPS thesis pipeline.
 """
 
+from typing import Any
+
 from .optimizers import (
     CMAESOptimizer,
     BayesianOptimizer,
@@ -15,12 +17,6 @@ from .evaluator import (
     ParallelEvaluator,
     create_evaluator,
     EvaluationMetrics,
-)
-
-from .llm_client import (
-    LLMClient,
-    LLMConfig,
-    create_llm_client,
 )
 
 from .logger import (
@@ -60,3 +56,15 @@ __all__ = [
     "get_all_metric_descriptions",
     "format_metrics_for_llm",
 ]
+
+
+def __getattr__(name: str) -> Any:
+    if name in {"LLMClient", "LLMConfig", "create_llm_client"}:
+        from .llm_client import LLMClient, LLMConfig, create_llm_client
+
+        return {
+            "LLMClient": LLMClient,
+            "LLMConfig": LLMConfig,
+            "create_llm_client": create_llm_client,
+        }[name]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

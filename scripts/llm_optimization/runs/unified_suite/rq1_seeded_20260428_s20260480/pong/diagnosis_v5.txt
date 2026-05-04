@@ -1,0 +1,31 @@
+1. Root cause
+The intercept prediction and aim-point logic are noisy and over-corrective, so the paddle wastes motion chasing reflected predictions and a sign(dy)-driven spike that flips abruptly. Despite a 100% win rate, the paddle barely tracks the ball outside of the immediate intercept moment, leading to high mean tracking error and many direction reversals.
+
+2. Evidence from metrics
+- avg_ball_tracking_error 25.9 and max 120.2: large mean offset, indicating idle/aim targets pull the paddle far from the ball.
+- paddle_jitter_count 197 with avg_paddle_movement 0.77: frequent reversals from a target that toggles (sign(dy) spike, mid-court idle vs ball-follow blend).
+- interception_rate 0.26: paddle rarely co-located with ball trajectory between strikes.
+- avg_rally_length 356, max 533: rallies are long because the agent still wins, but defense is not tight.
+- Reaction time 14.8 frames: late commitment, consistent with target switching between idle_target and predicted at dx sign flips.
+
+3. Policy logic causing it
+- `idle_target = MID + idle_pull*(ball_y - MID)` actively pulls paddle away from ball when ball recedes, creating large tracking error and oscillation each time dx flips.
+- Spike term `aim_offset + spike_gain * sign(dy)` is discontinuous; tiny dy noise flips the target by ~2*spike_gain (~4.7 px), causing jitter near contact.
+- Two-tier dead zone doubles the dead zone when ball recedes (`dz_base*2`), but combined with the aggressive idle pull this still produces large step corrections when ball returns.
+- Reflection-based intercept assumes constant dy with potentially many bounces; long horizon predictions amplify dy noise (1-frame finite difference) into large target jumps.
+- FIRE alignment threshold uses `dz_base + 8.0`, somewhat decoupled from spike offset, occasionally firing while mis-aimed.
+
+4. What to preserve
+- Compact 6-parameter structure and current best values (already +21).
+- Intercept-by-reflection scheme and dead-zone gating.
+- Separation of approaching vs receding behavior.
+- FIRE-combo usage gated on proximity and alignment.
+- measure_main and I/O signature.
+
+5. What to change next
+- Smooth the spike term: replace `sign(dy)` with `tanh(dy / k)` or clip(dy, -1, 1), so aim shifts continuously and stops jittering near dy≈0.
+- Make idle behavior tracking-friendly: when ball recedes, set idle_target = ball_y (or paddle_center, i.e., hold position) instead of pulling toward mid-court; or reduce idle_pull's effective range so the paddle shadows the ball Y rather than centering.
+- Scale dead zone with |dx| or time-to-contact: tighter dz when contact is imminent, wider dz when far, but avoid simply doubling on recede.
+- Damp prediction noise: low-pass dy via averaging prev/curr velocity or attenuate `t` (cap horizon) to reduce reflected-prediction whip.
+- Tie FIRE alignment tolerance to the actual aim offset (|error| < dz + |spike|-aware margin) so FIRE doesn't trigger on a spiked, mis-centered hit.
+- Consider adding one parameter for an idle "shadow gain" toward ball_y on recede, replacing idle_pull's mid-court bias, to directly attack the tracking-error and interception-rate metrics without harming the +21 outcome.

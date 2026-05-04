@@ -1,0 +1,189 @@
+
+============================================================
+Game: PONG
+Optimizer: cma-es
+Search Horizon: 10000 steps
+Evaluation Horizon: 10000 steps
+Output: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/pong
+============================================================
+
+Logger initialized for pong
+============================================================
+LLM Policy Optimization Loop for JAXAtari PONG
+============================================================
+
+============================================================
+Outer-loop step 1/5 (policy v1)
+============================================================
+Requesting initial policy from LLM...
+Saved policy to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/pong/policy_v1.py
+Successfully loaded policy module
+
+Searching for optimal parameters (16 samples)...
+  CMA-ES: n=5 params, Î»=16 population, 5 generations
+    Gen 1: best=18.38, mean=10.10, Ïƒ=0.302, overall_best=18.38
+    Gen 2: best=18.62, mean=11.20, Ïƒ=0.384, overall_best=18.62
+    Gen 3: best=21.00, mean=14.90, Ïƒ=0.547, overall_best=21.00
+    Gen 4: best=20.62, mean=12.50, Ïƒ=0.741, overall_best=21.00
+    Gen 5: best=21.00, mean=10.76, Ïƒ=0.917, overall_best=21.00
+
+Results for iteration 1:
+  Search Return (10000 steps): 21.00
+  Average Return: 20.81
+  Player Score: 20.94
+  Enemy Score: 0.12
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 13 metrics
+    win_rate: 0.984
+    points_won: 20.000
+    points_lost: 0.333
+    avg_ball_tracking_error: 27.760
+    max_ball_tracking_error: 142.532
+  >>> New best overall!
+Checkpoint saved to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/pong/optimization_checkpoint.json
+
+============================================================
+Outer-loop step 2/5 (policy v2)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/pong/diagnosis_v2.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/pong/policy_v2.py
+Successfully loaded policy module
+
+Searching for optimal parameters (16 samples)...
+  CMA-ES will use policy defaults because resumed params are incompatible (missing=['fire_align', 'idle_pull', 'jitter_margin'], extra=['fire_bias', 'predict_gain']).
+  CMA-ES: n=6 params, Î»=16 population, 5 generations
+    Gen 1: best=19.88, mean=17.46, Ïƒ=0.279, overall_best=19.88
+    Gen 2: best=20.12, mean=18.15, Ïƒ=0.278, overall_best=20.12
+    Gen 3: best=21.00, mean=18.36, Ïƒ=0.255, overall_best=21.00
+    Gen 4: best=21.00, mean=19.14, Ïƒ=0.243, overall_best=21.00
+    Gen 5: best=21.00, mean=18.73, Ïƒ=0.258, overall_best=21.00
+
+Results for iteration 2:
+  Search Return (10000 steps): 21.00
+  Average Return: 20.75
+  Player Score: 20.81
+  Enemy Score: 0.06
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 13 metrics
+    win_rate: 0.983
+    points_won: 19.667
+    points_lost: 0.333
+    avg_ball_tracking_error: 34.430
+    max_ball_tracking_error: 121.647
+Checkpoint saved to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/pong/optimization_checkpoint.json
+
+============================================================
+Outer-loop step 3/5 (policy v3)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/pong/diagnosis_v3.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/pong/policy_v3.py
+Successfully loaded policy module
+
+Searching for optimal parameters (16 samples)...
+  CMA-ES will use policy defaults because resumed params are incompatible (missing=['fire_range', 'idle_pull', 'spike_gain', 'time_bias'], extra=['fire_bias', 'predict_gain', 'vy_damp']).
+  CMA-ES: n=6 params, Î»=16 population, 5 generations
+    Gen 1: best=21.00, mean=19.12, Ïƒ=0.284, overall_best=21.00
+    Gen 2: best=21.00, mean=20.58, Ïƒ=0.294, overall_best=21.00
+    Gen 3: best=21.00, mean=20.54, Ïƒ=0.360, overall_best=21.00
+    Gen 4: best=21.00, mean=20.95, Ïƒ=0.388, overall_best=21.00
+    Gen 5: best=21.00, mean=20.98, Ïƒ=0.465, overall_best=21.00
+
+Results for iteration 3:
+  Search Return (10000 steps): 21.00
+  Average Return: 21.00
+  Player Score: 21.00
+  Enemy Score: 0.00
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 13 metrics
+    win_rate: 1.000
+    points_won: 20.000
+    points_lost: 0.000
+    avg_ball_tracking_error: 25.914
+    max_ball_tracking_error: 120.223
+  >>> New best overall!
+Checkpoint saved to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/pong/optimization_checkpoint.json
+
+============================================================
+Outer-loop step 4/5 (policy v4)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/pong/diagnosis_v4.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/pong/policy_v4.py
+Successfully loaded policy module
+
+Searching for optimal parameters (16 samples)...
+  CMA-ES will use policy defaults because resumed params are incompatible (missing=['close_dz_scale', 'hysteresis'], extra=['idle_pull', 'time_bias']).
+  CMA-ES: n=6 params, Î»=16 population, 5 generations
+    Gen 1: best=18.50, mean=17.91, Ïƒ=0.311, overall_best=18.50
+    Gen 2: best=19.00, mean=18.24, Ïƒ=0.340, overall_best=19.00
+    Gen 3: best=19.25, mean=18.31, Ïƒ=0.451, overall_best=19.25
+    Gen 4: best=19.62, mean=18.31, Ïƒ=0.623, overall_best=19.62
+    Gen 5: best=19.75, mean=18.34, Ïƒ=0.865, overall_best=19.75
+
+Results for iteration 4:
+  Search Return (10000 steps): 19.75
+  Average Return: 19.75
+  Player Score: 19.75
+  Enemy Score: 0.00
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 13 metrics
+    win_rate: 1.000
+    points_won: 19.333
+    points_lost: 0.000
+    avg_ball_tracking_error: 32.751
+    max_ball_tracking_error: 125.775
+Checkpoint saved to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/pong/optimization_checkpoint.json
+
+============================================================
+Outer-loop step 5/5 (policy v5)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/pong/diagnosis_v5.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/pong/policy_v5.py
+Successfully loaded policy module
+
+Searching for optimal parameters (16 samples)...
+  CMA-ES will use policy defaults because resumed params are incompatible (missing=['shadow_gain', 'spike_scale'], extra=['idle_pull', 'time_bias']).
+  CMA-ES: n=6 params, Î»=16 population, 5 generations
+    Gen 1: best=19.12, mean=17.98, Ïƒ=0.310, overall_best=19.12
+    Gen 2: best=21.00, mean=18.23, Ïƒ=0.365, overall_best=21.00
+    Gen 3: best=20.88, mean=18.96, Ïƒ=0.449, overall_best=21.00
+    Gen 4: best=21.00, mean=19.86, Ïƒ=0.639, overall_best=21.00
+    Gen 5: best=21.00, mean=19.17, Ïƒ=0.748, overall_best=21.00
+
+Results for iteration 5:
+  Search Return (10000 steps): 21.00
+  Average Return: 20.81
+  Player Score: 20.88
+  Enemy Score: 0.06
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 13 metrics
+    win_rate: 1.000
+    points_won: 20.000
+    points_lost: 0.000
+    avg_ball_tracking_error: 18.843
+    max_ball_tracking_error: 127.401
+Checkpoint saved to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/pong/optimization_checkpoint.json
+
+============================================================
+Optimization Complete!
+============================================================
+Best Score Achieved: 21.00
+Total Iterations: 5
+Results saved to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/pong/optimization_results.json

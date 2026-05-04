@@ -1244,6 +1244,172 @@ class SkiingLogger(Logger):
 
 
 # =============================================================================
+# KANGAROO LOGGER (A1_B1)
+# =============================================================================
+
+class KangarooLogger(Logger):
+    """Logger for Kangaroo exploratory onboarding.
+
+    The initial Kangaroo smoke run produced a valid but zero-score policy, so
+    these metrics focus on basic behavior diagnosis: action diversity, vertical
+    progress, ladder/climbing behavior, score events, and life loss.
+    """
+
+    def __init__(self, ablation_config: Optional[AblationConfig] = None):
+        super().__init__(ablation_config)
+        self._reset_episode_stats()
+
+    def _reset_episode_stats(self):
+        self._actions: List[int] = []
+        self._rewards: List[float] = []
+        self._score_values: List[float] = []
+        self._lives_values: List[int] = []
+        self._player_x: List[float] = []
+        self._player_y: List[float] = []
+        self._is_climbing: List[float] = []
+        self._is_crashing: List[float] = []
+
+    def reset(self):
+        super().reset()
+        self._reset_episode_stats()
+
+    def _unwrap_state(self, state: Any) -> Any:
+        while True:
+            if hasattr(state, "atari_state"):
+                state = state.atari_state
+            elif hasattr(state, "env_state"):
+                state = state.env_state
+            else:
+                return state
+
+    def log_state(self, state: Any, obs: Any = None, action: int = None, reward: float = None) -> None:
+        state = self._unwrap_state(state)
+        player = state.player
+
+        self._actions.append(int(action) if action is not None else -1)
+        self._rewards.append(float(reward) if reward is not None else 0.0)
+        self._score_values.append(float(state.score))
+        self._lives_values.append(int(state.lives))
+        self._player_x.append(float(player.x))
+        self._player_y.append(float(player.y))
+        self._is_climbing.append(float(player.is_climbing))
+        self._is_crashing.append(float(player.is_crashing))
+
+    def return_metrics(self) -> Dict[str, float]:
+        if not self._actions:
+            return {
+                "average_steps": 0.0,
+                "reward_total": 0.0,
+                "score_events": 0.0,
+            }
+
+        actions = np.asarray(self._actions, dtype=int)
+        rewards = np.asarray(self._rewards, dtype=float)
+        xs = np.asarray(self._player_x, dtype=float)
+        ys = np.asarray(self._player_y, dtype=float)
+        lives = np.asarray(self._lives_values, dtype=float)
+
+        horizontal_mask = np.isin(actions, [3, 4, 6, 7, 8, 9, 11, 12, 14, 15, 16, 17])
+        fire_mask = np.isin(actions, [1, 10, 11, 12, 13, 14, 15, 16, 17])
+        punch_mask = np.isin(actions, [11, 12])
+        up_mask = np.isin(actions, [2, 6, 7, 10, 14, 15])
+        down_mask = np.isin(actions, [5, 8, 9, 13, 16, 17])
+        noop_mask = actions == 0
+
+        start_y = ys[0]
+        min_y = np.min(ys)
+        final_y = ys[-1]
+        start_lives = lives[0] if lives.size else 0.0
+        final_lives = lives[-1] if lives.size else 0.0
+        score_events = float(np.sum(rewards > 0))
+        up_action_count = float(np.sum(up_mask))
+        max_upward_progress = float(start_y - min_y)
+        net_upward_progress = float(start_y - final_y)
+        x_range = float(np.max(xs) - np.min(xs)) if xs.size else 0.0
+        y_range = float(np.max(ys) - np.min(ys)) if ys.size else 0.0
+        up_action_rate = float(np.mean(up_mask))
+        horizontal_action_rate = float(np.mean(horizontal_mask))
+        fire_action_rate = float(np.mean(fire_mask))
+        punch_action_rate = float(np.mean(punch_mask))
+        climb_rate = float(np.mean(self._is_climbing)) if self._is_climbing else 0.0
+
+        return {
+            "average_steps": float(len(actions)),
+            "reward_total": float(np.sum(rewards)),
+            "score_events": score_events,
+            "final_score": float(self._score_values[-1]) if self._score_values else 0.0,
+            "lives_lost": float(max(0.0, start_lives - final_lives)),
+            "final_lives": float(final_lives),
+            "min_player_y": float(min_y),
+            "final_player_y": float(final_y),
+            "max_upward_progress": max_upward_progress,
+            "net_upward_progress": net_upward_progress,
+            "x_range": x_range,
+            "y_range": y_range,
+            "up_action_rate": up_action_rate,
+            "horizontal_action_rate": horizontal_action_rate,
+            "fire_action_rate": fire_action_rate,
+            "punch_action_rate": punch_action_rate,
+            "rightfire_action_rate": float(np.mean(actions == 11)),
+            "leftfire_action_rate": float(np.mean(actions == 12)),
+            "down_action_rate": float(np.mean(down_mask)),
+            "noop_rate": float(np.mean(noop_mask)),
+            "unique_action_count": float(len(set(self._actions))),
+            "climb_rate": climb_rate,
+            "crash_rate": float(np.mean(self._is_crashing)) if self._is_crashing else 0.0,
+            "up_only_failure": float(up_action_rate > 0.95 and len(set(self._actions)) <= 1),
+            "horizontal_only_failure": float(horizontal_action_rate > 0.95 and max_upward_progress < 5.0),
+            "score_without_climb_pattern": float(score_events > 0 and up_action_count == 0.0 and max_upward_progress < 10.0),
+            "punch_farming_pattern": float(score_events >= 2.0 and punch_action_rate > 0.05 and up_action_count == 0.0),
+            "first_reward_suppressed_pattern": float(
+                score_events == 0.0
+                and fire_action_rate < 0.01
+                and x_range > 40.0
+                and max_upward_progress >= 8.0
+                and climb_rate > 0.05
+            ),
+            "no_fire_scoreless_pattern": float(
+                score_events == 0.0
+                and fire_action_rate < 0.01
+                and x_range > 20.0
+            ),
+        }
+
+    def get_metric_descriptions(self) -> Dict[str, str]:
+        return {
+            "average_steps": "Number of logged steps before episode end or evaluation truncation.",
+            "reward_total": "Total reward during the logged rollout.",
+            "score_events": "Number of positive reward events, such as fruit, enemies, or level progress.",
+            "final_score": "Raw game score at the end of the logged rollout.",
+            "lives_lost": "Number of lives lost during the logged rollout.",
+            "final_lives": "Lives remaining at the end of the logged rollout.",
+            "min_player_y": "Highest screen position reached by the player; lower y means higher on screen.",
+            "final_player_y": "Player y position at the end of the logged rollout.",
+            "max_upward_progress": "Largest upward displacement from the starting y position.",
+            "net_upward_progress": "Final upward displacement from the starting y position.",
+            "x_range": "Horizontal movement range; near zero means the policy barely moved left or right.",
+            "y_range": "Vertical movement range during the rollout.",
+            "up_action_rate": "Fraction of actions that include upward movement.",
+            "horizontal_action_rate": "Fraction of actions with left or right movement.",
+            "fire_action_rate": "Fraction of actions using FIRE.",
+            "punch_action_rate": "Fraction of actions using LEFTFIRE or RIGHTFIRE.",
+            "rightfire_action_rate": "Fraction of actions using RIGHTFIRE.",
+            "leftfire_action_rate": "Fraction of actions using LEFTFIRE.",
+            "down_action_rate": "Fraction of actions with downward movement.",
+            "noop_rate": "Fraction of NOOP actions.",
+            "unique_action_count": "Number of distinct actions used.",
+            "climb_rate": "Fraction of logged states where the player is in the climbing state.",
+            "crash_rate": "Fraction of logged states where the player is crashing.",
+            "up_only_failure": "1 when the policy effectively returns only UP, a known failed Kangaroo smoke-run pattern.",
+            "horizontal_only_failure": "1 when the policy mostly moves left/right but makes almost no upward progress.",
+            "score_without_climb_pattern": "1 when the policy scores without any UP action or meaningful upward progress.",
+            "punch_farming_pattern": "1 when multiple score events come from a high punch-action rate without any UP action.",
+            "first_reward_suppressed_pattern": "1 when a scoreless policy moves/climbs through the first route but almost never uses FIRE, often meaning it suppressed the working first RIGHTFIRE reward.",
+            "no_fire_scoreless_pattern": "1 when a scoreless policy moves around but almost never uses FIRE, indicating the punch/jump branch may have been removed or over-gated.",
+        }
+
+
+# =============================================================================
 # FACTORY FUNCTIONS
 # =============================================================================
 
@@ -1263,6 +1429,7 @@ def create_logger(game_name: str, ablation_config: Optional[AblationConfig] = No
         'asterix': AsterixLogger,
         'breakout': BreakoutLogger,
         'skiing': SkiingLogger,
+        'kangaroo': KangarooLogger,
     }
     
     if game_name.lower() not in loggers:

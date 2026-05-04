@@ -1,0 +1,8310 @@
+{
+  "policy_dir": "scripts/llm_optimization/runs/single_game/kangaroo_resume3_20260430_144102",
+  "policy_path": "scripts/llm_optimization/experiments/kangaroo/policy_v6_overlap_patch.py",
+  "seed": 20260480,
+  "max_steps": 430,
+  "window": {
+    "start": 300,
+    "end": 380
+  },
+  "summary": {
+    "steps_recorded": 81,
+    "total_steps": 430,
+    "total_reward": 0.0,
+    "reward_events": [],
+    "life_loss_events": [],
+    "action_counts": {
+      "RIGHT": 411,
+      "UP": 19
+    },
+    "first_reward_step": null,
+    "post_reward_min_y": null,
+    "post_reward_max_upward_progress": null,
+    "final_step": {
+      "step": 429,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      }
+    }
+  },
+  "event_records": [],
+  "window_records": [
+    {
+      "step": 300,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 123.0,
+        "y": 148.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 172.0,
+        "orientation": 1.0,
+        "is_climbing": false,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 123.0,
+        "y": 148.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 172.0,
+        "orientation": 1.0,
+        "is_climbing": false,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 9.0,
+          "abs_dx": 9.0,
+          "bottom_diff": -4.0,
+          "abs_bottom_diff": 4.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -103.0,
+          "abs_dx": 103.0,
+          "bottom_diff": -52.0,
+          "abs_bottom_diff": 52.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 9.0,
+          "abs_dx": 9.0,
+          "bottom_diff": -100.0,
+          "abs_bottom_diff": 100.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 29.0,
+            "dx": 25.0,
+            "dy": -119.0,
+            "distance": 121.59769734661919,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 33.0,
+            "y": 17.0,
+            "dx": -94.0,
+            "dy": -131.0,
+            "distance": 161.23585209251695
+          }
+        ]
+      }
+    },
+    {
+      "step": 301,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 123.0,
+        "y": 148.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 172.0,
+        "orientation": 1.0,
+        "is_climbing": false,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 123.0,
+        "y": 148.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 172.0,
+        "orientation": 1.0,
+        "is_climbing": false,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 9.0,
+          "abs_dx": 9.0,
+          "bottom_diff": -4.0,
+          "abs_bottom_diff": 4.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -103.0,
+          "abs_dx": 103.0,
+          "bottom_diff": -52.0,
+          "abs_bottom_diff": 52.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 9.0,
+          "abs_dx": 9.0,
+          "bottom_diff": -100.0,
+          "abs_bottom_diff": 100.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 29.0,
+            "dx": 25.0,
+            "dy": -119.0,
+            "distance": 121.59769734661919,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 33.0,
+            "y": 17.0,
+            "dx": -94.0,
+            "dy": -131.0,
+            "distance": 161.23585209251695
+          }
+        ]
+      }
+    },
+    {
+      "step": 302,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 123.0,
+        "y": 148.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 172.0,
+        "orientation": 1.0,
+        "is_climbing": false,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 124.0,
+        "y": 148.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 172.0,
+        "orientation": 1.0,
+        "is_climbing": false,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 9.0,
+          "abs_dx": 9.0,
+          "bottom_diff": -4.0,
+          "abs_bottom_diff": 4.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -103.0,
+          "abs_dx": 103.0,
+          "bottom_diff": -52.0,
+          "abs_bottom_diff": 52.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 9.0,
+          "abs_dx": 9.0,
+          "bottom_diff": -100.0,
+          "abs_bottom_diff": 100.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 29.0,
+            "dx": 25.0,
+            "dy": -119.0,
+            "distance": 121.59769734661919,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 33.0,
+            "y": 17.0,
+            "dx": -94.0,
+            "dy": -131.0,
+            "distance": 161.23585209251695
+          }
+        ]
+      }
+    },
+    {
+      "step": 303,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 124.0,
+        "y": 148.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 172.0,
+        "orientation": 1.0,
+        "is_climbing": false,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 124.0,
+        "y": 148.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 172.0,
+        "orientation": 1.0,
+        "is_climbing": false,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 8.0,
+          "abs_dx": 8.0,
+          "bottom_diff": -4.0,
+          "abs_bottom_diff": 4.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -104.0,
+          "abs_dx": 104.0,
+          "bottom_diff": -52.0,
+          "abs_bottom_diff": 52.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 8.0,
+          "abs_dx": 8.0,
+          "bottom_diff": -100.0,
+          "abs_bottom_diff": 100.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 29.0,
+            "dx": 24.0,
+            "dy": -119.0,
+            "distance": 121.39604606411199,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 35.0,
+            "y": 25.0,
+            "dx": -93.0,
+            "dy": -123.0,
+            "distance": 154.20116731075677
+          }
+        ]
+      }
+    },
+    {
+      "step": 304,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 124.0,
+        "y": 148.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 172.0,
+        "orientation": 1.0,
+        "is_climbing": false,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 124.0,
+        "y": 148.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 172.0,
+        "orientation": 1.0,
+        "is_climbing": false,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 8.0,
+          "abs_dx": 8.0,
+          "bottom_diff": -4.0,
+          "abs_bottom_diff": 4.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -104.0,
+          "abs_dx": 104.0,
+          "bottom_diff": -52.0,
+          "abs_bottom_diff": 52.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 8.0,
+          "abs_dx": 8.0,
+          "bottom_diff": -100.0,
+          "abs_bottom_diff": 100.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 29.0,
+            "dx": 24.0,
+            "dy": -119.0,
+            "distance": 121.39604606411199,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 35.0,
+            "y": 25.0,
+            "dx": -93.0,
+            "dy": -123.0,
+            "distance": 154.20116731075677
+          }
+        ]
+      }
+    },
+    {
+      "step": 305,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 124.0,
+        "y": 148.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 172.0,
+        "orientation": 1.0,
+        "is_climbing": false,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 125.0,
+        "y": 148.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 172.0,
+        "orientation": 1.0,
+        "is_climbing": false,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 8.0,
+          "abs_dx": 8.0,
+          "bottom_diff": -4.0,
+          "abs_bottom_diff": 4.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -104.0,
+          "abs_dx": 104.0,
+          "bottom_diff": -52.0,
+          "abs_bottom_diff": 52.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 8.0,
+          "abs_dx": 8.0,
+          "bottom_diff": -100.0,
+          "abs_bottom_diff": 100.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 29.0,
+            "dx": 24.0,
+            "dy": -119.0,
+            "distance": 121.39604606411199,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 35.0,
+            "y": 25.0,
+            "dx": -93.0,
+            "dy": -123.0,
+            "distance": 154.20116731075677
+          }
+        ]
+      }
+    },
+    {
+      "step": 306,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 125.0,
+        "y": 148.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 172.0,
+        "orientation": 1.0,
+        "is_climbing": false,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 125.0,
+        "y": 148.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 172.0,
+        "orientation": 1.0,
+        "is_climbing": false,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 7.0,
+          "abs_dx": 7.0,
+          "bottom_diff": -4.0,
+          "abs_bottom_diff": 4.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -105.0,
+          "abs_dx": 105.0,
+          "bottom_diff": -52.0,
+          "abs_bottom_diff": 52.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 7.0,
+          "abs_dx": 7.0,
+          "bottom_diff": -100.0,
+          "abs_bottom_diff": 100.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 29.0,
+            "dx": 23.0,
+            "dy": -119.0,
+            "distance": 121.2023102090055,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 35.0,
+            "y": 25.0,
+            "dx": -94.0,
+            "dy": -123.0,
+            "distance": 154.80633061990716
+          }
+        ]
+      }
+    },
+    {
+      "step": 307,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 125.0,
+        "y": 148.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 172.0,
+        "orientation": 1.0,
+        "is_climbing": false,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 125.0,
+        "y": 148.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 172.0,
+        "orientation": 1.0,
+        "is_climbing": false,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 7.0,
+          "abs_dx": 7.0,
+          "bottom_diff": -4.0,
+          "abs_bottom_diff": 4.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -105.0,
+          "abs_dx": 105.0,
+          "bottom_diff": -52.0,
+          "abs_bottom_diff": 52.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 7.0,
+          "abs_dx": 7.0,
+          "bottom_diff": -100.0,
+          "abs_bottom_diff": 100.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 29.0,
+            "dx": 23.0,
+            "dy": -119.0,
+            "distance": 121.2023102090055,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 35.0,
+            "y": 25.0,
+            "dx": -94.0,
+            "dy": -123.0,
+            "distance": 154.80633061990716
+          }
+        ]
+      }
+    },
+    {
+      "step": 308,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 125.0,
+        "y": 148.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 172.0,
+        "orientation": 1.0,
+        "is_climbing": false,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 126.0,
+        "y": 148.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 172.0,
+        "orientation": 1.0,
+        "is_climbing": false,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 7.0,
+          "abs_dx": 7.0,
+          "bottom_diff": -4.0,
+          "abs_bottom_diff": 4.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -105.0,
+          "abs_dx": 105.0,
+          "bottom_diff": -52.0,
+          "abs_bottom_diff": 52.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 7.0,
+          "abs_dx": 7.0,
+          "bottom_diff": -100.0,
+          "abs_bottom_diff": 100.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 29.0,
+            "dx": 23.0,
+            "dy": -119.0,
+            "distance": 121.2023102090055,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 35.0,
+            "y": 25.0,
+            "dx": -94.0,
+            "dy": -123.0,
+            "distance": 154.80633061990716
+          }
+        ]
+      }
+    },
+    {
+      "step": 309,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 126.0,
+        "y": 148.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 172.0,
+        "orientation": 1.0,
+        "is_climbing": false,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 126.0,
+        "y": 148.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 172.0,
+        "orientation": 1.0,
+        "is_climbing": false,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 6.0,
+          "abs_dx": 6.0,
+          "bottom_diff": -4.0,
+          "abs_bottom_diff": 4.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -106.0,
+          "abs_dx": 106.0,
+          "bottom_diff": -52.0,
+          "abs_bottom_diff": 52.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 6.0,
+          "abs_dx": 6.0,
+          "bottom_diff": -100.0,
+          "abs_bottom_diff": 100.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 29.0,
+            "dx": 22.0,
+            "dy": -119.0,
+            "distance": 121.01652779682617,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 35.0,
+            "y": 25.0,
+            "dx": -95.0,
+            "dy": -123.0,
+            "distance": 155.4155719353759
+          }
+        ]
+      }
+    },
+    {
+      "step": 310,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 126.0,
+        "y": 148.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 172.0,
+        "orientation": 1.0,
+        "is_climbing": false,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 126.0,
+        "y": 148.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 172.0,
+        "orientation": 1.0,
+        "is_climbing": false,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 6.0,
+          "abs_dx": 6.0,
+          "bottom_diff": -4.0,
+          "abs_bottom_diff": 4.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -106.0,
+          "abs_dx": 106.0,
+          "bottom_diff": -52.0,
+          "abs_bottom_diff": 52.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 6.0,
+          "abs_dx": 6.0,
+          "bottom_diff": -100.0,
+          "abs_bottom_diff": 100.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 29.0,
+            "dx": 22.0,
+            "dy": -119.0,
+            "distance": 121.01652779682617,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 35.0,
+            "y": 25.0,
+            "dx": -95.0,
+            "dy": -123.0,
+            "distance": 155.4155719353759
+          }
+        ]
+      }
+    },
+    {
+      "step": 311,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 126.0,
+        "y": 148.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 172.0,
+        "orientation": 1.0,
+        "is_climbing": false,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 127.0,
+        "y": 148.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 172.0,
+        "orientation": 1.0,
+        "is_climbing": false,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 6.0,
+          "abs_dx": 6.0,
+          "bottom_diff": -4.0,
+          "abs_bottom_diff": 4.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -106.0,
+          "abs_dx": 106.0,
+          "bottom_diff": -52.0,
+          "abs_bottom_diff": 52.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 6.0,
+          "abs_dx": 6.0,
+          "bottom_diff": -100.0,
+          "abs_bottom_diff": 100.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 37.0,
+            "dx": 22.0,
+            "dy": -111.0,
+            "distance": 113.1591799192624,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 37.0,
+            "y": 17.0,
+            "dx": -93.0,
+            "dy": -131.0,
+            "distance": 160.65490966665163
+          }
+        ]
+      }
+    },
+    {
+      "step": 312,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 127.0,
+        "y": 148.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 172.0,
+        "orientation": 1.0,
+        "is_climbing": false,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 127.0,
+        "y": 148.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 172.0,
+        "orientation": 1.0,
+        "is_climbing": false,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 5.0,
+          "abs_dx": 5.0,
+          "bottom_diff": -4.0,
+          "abs_bottom_diff": 4.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -107.0,
+          "abs_dx": 107.0,
+          "bottom_diff": -52.0,
+          "abs_bottom_diff": 52.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 5.0,
+          "abs_dx": 5.0,
+          "bottom_diff": -100.0,
+          "abs_bottom_diff": 100.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 37.0,
+            "dx": 21.0,
+            "dy": -111.0,
+            "distance": 112.96902230257638,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 37.0,
+            "y": 17.0,
+            "dx": -94.0,
+            "dy": -131.0,
+            "distance": 161.23585209251695
+          }
+        ]
+      }
+    },
+    {
+      "step": 313,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 127.0,
+        "y": 148.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 172.0,
+        "orientation": 1.0,
+        "is_climbing": false,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 127.0,
+        "y": 148.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 172.0,
+        "orientation": 1.0,
+        "is_climbing": false,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 5.0,
+          "abs_dx": 5.0,
+          "bottom_diff": -4.0,
+          "abs_bottom_diff": 4.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -107.0,
+          "abs_dx": 107.0,
+          "bottom_diff": -52.0,
+          "abs_bottom_diff": 52.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 5.0,
+          "abs_dx": 5.0,
+          "bottom_diff": -100.0,
+          "abs_bottom_diff": 100.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 37.0,
+            "dx": 21.0,
+            "dy": -111.0,
+            "distance": 112.96902230257638,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 37.0,
+            "y": 17.0,
+            "dx": -94.0,
+            "dy": -131.0,
+            "distance": 161.23585209251695
+          }
+        ]
+      }
+    },
+    {
+      "step": 314,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 127.0,
+        "y": 148.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 172.0,
+        "orientation": 1.0,
+        "is_climbing": false,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 148.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 172.0,
+        "orientation": 1.0,
+        "is_climbing": false,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 5.0,
+          "abs_dx": 5.0,
+          "bottom_diff": -4.0,
+          "abs_bottom_diff": 4.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -107.0,
+          "abs_dx": 107.0,
+          "bottom_diff": -52.0,
+          "abs_bottom_diff": 52.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 5.0,
+          "abs_dx": 5.0,
+          "bottom_diff": -100.0,
+          "abs_bottom_diff": 100.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 37.0,
+            "dx": 21.0,
+            "dy": -111.0,
+            "distance": 112.96902230257638,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 37.0,
+            "y": 17.0,
+            "dx": -94.0,
+            "dy": -131.0,
+            "distance": 161.23585209251695
+          }
+        ]
+      }
+    },
+    {
+      "step": 315,
+      "action": 2,
+      "action_name": "UP",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 148.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 172.0,
+        "orientation": 1.0,
+        "is_climbing": false,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -4.0,
+          "abs_bottom_diff": 4.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -52.0,
+          "abs_bottom_diff": 52.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -100.0,
+          "abs_bottom_diff": 100.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 37.0,
+            "dx": 20.0,
+            "dy": -111.0,
+            "distance": 112.78741064498288,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 37.0,
+            "y": 17.0,
+            "dx": -95.0,
+            "dy": -131.0,
+            "distance": 161.82088863926066
+          }
+        ]
+      }
+    },
+    {
+      "step": 316,
+      "action": 2,
+      "action_name": "UP",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 4.0,
+          "abs_bottom_diff": 4.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -44.0,
+          "abs_bottom_diff": 44.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -92.0,
+          "abs_bottom_diff": 92.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 37.0,
+            "dx": 20.0,
+            "dy": -103.0,
+            "distance": 104.92378186092989,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 37.0,
+            "y": 17.0,
+            "dx": -95.0,
+            "dy": -123.0,
+            "distance": 155.4155719353759
+          }
+        ]
+      }
+    },
+    {
+      "step": 317,
+      "action": 2,
+      "action_name": "UP",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 4.0,
+          "abs_bottom_diff": 4.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -44.0,
+          "abs_bottom_diff": 44.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -92.0,
+          "abs_bottom_diff": 92.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 37.0,
+            "dx": 20.0,
+            "dy": -103.0,
+            "distance": 104.92378186092989,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 37.0,
+            "y": 17.0,
+            "dx": -95.0,
+            "dy": -123.0,
+            "distance": 155.4155719353759
+          }
+        ]
+      }
+    },
+    {
+      "step": 318,
+      "action": 2,
+      "action_name": "UP",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 4.0,
+          "abs_bottom_diff": 4.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -44.0,
+          "abs_bottom_diff": 44.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -92.0,
+          "abs_bottom_diff": 92.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 37.0,
+            "dx": 20.0,
+            "dy": -103.0,
+            "distance": 104.92378186092989,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 37.0,
+            "y": 17.0,
+            "dx": -95.0,
+            "dy": -123.0,
+            "distance": 155.4155719353759
+          }
+        ]
+      }
+    },
+    {
+      "step": 319,
+      "action": 2,
+      "action_name": "UP",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 4.0,
+          "abs_bottom_diff": 4.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -44.0,
+          "abs_bottom_diff": 44.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -92.0,
+          "abs_bottom_diff": 92.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 37.0,
+            "dx": 20.0,
+            "dy": -103.0,
+            "distance": 104.92378186092989,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 39.0,
+            "y": 9.0,
+            "dx": -93.0,
+            "dy": -131.0,
+            "distance": 160.65490966665163
+          }
+        ]
+      }
+    },
+    {
+      "step": 320,
+      "action": 2,
+      "action_name": "UP",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 4.0,
+          "abs_bottom_diff": 4.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -44.0,
+          "abs_bottom_diff": 44.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -92.0,
+          "abs_bottom_diff": 92.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 37.0,
+            "dx": 20.0,
+            "dy": -103.0,
+            "distance": 104.92378186092989,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 39.0,
+            "y": 9.0,
+            "dx": -93.0,
+            "dy": -131.0,
+            "distance": 160.65490966665163
+          }
+        ]
+      }
+    },
+    {
+      "step": 321,
+      "action": 2,
+      "action_name": "UP",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 4.0,
+          "abs_bottom_diff": 4.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -44.0,
+          "abs_bottom_diff": 44.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -92.0,
+          "abs_bottom_diff": 92.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 37.0,
+            "dx": 20.0,
+            "dy": -103.0,
+            "distance": 104.92378186092989,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 39.0,
+            "y": 9.0,
+            "dx": -93.0,
+            "dy": -131.0,
+            "distance": 160.65490966665163
+          }
+        ]
+      }
+    },
+    {
+      "step": 322,
+      "action": 2,
+      "action_name": "UP",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 4.0,
+          "abs_bottom_diff": 4.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -44.0,
+          "abs_bottom_diff": 44.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -92.0,
+          "abs_bottom_diff": 92.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 37.0,
+            "dx": 20.0,
+            "dy": -103.0,
+            "distance": 104.92378186092989,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 39.0,
+            "y": 9.0,
+            "dx": -93.0,
+            "dy": -131.0,
+            "distance": 160.65490966665163
+          }
+        ]
+      }
+    },
+    {
+      "step": 323,
+      "action": 2,
+      "action_name": "UP",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 4.0,
+          "abs_bottom_diff": 4.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -44.0,
+          "abs_bottom_diff": 44.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -92.0,
+          "abs_bottom_diff": 92.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 37.0,
+            "dx": 20.0,
+            "dy": -103.0,
+            "distance": 104.92378186092989,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 39.0,
+            "y": 9.0,
+            "dx": -93.0,
+            "dy": -131.0,
+            "distance": 160.65490966665163
+          }
+        ]
+      }
+    },
+    {
+      "step": 324,
+      "action": 2,
+      "action_name": "UP",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 4.0,
+          "abs_bottom_diff": 4.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -44.0,
+          "abs_bottom_diff": 44.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -92.0,
+          "abs_bottom_diff": 92.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 37.0,
+            "dx": 20.0,
+            "dy": -103.0,
+            "distance": 104.92378186092989,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 39.0,
+            "y": 9.0,
+            "dx": -93.0,
+            "dy": -131.0,
+            "distance": 160.65490966665163
+          }
+        ]
+      }
+    },
+    {
+      "step": 325,
+      "action": 2,
+      "action_name": "UP",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 4.0,
+          "abs_bottom_diff": 4.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -44.0,
+          "abs_bottom_diff": 44.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -92.0,
+          "abs_bottom_diff": 92.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 37.0,
+            "dx": 20.0,
+            "dy": -103.0,
+            "distance": 104.92378186092989,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 39.0,
+            "y": 9.0,
+            "dx": -93.0,
+            "dy": -131.0,
+            "distance": 160.65490966665163
+          }
+        ]
+      }
+    },
+    {
+      "step": 326,
+      "action": 2,
+      "action_name": "UP",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 4.0,
+          "abs_bottom_diff": 4.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -44.0,
+          "abs_bottom_diff": 44.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -92.0,
+          "abs_bottom_diff": 92.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 37.0,
+            "dx": 20.0,
+            "dy": -103.0,
+            "distance": 104.92378186092989,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 39.0,
+            "y": 9.0,
+            "dx": -93.0,
+            "dy": -131.0,
+            "distance": 160.65490966665163
+          }
+        ]
+      }
+    },
+    {
+      "step": 327,
+      "action": 2,
+      "action_name": "UP",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 4.0,
+          "abs_bottom_diff": 4.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -44.0,
+          "abs_bottom_diff": 44.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -92.0,
+          "abs_bottom_diff": 92.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 45.0,
+            "dx": 20.0,
+            "dy": -95.0,
+            "distance": 97.082439194738,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 41.0,
+            "y": 17.0,
+            "dx": -91.0,
+            "dy": -123.0,
+            "distance": 153.00326793895613
+          }
+        ]
+      }
+    },
+    {
+      "step": 328,
+      "action": 2,
+      "action_name": "UP",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 4.0,
+          "abs_bottom_diff": 4.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -44.0,
+          "abs_bottom_diff": 44.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -92.0,
+          "abs_bottom_diff": 92.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 45.0,
+            "dx": 20.0,
+            "dy": -95.0,
+            "distance": 97.082439194738,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 41.0,
+            "y": 17.0,
+            "dx": -91.0,
+            "dy": -123.0,
+            "distance": 153.00326793895613
+          }
+        ]
+      }
+    },
+    {
+      "step": 329,
+      "action": 2,
+      "action_name": "UP",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 4.0,
+          "abs_bottom_diff": 4.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -44.0,
+          "abs_bottom_diff": 44.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -92.0,
+          "abs_bottom_diff": 92.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 45.0,
+            "dx": 20.0,
+            "dy": -95.0,
+            "distance": 97.082439194738,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 41.0,
+            "y": 17.0,
+            "dx": -91.0,
+            "dy": -123.0,
+            "distance": 153.00326793895613
+          }
+        ]
+      }
+    },
+    {
+      "step": 330,
+      "action": 2,
+      "action_name": "UP",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 4.0,
+          "abs_bottom_diff": 4.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -44.0,
+          "abs_bottom_diff": 44.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -92.0,
+          "abs_bottom_diff": 92.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 45.0,
+            "dx": 20.0,
+            "dy": -95.0,
+            "distance": 97.082439194738,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 41.0,
+            "y": 17.0,
+            "dx": -91.0,
+            "dy": -123.0,
+            "distance": 153.00326793895613
+          }
+        ]
+      }
+    },
+    {
+      "step": 331,
+      "action": 2,
+      "action_name": "UP",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 4.0,
+          "abs_bottom_diff": 4.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -44.0,
+          "abs_bottom_diff": 44.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -92.0,
+          "abs_bottom_diff": 92.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 45.0,
+            "dx": 20.0,
+            "dy": -95.0,
+            "distance": 97.082439194738,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 41.0,
+            "y": 17.0,
+            "dx": -91.0,
+            "dy": -123.0,
+            "distance": 153.00326793895613
+          }
+        ]
+      }
+    },
+    {
+      "step": 332,
+      "action": 2,
+      "action_name": "UP",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 4.0,
+          "abs_bottom_diff": 4.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -44.0,
+          "abs_bottom_diff": 44.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -92.0,
+          "abs_bottom_diff": 92.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 45.0,
+            "dx": 20.0,
+            "dy": -95.0,
+            "distance": 97.082439194738,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 41.0,
+            "y": 17.0,
+            "dx": -91.0,
+            "dy": -123.0,
+            "distance": 153.00326793895613
+          }
+        ]
+      }
+    },
+    {
+      "step": 333,
+      "action": 2,
+      "action_name": "UP",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 140.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 164.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 4.0,
+          "abs_bottom_diff": 4.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -44.0,
+          "abs_bottom_diff": 44.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -92.0,
+          "abs_bottom_diff": 92.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 45.0,
+            "dx": 20.0,
+            "dy": -95.0,
+            "distance": 97.082439194738,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 41.0,
+            "y": 17.0,
+            "dx": -91.0,
+            "dy": -123.0,
+            "distance": 153.00326793895613
+          }
+        ]
+      }
+    },
+    {
+      "step": 334,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 45.0,
+            "dx": 20.0,
+            "dy": -87.0,
+            "distance": 89.26925562588724,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 41.0,
+            "y": 17.0,
+            "dx": -91.0,
+            "dy": -115.0,
+            "distance": 146.64924138910504
+          }
+        ]
+      }
+    },
+    {
+      "step": 335,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 45.0,
+            "dx": 20.0,
+            "dy": -87.0,
+            "distance": 89.26925562588724,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 43.0,
+            "y": 25.0,
+            "dx": -89.0,
+            "dy": -107.0,
+            "distance": 139.17614738165446
+          }
+        ]
+      }
+    },
+    {
+      "step": 336,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 45.0,
+            "dx": 20.0,
+            "dy": -87.0,
+            "distance": 89.26925562588724,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 43.0,
+            "y": 25.0,
+            "dx": -89.0,
+            "dy": -107.0,
+            "distance": 139.17614738165446
+          }
+        ]
+      }
+    },
+    {
+      "step": 337,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 45.0,
+            "dx": 20.0,
+            "dy": -87.0,
+            "distance": 89.26925562588724,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 43.0,
+            "y": 25.0,
+            "dx": -89.0,
+            "dy": -107.0,
+            "distance": 139.17614738165446
+          }
+        ]
+      }
+    },
+    {
+      "step": 338,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 45.0,
+            "dx": 20.0,
+            "dy": -87.0,
+            "distance": 89.26925562588724,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 43.0,
+            "y": 25.0,
+            "dx": -89.0,
+            "dy": -107.0,
+            "distance": 139.17614738165446
+          }
+        ]
+      }
+    },
+    {
+      "step": 339,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 45.0,
+            "dx": 20.0,
+            "dy": -87.0,
+            "distance": 89.26925562588724,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 43.0,
+            "y": 25.0,
+            "dx": -89.0,
+            "dy": -107.0,
+            "distance": 139.17614738165446
+          }
+        ]
+      }
+    },
+    {
+      "step": 340,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 45.0,
+            "dx": 20.0,
+            "dy": -87.0,
+            "distance": 89.26925562588724,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 43.0,
+            "y": 25.0,
+            "dx": -89.0,
+            "dy": -107.0,
+            "distance": 139.17614738165446
+          }
+        ]
+      }
+    },
+    {
+      "step": 341,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 45.0,
+            "dx": 20.0,
+            "dy": -87.0,
+            "distance": 89.26925562588724,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 43.0,
+            "y": 25.0,
+            "dx": -89.0,
+            "dy": -107.0,
+            "distance": 139.17614738165446
+          }
+        ]
+      }
+    },
+    {
+      "step": 342,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 45.0,
+            "dx": 20.0,
+            "dy": -87.0,
+            "distance": 89.26925562588724,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 43.0,
+            "y": 25.0,
+            "dx": -89.0,
+            "dy": -107.0,
+            "distance": 139.17614738165446
+          }
+        ]
+      }
+    },
+    {
+      "step": 343,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 53.0,
+            "dx": 20.0,
+            "dy": -79.0,
+            "distance": 81.49233092751734,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 45.0,
+            "y": 17.0,
+            "dx": -87.0,
+            "dy": -115.0,
+            "distance": 144.20124826089406
+          }
+        ]
+      }
+    },
+    {
+      "step": 344,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 53.0,
+            "dx": 20.0,
+            "dy": -79.0,
+            "distance": 81.49233092751734,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 45.0,
+            "y": 17.0,
+            "dx": -87.0,
+            "dy": -115.0,
+            "distance": 144.20124826089406
+          }
+        ]
+      }
+    },
+    {
+      "step": 345,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 53.0,
+            "dx": 20.0,
+            "dy": -79.0,
+            "distance": 81.49233092751734,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 45.0,
+            "y": 17.0,
+            "dx": -87.0,
+            "dy": -115.0,
+            "distance": 144.20124826089406
+          }
+        ]
+      }
+    },
+    {
+      "step": 346,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 53.0,
+            "dx": 20.0,
+            "dy": -79.0,
+            "distance": 81.49233092751734,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 45.0,
+            "y": 17.0,
+            "dx": -87.0,
+            "dy": -115.0,
+            "distance": 144.20124826089406
+          }
+        ]
+      }
+    },
+    {
+      "step": 347,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 53.0,
+            "dx": 20.0,
+            "dy": -79.0,
+            "distance": 81.49233092751734,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 45.0,
+            "y": 17.0,
+            "dx": -87.0,
+            "dy": -115.0,
+            "distance": 144.20124826089406
+          }
+        ]
+      }
+    },
+    {
+      "step": 348,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 53.0,
+            "dx": 20.0,
+            "dy": -79.0,
+            "distance": 81.49233092751734,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 45.0,
+            "y": 17.0,
+            "dx": -87.0,
+            "dy": -115.0,
+            "distance": 144.20124826089406
+          }
+        ]
+      }
+    },
+    {
+      "step": 349,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 53.0,
+            "dx": 20.0,
+            "dy": -79.0,
+            "distance": 81.49233092751734,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 45.0,
+            "y": 17.0,
+            "dx": -87.0,
+            "dy": -115.0,
+            "distance": 144.20124826089406
+          }
+        ]
+      }
+    },
+    {
+      "step": 350,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 53.0,
+            "dx": 20.0,
+            "dy": -79.0,
+            "distance": 81.49233092751734,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 45.0,
+            "y": 17.0,
+            "dx": -87.0,
+            "dy": -115.0,
+            "distance": 144.20124826089406
+          }
+        ]
+      }
+    },
+    {
+      "step": 351,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 53.0,
+            "dx": 20.0,
+            "dy": -79.0,
+            "distance": 81.49233092751734,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 47.0,
+            "y": 9.0,
+            "dx": -85.0,
+            "dy": -123.0,
+            "distance": 149.5125412799876
+          }
+        ]
+      }
+    },
+    {
+      "step": 352,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 53.0,
+            "dx": 20.0,
+            "dy": -79.0,
+            "distance": 81.49233092751734,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 47.0,
+            "y": 9.0,
+            "dx": -85.0,
+            "dy": -123.0,
+            "distance": 149.5125412799876
+          }
+        ]
+      }
+    },
+    {
+      "step": 353,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 53.0,
+            "dx": 20.0,
+            "dy": -79.0,
+            "distance": 81.49233092751734,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 47.0,
+            "y": 9.0,
+            "dx": -85.0,
+            "dy": -123.0,
+            "distance": 149.5125412799876
+          }
+        ]
+      }
+    },
+    {
+      "step": 354,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 53.0,
+            "dx": 20.0,
+            "dy": -79.0,
+            "distance": 81.49233092751734,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 47.0,
+            "y": 9.0,
+            "dx": -85.0,
+            "dy": -123.0,
+            "distance": 149.5125412799876
+          }
+        ]
+      }
+    },
+    {
+      "step": 355,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 53.0,
+            "dx": 20.0,
+            "dy": -79.0,
+            "distance": 81.49233092751734,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 47.0,
+            "y": 9.0,
+            "dx": -85.0,
+            "dy": -123.0,
+            "distance": 149.5125412799876
+          }
+        ]
+      }
+    },
+    {
+      "step": 356,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 53.0,
+            "dx": 20.0,
+            "dy": -79.0,
+            "distance": 81.49233092751734,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 47.0,
+            "y": 9.0,
+            "dx": -85.0,
+            "dy": -123.0,
+            "distance": 149.5125412799876
+          }
+        ]
+      }
+    },
+    {
+      "step": 357,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 53.0,
+            "dx": 20.0,
+            "dy": -79.0,
+            "distance": 81.49233092751734,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 47.0,
+            "y": 9.0,
+            "dx": -85.0,
+            "dy": -123.0,
+            "distance": 149.5125412799876
+          }
+        ]
+      }
+    },
+    {
+      "step": 358,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 53.0,
+            "dx": 20.0,
+            "dy": -79.0,
+            "distance": 81.49233092751734,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 47.0,
+            "y": 9.0,
+            "dx": -85.0,
+            "dy": -123.0,
+            "distance": 149.5125412799876
+          }
+        ]
+      }
+    },
+    {
+      "step": 359,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 61.0,
+            "dx": 20.0,
+            "dy": -71.0,
+            "distance": 73.76313442364011,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 49.0,
+            "y": 17.0,
+            "dx": -83.0,
+            "dy": -115.0,
+            "distance": 141.8238343861849
+          }
+        ]
+      }
+    },
+    {
+      "step": 360,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 61.0,
+            "dx": 20.0,
+            "dy": -71.0,
+            "distance": 73.76313442364011,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 49.0,
+            "y": 17.0,
+            "dx": -83.0,
+            "dy": -115.0,
+            "distance": 141.8238343861849
+          }
+        ]
+      }
+    },
+    {
+      "step": 361,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 61.0,
+            "dx": 20.0,
+            "dy": -71.0,
+            "distance": 73.76313442364011,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 49.0,
+            "y": 17.0,
+            "dx": -83.0,
+            "dy": -115.0,
+            "distance": 141.8238343861849
+          }
+        ]
+      }
+    },
+    {
+      "step": 362,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 61.0,
+            "dx": 20.0,
+            "dy": -71.0,
+            "distance": 73.76313442364011,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 49.0,
+            "y": 17.0,
+            "dx": -83.0,
+            "dy": -115.0,
+            "distance": 141.8238343861849
+          }
+        ]
+      }
+    },
+    {
+      "step": 363,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 61.0,
+            "dx": 20.0,
+            "dy": -71.0,
+            "distance": 73.76313442364011,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 49.0,
+            "y": 17.0,
+            "dx": -83.0,
+            "dy": -115.0,
+            "distance": 141.8238343861849
+          }
+        ]
+      }
+    },
+    {
+      "step": 364,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 61.0,
+            "dx": 20.0,
+            "dy": -71.0,
+            "distance": 73.76313442364011,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 49.0,
+            "y": 17.0,
+            "dx": -83.0,
+            "dy": -115.0,
+            "distance": 141.8238343861849
+          }
+        ]
+      }
+    },
+    {
+      "step": 365,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 61.0,
+            "dx": 20.0,
+            "dy": -71.0,
+            "distance": 73.76313442364011,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 49.0,
+            "y": 17.0,
+            "dx": -83.0,
+            "dy": -115.0,
+            "distance": 141.8238343861849
+          }
+        ]
+      }
+    },
+    {
+      "step": 366,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 61.0,
+            "dx": 20.0,
+            "dy": -71.0,
+            "distance": 73.76313442364011,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 49.0,
+            "y": 17.0,
+            "dx": -83.0,
+            "dy": -115.0,
+            "distance": 141.8238343861849
+          }
+        ]
+      }
+    },
+    {
+      "step": 367,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 61.0,
+            "dx": 20.0,
+            "dy": -71.0,
+            "distance": 73.76313442364011,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 51.0,
+            "y": 25.0,
+            "dx": -81.0,
+            "dy": -107.0,
+            "distance": 134.2013412749664
+          }
+        ]
+      }
+    },
+    {
+      "step": 368,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 61.0,
+            "dx": 20.0,
+            "dy": -71.0,
+            "distance": 73.76313442364011,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 51.0,
+            "y": 25.0,
+            "dx": -81.0,
+            "dy": -107.0,
+            "distance": 134.2013412749664
+          }
+        ]
+      }
+    },
+    {
+      "step": 369,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 61.0,
+            "dx": 20.0,
+            "dy": -71.0,
+            "distance": 73.76313442364011,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 51.0,
+            "y": 25.0,
+            "dx": -81.0,
+            "dy": -107.0,
+            "distance": 134.2013412749664
+          }
+        ]
+      }
+    },
+    {
+      "step": 370,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 61.0,
+            "dx": 20.0,
+            "dy": -71.0,
+            "distance": 73.76313442364011,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 51.0,
+            "y": 25.0,
+            "dx": -81.0,
+            "dy": -107.0,
+            "distance": 134.2013412749664
+          }
+        ]
+      }
+    },
+    {
+      "step": 371,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 61.0,
+            "dx": 20.0,
+            "dy": -71.0,
+            "distance": 73.76313442364011,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 51.0,
+            "y": 25.0,
+            "dx": -81.0,
+            "dy": -107.0,
+            "distance": 134.2013412749664
+          }
+        ]
+      }
+    },
+    {
+      "step": 372,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 61.0,
+            "dx": 20.0,
+            "dy": -71.0,
+            "distance": 73.76313442364011,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 51.0,
+            "y": 25.0,
+            "dx": -81.0,
+            "dy": -107.0,
+            "distance": 134.2013412749664
+          }
+        ]
+      }
+    },
+    {
+      "step": 373,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 61.0,
+            "dx": 20.0,
+            "dy": -71.0,
+            "distance": 73.76313442364011,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 51.0,
+            "y": 25.0,
+            "dx": -81.0,
+            "dy": -107.0,
+            "distance": 134.2013412749664
+          }
+        ]
+      }
+    },
+    {
+      "step": 374,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 61.0,
+            "dx": 20.0,
+            "dy": -71.0,
+            "distance": 73.76313442364011,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 51.0,
+            "y": 25.0,
+            "dx": -81.0,
+            "dy": -107.0,
+            "distance": 134.2013412749664
+          }
+        ]
+      }
+    },
+    {
+      "step": 375,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 69.0,
+            "dx": 20.0,
+            "dy": -63.0,
+            "distance": 66.09841147864296,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 53.0,
+            "y": 17.0,
+            "dx": -79.0,
+            "dy": -115.0,
+            "distance": 139.52060779684126
+          }
+        ]
+      }
+    },
+    {
+      "step": 376,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 69.0,
+            "dx": 20.0,
+            "dy": -63.0,
+            "distance": 66.09841147864296,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 53.0,
+            "y": 17.0,
+            "dx": -79.0,
+            "dy": -115.0,
+            "distance": 139.52060779684126
+          }
+        ]
+      }
+    },
+    {
+      "step": 377,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 69.0,
+            "dx": 20.0,
+            "dy": -63.0,
+            "distance": 66.09841147864296,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 53.0,
+            "y": 17.0,
+            "dx": -79.0,
+            "dy": -115.0,
+            "distance": 139.52060779684126
+          }
+        ]
+      }
+    },
+    {
+      "step": 378,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 69.0,
+            "dx": 20.0,
+            "dy": -63.0,
+            "distance": 66.09841147864296,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 53.0,
+            "y": 17.0,
+            "dx": -79.0,
+            "dy": -115.0,
+            "distance": 139.52060779684126
+          }
+        ]
+      }
+    },
+    {
+      "step": 379,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 69.0,
+            "dx": 20.0,
+            "dy": -63.0,
+            "distance": 66.09841147864296,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 53.0,
+            "y": 17.0,
+            "dx": -79.0,
+            "dy": -115.0,
+            "distance": 139.52060779684126
+          }
+        ]
+      }
+    },
+    {
+      "step": 380,
+      "action": 3,
+      "action_name": "RIGHT",
+      "reward": 0.0,
+      "score_before": 0,
+      "score_after": 0,
+      "lives_before": 3,
+      "lives_after": 3,
+      "level_before": 1,
+      "level_after": 1,
+      "terminated": false,
+      "truncated": false,
+      "player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "next_player": {
+        "x": 128.0,
+        "y": 132.0,
+        "w": 8.0,
+        "h": 24.0,
+        "bottom_y": 156.0,
+        "orientation": 1.0,
+        "is_climbing": true,
+        "is_crashing": false
+      },
+      "nearest_ladders": [
+        {
+          "index": 0.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 132.0,
+          "bottom_y": 168.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": 12.0,
+          "abs_bottom_diff": 12.0,
+          "top_above_player": 0.0
+        },
+        {
+          "index": 1.0,
+          "x": 20.0,
+          "center_x": 24.0,
+          "top_y": 84.0,
+          "bottom_y": 120.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": -108.0,
+          "abs_dx": 108.0,
+          "bottom_diff": -36.0,
+          "abs_bottom_diff": 36.0,
+          "top_above_player": 1.0
+        },
+        {
+          "index": 2.0,
+          "x": 132.0,
+          "center_x": 136.0,
+          "top_y": 36.0,
+          "bottom_y": 72.0,
+          "w": 8.0,
+          "h": 36.0,
+          "dx": 4.0,
+          "abs_dx": 4.0,
+          "bottom_diff": -84.0,
+          "abs_bottom_diff": 84.0,
+          "top_above_player": 1.0
+        }
+      ],
+      "nearest_hazards": {
+        "monkeys": [
+          {
+            "index": 0.0,
+            "x": 152.0,
+            "y": 69.0,
+            "dx": 20.0,
+            "dy": -63.0,
+            "distance": 66.09841147864296,
+            "state": 1.0
+          }
+        ],
+        "thrown_coconuts": [],
+        "falling_coconut": [
+          {
+            "index": 0.0,
+            "x": 53.0,
+            "y": 17.0,
+            "dx": -79.0,
+            "dy": -115.0,
+            "distance": 139.52060779684126
+          }
+        ]
+      }
+    }
+  ]
+}

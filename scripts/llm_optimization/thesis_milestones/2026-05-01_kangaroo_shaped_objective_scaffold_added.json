@@ -1,0 +1,82 @@
+{
+  "date": "2026-05-01",
+  "title": "Kangaroo shaped objective scaffold added",
+  "summary": "Kangaroo now has an optional scaffolded search objective for route-progress experiments. The inner optimizer can use a shaped objective that combines real reward with ladder-route progress signals, while the final run best is still selected and reported by real game reward.",
+  "context": {
+    "previous_milestone": "2026-05-01_kangaroo_fresh_run_reaches_unstable_200.json",
+    "motivation": "Several reward-only Kangaroo runs recovered at most the shallow first 200-point reward and did not reliably progress beyond it. Quentin's feedback pointed to the need for parametric intermediate perception and route checks, especially ladder alignment and post-first-reward behavior.",
+    "scope": "Kangaroo-only, optional, experimental. Existing reward-only runs and other games keep the original real-reward objective."
+  },
+  "implementation": {
+    "modified_files": [
+      "scripts/llm_optimization/llm_optimization_loop.py"
+    ],
+    "new_files": [
+      "scripts/llm_optimization/run_kangaroo_shaped_fresh_outer_loop.sh"
+    ],
+    "new_cli_flag": "--kangaroo-shaped-objective",
+    "launcher": "scripts/llm_optimization/run_kangaroo_shaped_fresh_outer_loop.sh",
+    "search_objective_components": [
+      "real game reward remains the base term",
+      "bonus for reaching the first 200-point route event",
+      "bonus for upward progress from the starting platform",
+      "bonus for emitting UP-like actions only when they produce meaningful upward movement",
+      "bonus for progress after the first reward",
+      "penalty for scoreless no-fire policies that climb or move but never use the known useful first-reward branch",
+      "penalty for scoreless excessive punch behavior",
+      "penalty for repeated lower-platform punch farming without upward progress"
+    ],
+    "reward_integrity_rule": "The shaped objective is used only as a search scaffold. The outer loop still records real avg_return, real player score, real win rate, and chooses the final best policy by avg_return."
+  },
+  "validation": {
+    "api_calls": "none",
+    "commands": [
+      ".venv/bin/python -m py_compile scripts/llm_optimization/llm_optimization_loop.py",
+      ".venv/bin/python scripts/llm_optimization/llm_optimization_loop.py --help | rg -n \"kangaroo-shaped|search-max|optimizer|game\"",
+      "API-free shaped evaluator smoke test on kangaroo_20260501_211358_fresh_s20260501/policy_v2.py",
+      "API-free reward-only evaluator smoke test on the same policy",
+      "git diff --check -- scripts/llm_optimization/llm_optimization_loop.py scripts/llm_optimization/run_kangaroo_shaped_fresh_outer_loop.sh",
+      "secret scan for API-key patterns under scripts/llm_optimization"
+    ],
+    "shaped_smoke_result": {
+      "policy": "scripts/llm_optimization/runs/single_game/kangaroo_20260501_211358_fresh_s20260501/policy_v2.py",
+      "episodes": 4,
+      "steps": 1000,
+      "seed": 20260501,
+      "avg_return": 150.0,
+      "optimization_score": 403.0,
+      "objective_is_shaped": true,
+      "shaped_upward_progress": 16.0,
+      "shaped_score_events": 0.75,
+      "shaped_no_fire_penalty": 0.0,
+      "shaped_punch_farming_penalty": 0.0,
+      "shaped_post_reward_bonus": 0.0
+    },
+    "reward_only_smoke_result": {
+      "policy": "scripts/llm_optimization/runs/single_game/kangaroo_20260501_211358_fresh_s20260501/policy_v2.py",
+      "episodes": 4,
+      "steps": 1000,
+      "seed": 20260501,
+      "avg_return": 150.0,
+      "optimization_score": 150.0,
+      "objective_is_shaped": false
+    }
+  },
+  "interpretation": [
+    "This is a stronger next direction than another reward-only Kangaroo run because it gives CMA-ES feedback before the sparse game reward changes.",
+    "It does not make Kangaroo solved, and it does not turn shaped score into thesis performance evidence.",
+    "If the shaped run improves route behavior, it can be used as method-development evidence and later checked again under real reward-only standardized evaluation.",
+    "If it fails, that is also useful evidence: Kangaroo may require explicit staged perception subtasks or should be paused in favor of broader game coverage."
+  ],
+  "rq_mapping": {
+    "RQ1": "Creates a route-progress scaffold to test whether LeGPS can escape the first-reward plateau on Kangaroo, while preserving real-reward reporting for final success claims.",
+    "RQ2": "Directly targets a known shortcut risk by penalizing lower-platform punch farming without upward progress.",
+    "RQ4": "Keeps CMA-ES central, but changes what CMA-ES optimizes for this Kangaroo experiment, so results must be labeled as shaped-objective evidence rather than pure reward-only evidence."
+  },
+  "recommended_next_steps": [
+    "Run a fresh Kangaroo outer loop with --kangaroo-shaped-objective and inspect both shaped objective and real avg_return.",
+    "Render/debug the best shaped-run policy and check whether any score improvement comes from real route progress rather than lower-platform punch farming.",
+    "Do not promote Kangaroo unless a candidate passes standardized real-reward evaluation and behavioral inspection.",
+    "Keep shaped-objective Kangaroo evidence separate from canonical reward-only results."
+  ]
+}

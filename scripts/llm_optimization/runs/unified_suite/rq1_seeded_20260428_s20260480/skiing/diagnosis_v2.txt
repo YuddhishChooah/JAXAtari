@@ -1,0 +1,40 @@
+# Diagnosis
+
+## 1. Root cause
+The policy reacts to gate position only when the gate is already at/below the skier and steers based on a weak orientation-only lookahead. It under-corrects early and over-trusts a single "predicted_x" model, so the skier reaches each gate's y still laterally off-center, missing ~half the gates and clipping flag poles.
+
+## 2. Evidence from metrics
+- `average_gate_center_error = 22.04` px — larger than the 16 px half-gate, meaning the skier is statistically outside the gate at crossing time.
+- `gate_pass_rate = 0.47`, `missed_gates = 11/20` — primary loss source.
+- `flag_collisions = 0.67`, `tree_collisions = 0` — lateral targeting, not obstacle avoidance, is the failure mode.
+- `down_action_rate = 0.75`, `turn_rate = 0.25` — policy is mostly tucking; correcting late.
+- `average_speed_y = 1.17` is fine, so timeouts aren't the issue; it's geometric miss.
+- `average_steps = 2154` shows episodes do progress; the penalty is dominated by missed-gate terminal cost.
+
+## 3. Policy logic causing it
+- **Gate selection bias**: `_select_target_gate` picks the *closest* active gate at/below skier. Once a gate is nearly at skier_y it's too late to steer (heading changes one notch per frame). It should commit to the *upcoming* gate well before it arrives.
+- **Lookahead model is too weak / wrong units**: `predicted_x = skier_x + lookahead * signed_angle`. `signed` ranges ±90, `lookahead≈0.6`, giving ≤54 px — but this is not scaled by time-to-gate (`flag_y - skier_y`). Far gates and near gates get the same prediction, so corrections start too late.
+- **Dead zone (~5.6) plus release threshold (~1.77°)**: release fires almost immediately (any heading beyond straight), so the skier rarely builds a real lateral drift. Combined with the symmetric `signed` sign convention, drift accumulation is minimal.
+- **Aligned action defaults to DOWN unconditionally** (`tuck_bias > 0` always true), so once the error is inside dead_zone the policy stops steering and coasts — explaining the high DOWN rate and persistent ~22 px residual error.
+- **Tree avoidance shift of ±24 px** is large and binary; it can yank the target away from the gate center even when the tree is not actually between skier and gate (no check that tree is on the path to gate).
+- **No use of `prev` frame**: `flag_dy`/`tree_dy` are never computed, so time-to-arrival isn't estimated; the policy is effectively memoryless about closing rate.
+- **Counter-steer thresholds at ±45°** are too lenient; by the time orientation reaches 45° downhill speed has already collapsed locally and lateral drift is excessive.
+
+## 4. What to preserve
+- Compact param dict and pure `policy(obs_flat, params)` signature.
+- Gate-center target = `flag_x + 16`.
+- Signed-orientation conversion via `angle - 360` for left side.
+- Separation of: target selection → error → turn vs. release decision.
+- Tree-danger gating by vertical proximity.
+- DOWN as the default forward action when truly aligned.
+
+## 5. What to change next
+- **Time-scaled lookahead**: predict future skier_x using `signed_angle * k * (flag_y - skier_y)` (or a learned `lookahead` multiplied by remaining vertical distance). This makes early correction proportional to time available.
+- **Commit to the upcoming gate earlier**: prefer the gate with smallest positive `flag_y - skier_y` among active gates, even if it's still well above; drop the "below skier" requirement and instead use "ahead in y".
+- **Asymmetric thresholds**: smaller `dead_zone` when gate is far (lots of time → cheap to steer); larger when gate is imminent (avoid last-second flips). Parameterize as `dead_far`, `dead_near`.
+- **Tighter release / counter-steer**: lower extreme thresholds (e.g., counter-steer beyond ±25–30°, not ±45°) so the skier never reaches near-horizontal.
+- **Proportional turn cadence**: instead of turning every frame while error>dead, alternate turn/NOOP based on a function of error magnitude vs. current signed heading, so heading converges to a target heading rather than oscillating.
+- **Path-aware tree avoidance**: only apply avoid_shift if the tree's x lies between current skier_x and gate_cx and its y is within `tree_danger_y`; otherwise ignore. Make shift magnitude a parameter, not hardcoded 24.
+- **Use prev frame**: compute `flag_dy = curr_flag_y - prev_flag_y` to estimate frames-to-gate = `(flag_y - skier_y) / max(flag_dy, eps)`; feed that into the lookahead and dead-zone scaling.
+- **Replace unconditional DOWN-when-aligned** with: DOWN only if aligned *and* heading near straight (|signed| small); otherwise NOOP to let heading relax.
+- **Add a "heading target" parameter** so the policy aims for a specific signed angle proportional to lateral error, then uses LEFT/RIGHT only to track that target — this naturally produces short corrections rather than continuous turning.

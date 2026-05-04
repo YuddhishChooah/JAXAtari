@@ -1,0 +1,35 @@
+# Kangaroo Policy Diagnosis
+
+## 1. Root cause
+After collecting the first 200-point reward near `x≈132, y≈148`, the policy enters the ladder column at `x≈132`, climbs to near its top (`y≈132`), and then fails to dismount and select a *different* next ladder from the new platform. It loiters in that column and is killed by a falling coconut at roughly the same x. The "near_top dismount" branch and the primary ladder selector both exclude the current column, but on the new platform the selector still resolves to a target that keeps the kangaroo essentially within the same x-band, so no real horizontal traversal to the next ladder occurs.
+
+## 2. Evidence from metrics
+- `min_player_y=132`, `final_player_y=137`, `max_upward_progress=16`, `y_range=17`: the player reaches the first higher platform once and stays there.
+- `climb_rate=0.17` but `up_action_rate=0.28` and `horizontal_action_rate=0.72`: lots of horizontal sweeping after the single climb, no second climb.
+- `score_events=1`, `final_score=200`: exactly one reward, then plateau.
+- `lives_lost=1` with a known coconut hit at `x≈133, y≈129`: confirms the column-loiter death.
+- `unique_action_count=4`: very narrow behavior repertoire; dismount/next-ladder branch is effectively never producing distinct upward actions.
+
+## 3. Policy logic causing it
+- `_select_best` is called twice with identical arguments (primary and "dismount") — the second call adds nothing. There is no second-platform-aware selection.
+- `near_top` uses a fixed `< 8.0` threshold against `on_top_y` from `_on_ladder_column`, but `_on_ladder_column` requires `bottom_below ≥ pby - 4`. Once the player has actually stepped onto the upper platform, `on_column` flips to False, so the `near_top` dismount branch only fires for one or two frames and then control returns to the primary horizontal selector, which re-targets the *same* column because it is the closest reachable ladder bottom on the new platform footing.
+- The reach test `diff > -reach_up & diff < reach_tol` with `reach_up=28` is very permissive upward; from the upper platform, the just-climbed ladder's bottom is still within the asymmetric window, so it gets reselected.
+- The current-column exclusion uses `exclude_pad=on_pad≈3.2`, which is too narrow once the player drifts a few pixels off the ladder x-center on the new platform — the just-used ladder no longer counts as "in_col" and becomes the nearest target again.
+- On-ladder hazard handling issues `NOOP` when a thrown coconut is near, but `overhead_fc` sidesteps off-column only; while standing on the upper platform near the ladder top with a falling coconut overhead, the overhead branch issues `LEFT/RIGHT` once but the next frame the selector pulls back toward the same x. No persistent commitment to leave the column.
+- The child-biased fallback (`pcx + sign(child_x-pcx)*30`) only triggers when neither valid nor fallback ladders exist, which is essentially never.
+
+## 4. What to preserve
+- The first-reward route: starting horizontal traversal to `x≈132` and the RIGHTFIRE/punch interaction that yields the 200-point event.
+- The asymmetric reach window concept and the geometry-driven ladder selection structure.
+- Compact CMA-ES-tunable scalar parameters; do not balloon the parameter count.
+- Punch-in-range monkey handling and `_on_ladder_column` x-overlap test (with refinement, see below).
+
+## 5. What to change next
+- Add a true "post-climb" state inferred purely from geometry: when `player_y` has decreased materially below the starting y AND `on_column` is False, treat the just-used ladder x-band as forbidden for ladder selection for that platform. Implement this as an x-exclusion zone around `pcx` of width ~ladder_w + margin, *not* tied to current overlap.
+- Make the current-ladder exclusion window much wider (e.g., a tunable `recent_col_pad` ~ 12–20 px) so the just-climbed ladder is not reselected from the new platform.
+- Replace the duplicated `_select_best` dismount call with a genuinely different selector that requires `lty < py - k` *and* `|lcx - pcx| > recent_col_pad`, forcing a real horizontal commitment.
+- Add a hysteretic horizontal-commit: once a next-ladder target is chosen, do not re-pick a closer one unless it is meaningfully better (cost margin parameter). This stops oscillation near the column.
+- Tighten `_on_ladder_column` to require an x-overlap *fraction* (e.g., player center within `[lx + k, lx + lw - k]`) rather than a 1-pixel touch, as flagged in insight 12. Use a tunable center-band parameter.
+- Strengthen overhead/thrown coconut response on the upper platform: when on a platform (not column) with overhead coconut, commit to a directional escape for several frames by biasing horizontal action away from `fc_dx` regardless of ladder target — this prevents the column-loiter death pattern observed at `x≈133, y≈129`.
+- Use `player_orientation` (obs_flat[7]) when selecting punch direction instead of only `monkey_sign_dx`, to avoid misfiring punches that waste frames near the column.
+- Keep changes additive and gated so the first 200-point event path is unchanged at the start state (per insight 11); only the post-climb branch should differ.

@@ -1,0 +1,35 @@
+# Kangaroo Policy Diagnosis
+
+## 1. Root cause
+The policy completes the first reward event (RIGHTFIRE punch around x≈132, y≈148) and partially climbs the first ladder, but it never executes a clean **top-of-ladder dismount onto the next platform** and never re-selects a **next reachable ladder from the new platform**. It stalls in the ladder column at y≈132 where a falling coconut kills it. The `near_top` dismount branch is gated by `on_column`, which itself requires tight x-alignment plus vertical span containment — at the very top of the ladder the player's `p_by` exits `lby + 6.0`, so `on_column` becomes false and the dismount branch never fires; control falls through to horizontal traversal back toward the same ladder.
+
+## 2. Evidence from metrics
+- `min_player_y = 132`, `max_upward_progress = 16`, `net_upward_progress ≈ 13`: reached only the first higher platform.
+- `climb_rate = 0.137` but `up_action_rate = 0.34`: lots of UP attempts, little actual climbing — repeated re-acquisition of the ladder.
+- `score_events = 1`, `final_score = 200`: the single punch reward, no follow-up scoring.
+- `lives_lost = 1` with final position pinned near the ladder column — matches the known coconut-at-x≈133,y≈129 death trace.
+- `horizontal_action_rate = 0.66` and `x_range ≈ 105`: lots of left/right oscillation, consistent with traversal toward a ladder it cannot mount cleanly or cannot leave cleanly.
+- `unique_action_count = 4`: dismount actions (RIGHT/LEFT without FIRE at top) and next-ladder traversal aren't differentiating.
+
+## 3. Policy logic causing it
+- `near_top = on_column & (py < lty + top_dis)` — dismount requires `on_column`, but `on_column` requires `in_span` which fails as the player crests the ladder top. Dismount window collapses to ~0 frames.
+- `_select_ladder` from `p_by` keeps re-selecting the **same** just-climbed ladder once the player is on the new platform, because the next ladder's `lby` is far from the new `p_by` and the test `reach_err < reach_tol + 12` may exclude it, or it ties with the old one. The agent then walks back toward the same ladder column.
+- No coconut/falling-coconut avoidance is active while `on_column` is true (`dodge_*` is gated by `~on_column`), so a falling coconut hitting the ladder column kills the climber.
+- `_select_next_ladder` is called from `lty + 4.0` (next-platform y guess), but its result is only used for **dismount direction** — the main `lcx`/traversal still points at the previous ladder until the player is physically off it.
+- The `in_span` test using a fixed 6-pixel slack is brittle; near the very top, `py < lty - 6` flips off-column prematurely.
+
+## 4. What to preserve
+- The entire first-route punch path: monkey detection (`_nearest_monkey`), `punch_dx` threshold, and the `punch_right`/`punch_left` branches at top priority producing RIGHTFIRE/LEFTFIRE. This delivers the stable 200.
+- `_select_ladder` from `p_by` for **initial** ladder choice (correctly picks x≈132 ladder, not x≈20).
+- Tuned parameters as starting point; do not rename or remove them.
+- Priority ordering of punch > climb-related > traversal.
+- Do NOT add `& ~on_column` to `punch_in_range`.
+
+## 5. What to change next (structural, minimal)
+- **Decouple dismount from `on_column`.** Define a separate `at_ladder_top` predicate: `lvalid & (abs_align < climb_hold) & (py < lty + top_dismount) & (py > lty - top_dismount)` (a band around the ladder top, not requiring `in_span`). Let dismount fire when crossing the top regardless of `in_span` flickering.
+- **Add a "on new platform" state inference.** When `p_by` is close to (just-climbed) `lty + small_h` (i.e., player landed on the platform whose top is near the previous ladder top), force ladder selection to **exclude** the just-used ladder column by adding a penalty for ladders whose `lcx` is within `climb_hold` of current `p_cx` AND whose `lby` is below current `p_by`. This pushes the search toward the genuinely-next ladder.
+- **Two-stage ladder search.** Always compute both `_select_ladder` (current-platform reachable) and a "look-ahead" ladder above; once `at_ladder_top` is true, switch the traversal target to the look-ahead `lcx` for several frames (a short post-dismount commitment counter would need state — instead, gate on `py < lty_prev + small`).
+- **Hazard awareness while climbing.** Allow falling-coconut detection to trigger a **brief horizontal step (LEFT/RIGHT off the ladder)** when `falling_coconut_x` is within `danger_r` of `p_cx` and `falling_coconut_y < py`. This breaks the deterministic death at x≈133,y≈129.
+- **Tighten `in_span` slack asymmetrically:** allow `py` to go above `lty` by a larger margin (e.g., `lty - top_dismount`) so the climb action persists until the dismount band rather than dropping out early.
+- **Add an alignment-band parameter for "on ladder column"** distinct from `climb_hold` so the climb predicate uses an overlap-fraction style test (per Insight 12) rather than the same threshold used for dismount commitment.
+- Keep all changes parametric (reuse existing 6 params or add at most 1–2 new ones like `next_ladder_skip_dx`); do not hard-code level-1 coordinates.

@@ -1,0 +1,108 @@
+{
+  "milestone_id": "2026-04-29_kangaroo_smoke2_horizontal_failure",
+  "created_at": "2026-04-29",
+  "project": {
+    "method_name": "LeGPS",
+    "method_expansion": "Language Guided Policy Search"
+  },
+  "why_this_milestone_exists": {
+    "purpose": "Record the second Kangaroo smoke run and the new failure mode discovered after adding Kangaroo logger feedback.",
+    "trigger": "The second short Kangaroo run completed with two LLM iterations and saved LLM input/output artifacts, but still scored 0.0."
+  },
+  "run": {
+    "run_id": "kangaroo_smoke2_20260429_154424",
+    "suite_dir": "scripts/llm_optimization/runs/unified_suite/kangaroo_smoke2_20260429_154424",
+    "game": "kangaroo",
+    "status": "completed",
+    "elapsed_seconds": 230.23678588867188,
+    "seed": 20260480,
+    "protocol": {
+      "provider": "anthropic",
+      "model": "claude-opus-4-7",
+      "max_iters": 2,
+      "num_envs": 4,
+      "num_episodes": 4,
+      "max_steps": 1000,
+      "search_max_steps": 1000,
+      "optimizer": "cma-es",
+      "param_samples": 4,
+      "cma_generations": 1
+    }
+  },
+  "artifacts": {
+    "manifest": "scripts/llm_optimization/runs/unified_suite/kangaroo_smoke2_20260429_154424/manifest.json",
+    "results": "scripts/llm_optimization/runs/unified_suite/kangaroo_smoke2_20260429_154424/kangaroo/optimization_results.json",
+    "policy_v1": "scripts/llm_optimization/runs/unified_suite/kangaroo_smoke2_20260429_154424/kangaroo/policy_v1.py",
+    "policy_v2": "scripts/llm_optimization/runs/unified_suite/kangaroo_smoke2_20260429_154424/kangaroo/policy_v2.py",
+    "diagnosis_v2": "scripts/llm_optimization/runs/unified_suite/kangaroo_smoke2_20260429_154424/kangaroo/diagnosis_v2.txt",
+    "llm_io_dir": "scripts/llm_optimization/runs/unified_suite/kangaroo_smoke2_20260429_154424/kangaroo/llm_io",
+    "policy_v2_gif": "scripts/llm_optimization/analysis/videos/kangaroo_smoke2_20260429_154424_policy_v2.gif"
+  },
+  "result": {
+    "best_score": 0.0,
+    "best_policy": "policy_v1.py",
+    "policy_v1_summary": {
+      "avg_return": 0.0,
+      "score_events": 0.0,
+      "lives_lost": 1.0,
+      "max_upward_progress": 16.0,
+      "x_range": 0.0,
+      "up_action_rate": 0.9825436408977556,
+      "horizontal_action_rate": 0.017456359102244388,
+      "unique_action_count": 2.0
+    },
+    "policy_v2_summary": {
+      "avg_return": 0.0,
+      "score_events": 0.0,
+      "lives_lost": 1.0,
+      "max_upward_progress": 0.0,
+      "x_range": 5.0,
+      "up_action_rate": 0.0,
+      "horizontal_action_rate": 1.0,
+      "unique_action_count": 2.0,
+      "horizontal_only_failure": 1.0
+    }
+  },
+  "interpretation": [
+    "The second run shows that the LLM understood the UP-only diagnosis but overcorrected into a horizontal-only policy.",
+    "Policy v1 was still mostly UP and scored 0.0. Policy v2 alternated LEFT/RIGHT near the start, never climbed, scored 0.0, and lost one life.",
+    "Kangaroo remains unsolved. The pipeline, LLM audit logging, diagnosis prompt, policy rewrite path, and logger metrics are working, but the game-specific route-control context is still insufficient."
+  ],
+  "code_changes_after_diagnosis": [
+    {
+      "path": "scripts/llm_optimization/core/logger.py",
+      "change": "Added horizontal_only_failure to KangarooLogger."
+    },
+    {
+      "path": "scripts/llm_optimization/llm_optimization_loop.py",
+      "change": "Added prompt and feedback warnings against horizontal-only Kangaroo dithering."
+    },
+    {
+      "path": "scripts/llm_optimization/experiments/kangaroo/render_policy_video.py",
+      "change": "Added support for rendering a specific optimization history entry, enabling policy_v2 GIF output."
+    }
+  ],
+  "rq_relevance": {
+    "RQ1": "Negative evidence for Kangaroo so far: two smoke attempts completed but no successful policy yet.",
+    "RQ2": "The failure classification is useful: score alone hid whether failure was UP-only or horizontal-only.",
+    "RQ3": "No adaptation evidence yet.",
+    "RQ4": "No optimizer ablation evidence yet."
+  },
+  "next_steps": [
+    {
+      "priority": 1,
+      "step": "Do not launch a full 10000-step Kangaroo run yet.",
+      "why": "Both short attempts score 0.0 and expose basic route-control failures."
+    },
+    {
+      "priority": 2,
+      "step": "Improve Kangaroo context around ladder reachability: when to climb, when to traverse, and how to target the next ladder after reaching a platform.",
+      "why": "The failures are not from syntax or API plumbing; they are from insufficient route-mode logic."
+    },
+    {
+      "priority": 3,
+      "step": "Run a third short smoke only after the prompt explicitly describes climb-band entry, platform traversal, and anti-dither conditions.",
+      "why": "This keeps API spending focused on fixing the diagnosed failure modes."
+    }
+  ]
+}

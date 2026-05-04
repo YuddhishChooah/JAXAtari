@@ -1,0 +1,31 @@
+# Diagnosis
+
+## 1. Root cause
+The "lead" term is a dead expression: `_target_x` returns `ball_x + lead * ball_x * 0.0`, which collapses to just `ball_x`. The policy is a pure proportional tracker on the ball's current x position, with no predictive component and no use of ball velocity. `lead_gain`, `urgency_y`, and `urgency_scale` are all effectively unused parameters that CMA-ES cannot exploit — only `dead_zone` and `paddle_offset` actually influence behavior.
+
+## 2. Evidence from metrics
+- `avg_ball_tracking_error = 2.6176` ≈ `dead_zone = 2.63`: the controller perfectly tracks the ball's *current* position to within its dead zone, confirming reactive (not predictive) behavior.
+- `max_ball_tracking_error = 76.3` indicates large transient lag — consistent with chasing a moving ball without lookahead.
+- `block_clear_percentage = 0.38` with only 1 life lost: agent stalls before clearing the board. Episode length 4240 frames for 41 blocks → it's surviving but failing to reach corner/angled blocks that require *off-center* paddle contact (which a pure-center tracker never produces).
+- Best-found `lead_gain = -0.27` is negative and nontrivial — CMA-ES is *trying* to use it but it's multiplied by 0, so the value is meaningless noise.
+- `avg_paddle_movement = 1.65/frame` and `total = 7128` show heavy continuous motion: no velocity damping, paddle constantly micro-corrects.
+
+## 3. Policy logic causing it
+- `_target_x` has the `* 0.0` bug nullifying all lead/urgency parameters.
+- No ball velocity estimate is available because the policy is stateless and the obs gives only position; without finite differencing across frames (not allowed) the policy cannot lead, *unless* it uses ball orientation/state fields (indices 14, 15) which it currently ignores.
+- The `paddle_offset` parameter both defines paddle center *and* implicitly biases the contact point; CMA-ES drove it to 7.9 (≈ true center 8), so it cannot also serve as a "hit-with-edge" angle controller.
+- FIRE is only issued when `ball_active < 0.5`. If `ball_active` stays 1 after a life loss, the agent may fail to relaunch promptly — but with only 1 life lost this is minor here.
+
+## 4. What to preserve
+- The compact 3–8 float parameterization and `jnp.where` branching.
+- The `dead_zone` mechanism (it correctly suppresses the oscillation that would otherwise dominate).
+- The active-ball gated FIRE fallback.
+- `paddle_offset` near 8 as the geometric paddle center.
+
+## 5. What to change next
+- **Fix the dead lead term.** Make `target = ball_x + lead_gain * f(ball_y, ball_orientation)` actually contribute. Use `ball.orientation` (index 15) and/or `ball.state` (14) as a sign/direction proxy so the paddle leads in the ball's travel direction instead of multiplying by zero.
+- **Use ball_y as an urgency gate, not a magnitude.** When ball_y is high (far from paddle), aim slightly off-center to create angled returns toward unbroken regions; when low and descending, switch to pure interception. This addresses the 38% clear ceiling.
+- **Separate "aim offset" from "paddle_offset".** Introduce a small `aim_bias` parameter so CMA-ES can choose to hit with paddle edge to break stuck top-row bricks, without corrupting the geometric center used for tracking.
+- **Add a tiny hysteresis / wider dead_zone when |err| was already small last decision** — but since state is disallowed, instead make `dead_zone` scale with ball_y proximity (larger dead zone when ball is far → less jitter, smaller when close → precise interception). This will cut the 1.65 px/frame churn.
+- **Keep parameter count ≤6**: `dead_zone`, `paddle_offset`, `lead_gain`, `aim_bias`, `urgency_y`, plus optionally `far_dead_zone_mult`. Drop `urgency_scale` (redundant with `lead_gain`).
+- Avoid the prior failed rewrite direction (large structural overhaul that scored 30.8); the fix here is a *minimal* repair of the lead expression plus one new aim term.

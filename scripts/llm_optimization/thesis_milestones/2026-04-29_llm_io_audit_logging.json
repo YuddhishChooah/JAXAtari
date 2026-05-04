@@ -1,0 +1,44 @@
+{
+  "milestone_id": "2026-04-29_llm_io_audit_logging",
+  "created_at": "2026-04-29",
+  "project": {
+    "method_name": "LeGPS",
+    "method_expansion": "Language Guided Policy Search"
+  },
+  "why_this_milestone_exists": {
+    "purpose": "Record that future LeGPS runs now save exact LLM input/output exchanges for auditability.",
+    "trigger": "Quentin noted that local seeding is acceptable, but the project should at least save LLM inputs and outputs to support the claim that generated policies were not fabricated."
+  },
+  "change_made": {
+    "file": "scripts/llm_optimization/llm_optimization_loop.py",
+    "details": "Each LLM call in the active outer loop now writes an audit JSON file under <game_run>/llm_io/. The JSON includes provider, model, temperature, max token setting, game, iteration, exchange kind, system prompt, user prompt, raw response, and extracted output."
+  },
+  "artifact_pattern": {
+    "directory": "scripts/llm_optimization/runs/.../<game>/llm_io/",
+    "examples": [
+      "v01_initial_policy.json",
+      "v02_diagnosis.json",
+      "v02_policy_rewrite.json"
+    ]
+  },
+  "security_note": "API keys are not included in these audit files. Existing result snapshots continue to redact api_key as <redacted>.",
+  "scope_note": "This change applies to future runs. Earlier completed runs still preserve generated policy files, diagnosis files, logs, checkpoints, and result summaries, but they do not contain the full original LLM prompts and raw policy responses.",
+  "rq_relevance": {
+    "RQ1": "Improves evidential traceability for future seeded reruns by preserving exact model inputs and outputs.",
+    "RQ2": "Will help inspect whether policies were prompted toward valid task behavior or brittle shortcuts.",
+    "RQ3": "Will help compare adaptation prompts and responses when task-variation experiments are implemented.",
+    "RQ4": "Will help document prompt equivalence between full LeGPS and optimizer=none ablations."
+  },
+  "next_steps": [
+    {
+      "priority": 1,
+      "step": "Use the new llm_io audit artifacts in the next seeded RQ1 suite.",
+      "why": "The next run should be more defensible because every LLM prompt and response will be saved alongside policies and scores."
+    },
+    {
+      "priority": 2,
+      "step": "Mention in the thesis methodology that LLM provider-level seed control is unavailable, so reproducibility is supported by local seeds plus saved LLM input/output artifacts.",
+      "why": "This accurately reflects the limits of the Anthropic API while preserving auditability."
+    }
+  ]
+}

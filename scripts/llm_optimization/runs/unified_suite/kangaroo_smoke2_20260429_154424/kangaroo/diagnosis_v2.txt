@@ -1,0 +1,36 @@
+## 1. Root cause
+The policy locks onto the starting ladder, climbs until the ladder ends, and then has no horizontal-traversal behavior to reach a *different* ladder. Because the nearest-ladder cost function always picks the ladder the agent is already on (dx≈0), the agent climbs in place, never crosses platforms, and never triggers any score event.
+
+## 2. Evidence from metrics
+- `up_action_rate = 0.98`, `horizontal_action_rate = 0.019`, `unique_action_count = 2` → essentially UP-only, the documented failure mode.
+- `climb_rate = 0` while `up_action_rate ≈ 1` → the agent is pressing UP off-ladder (on top of platform) with no effect.
+- `max_upward_progress = 16`, `y_range = 17`, `x_range = 1` → climbed one ladder segment, then froze.
+- `score_events = 0`, `reward_total = 0`, `lives_lost = 1` → no progress, eventually died standing still.
+- `crash_rate = 0.0025` non-zero confirms a hazard hit while idle.
+
+## 3. Policy logic causing it
+- `_nearest_active_ladder` minimizes `|dx| + w_y·max(0, py−ly)`. Once the agent is on a ladder, dx≈0 and the *same* ladder remains optimal forever, even after the agent has reached its top. There is no exclusion of "ladder I just finished" or "ladder whose top is above me".
+- The cost uses `max(0, py−ly)` measured against ladder *origin* y, not ladder top/bottom extents. Ladders below or at the player can score 0 cost and be selected, defeating upward intent.
+- When `aligned & have_ladder`, action becomes UP unconditionally — even when the player is already at/above the ladder's top (off-ladder on a platform). This produces the observed UP-spam with no climbing state.
+- No platform-traversal mode: after climbing, there is no rule like "walk toward the next ladder whose bottom y ≈ my current platform y".
+- Child x is never used to bias horizontal direction; `target_y_weight` only affects ladder selection, not routing.
+- Danger logic dodges left/right but the agent isn't moving anyway, so dodging rarely fires; meanwhile standing on a ladder makes coconuts unavoidable.
+- FIRE rate is 0 because punch only triggers when monkey is within `punch_range` *and* horizontally close — never reached due to no traversal.
+
+## 4. What to preserve
+- Compact param dict and CMA-ES-tunable scalar thresholds.
+- Object-centric feature parsing (ladders/monkeys/coconuts/child slices).
+- Two-mode structure: ladder-seek vs hazard-response, with FIRE for monkeys.
+- Use of ladder center x (`lx + w/2`) for alignment.
+- `measure_main` returning summed reward.
+
+## 5. What to change next
+- **Distinguish climb vs traverse mode** using player y vs nearest platform/ladder extents. When player y is at/above a ladder's top (py ≤ ly), that ladder is "done" — exclude it from selection (add a large cost when `py < ly - h_tol`).
+- **Use ladder vertical extents**: prefer ladders whose bottom (`ly + lh`) is near current `py` (reachable from this platform) and whose top is above current `py`. Encode reachability with a tunable `reach_tol` parameter.
+- **Add a horizontal traversal action** when not on/under a usable ladder: move toward the x of the best *next* ladder (one above current platform) using child_x as a tiebreaker direction.
+- **Gate UP on actually being on a ladder**: require both x-alignment AND y within ladder vertical span before issuing UP; otherwise issue LEFT/RIGHT. This directly prevents the UP-spam failure.
+- **Bias ladder choice toward child_x**: add `w_child · |lx − child_x|` term so the agent picks ladders that route it toward the rescue target.
+- **Anti-stall term**: if `|dx_l| < align_tol` and not in climbing band, force horizontal step (don't NOOP), since current code emits NOOP when aligned but unable to climb.
+- **Hazard priority**: include falling coconut y-velocity proxy (it's above and aligned in x) → step sideways rather than continue climbing exposed.
+- **Punch trigger**: also fire when monkey is within `punch_range` regardless of being mid-traverse, and orient via `player_orientation` (obs_flat[7]) rather than only enemy sign.
+- Keep parameter count small (~8–10 scalars) so CMA-ES still converges; the new params (`reach_tol`, `w_child`, `ladder_top_margin`) are all scalar thresholds.

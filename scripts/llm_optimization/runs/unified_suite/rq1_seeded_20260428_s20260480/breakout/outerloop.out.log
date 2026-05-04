@@ -1,0 +1,189 @@
+
+============================================================
+Game: BREAKOUT
+Optimizer: cma-es
+Search Horizon: 10000 steps
+Evaluation Horizon: 10000 steps
+Output: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/breakout
+============================================================
+
+Logger initialized for breakout
+============================================================
+LLM Policy Optimization Loop for JAXAtari BREAKOUT
+============================================================
+
+============================================================
+Outer-loop step 1/5 (policy v1)
+============================================================
+Requesting initial policy from LLM...
+Saved policy to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/breakout/policy_v1.py
+Successfully loaded policy module
+
+Searching for optimal parameters (16 samples)...
+  CMA-ES: n=5 params, Î»=16 population, 5 generations
+    Gen 1: best=313.00, mean=235.73, Ïƒ=0.286, overall_best=313.00
+    Gen 2: best=334.00, mean=207.91, Ïƒ=0.271, overall_best=334.00
+    Gen 3: best=315.00, mean=212.11, Ïƒ=0.272, overall_best=334.00
+    Gen 4: best=336.25, mean=251.85, Ïƒ=0.252, overall_best=336.25
+    Gen 5: best=392.00, mean=206.05, Ïƒ=0.266, overall_best=392.00
+
+Results for iteration 1:
+  Search Return (10000 steps): 392.00
+  Average Return: 280.19
+  Player Score: 280.19
+  Enemy Score: 0.00
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 14 metrics
+    blocks_broken: 41.000
+    blocks_remaining: 67.000
+    block_clear_percentage: 0.380
+    avg_ball_tracking_error: 2.618
+    max_ball_tracking_error: 76.333
+  >>> New best overall!
+Checkpoint saved to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/breakout/optimization_checkpoint.json
+
+============================================================
+Outer-loop step 2/5 (policy v2)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/breakout/diagnosis_v2.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/breakout/policy_v2.py
+Successfully loaded policy module
+
+Searching for optimal parameters (16 samples)...
+  CMA-ES will use policy defaults because resumed params are incompatible (missing=['center_bias', 'dead_zone_base', 'dead_zone_urgency'], extra=['dead_zone', 'urgency_scale']).
+  CMA-ES: n=6 params, Î»=16 population, 5 generations
+    Gen 1: best=84.12, mean=34.42, Ïƒ=0.304, overall_best=84.12
+    Gen 2: best=77.12, mean=31.54, Ïƒ=0.421, overall_best=84.12
+    Gen 3: best=98.50, mean=39.10, Ïƒ=0.553, overall_best=98.50
+    Gen 4: best=170.25, mean=61.48, Ïƒ=0.616, overall_best=170.25
+    Gen 5: best=173.38, mean=72.49, Ïƒ=0.731, overall_best=173.38
+
+Results for iteration 2:
+  Search Return (10000 steps): 173.38
+  Average Return: 68.31
+  Player Score: 68.31
+  Enemy Score: 0.00
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 14 metrics
+    blocks_broken: 22.333
+    blocks_remaining: 85.667
+    block_clear_percentage: 0.207
+    avg_ball_tracking_error: 4.235
+    max_ball_tracking_error: 71.667
+Checkpoint saved to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/breakout/optimization_checkpoint.json
+
+============================================================
+Outer-loop step 3/5 (policy v3)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/breakout/diagnosis_v3.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/breakout/policy_v3.py
+Successfully loaded policy module
+
+Searching for optimal parameters (16 samples)...
+  CMA-ES will use policy defaults because resumed params are incompatible (missing=['fire_y'], extra=['urgency_scale']).
+  CMA-ES: n=5 params, Î»=16 population, 5 generations
+    Gen 1: best=73.62, mean=29.53, Ïƒ=0.266, overall_best=73.62
+    Gen 2: best=65.25, mean=24.87, Ïƒ=0.286, overall_best=73.62
+    Gen 3: best=85.88, mean=26.23, Ïƒ=0.289, overall_best=85.88
+    Gen 4: best=148.75, mean=37.98, Ïƒ=0.281, overall_best=148.75
+    Gen 5: best=96.50, mean=33.92, Ïƒ=0.229, overall_best=148.75
+
+Results for iteration 3:
+  Search Return (10000 steps): 148.75
+  Average Return: 30.81
+  Player Score: 30.81
+  Enemy Score: 0.00
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 14 metrics
+    blocks_broken: 42.000
+    blocks_remaining: 66.000
+    block_clear_percentage: 0.389
+    avg_ball_tracking_error: 6.578
+    max_ball_tracking_error: 61.000
+Checkpoint saved to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/breakout/optimization_checkpoint.json
+
+============================================================
+Outer-loop step 4/5 (policy v4)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/breakout/diagnosis_v4.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/breakout/policy_v4.py
+Successfully loaded policy module
+
+Searching for optimal parameters (16 samples)...
+  CMA-ES will use policy defaults because resumed params are incompatible (missing=['aim_bias', 'far_dz_mult'], extra=['urgency_scale']).
+  CMA-ES: n=6 params, Î»=16 population, 5 generations
+    Gen 1: best=281.62, mean=156.56, Ïƒ=0.268, overall_best=281.62
+    Gen 2: best=193.75, mean=131.12, Ïƒ=0.244, overall_best=281.62
+    Gen 3: best=190.50, mean=130.57, Ïƒ=0.220, overall_best=281.62
+    Gen 4: best=260.62, mean=144.09, Ïƒ=0.235, overall_best=281.62
+    Gen 5: best=260.50, mean=143.13, Ïƒ=0.240, overall_best=281.62
+
+Results for iteration 4:
+  Search Return (10000 steps): 281.62
+  Average Return: 167.25
+  Player Score: 167.25
+  Enemy Score: 0.00
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 14 metrics
+    blocks_broken: 27.000
+    blocks_remaining: 81.000
+    block_clear_percentage: 0.250
+    avg_ball_tracking_error: 4.674
+    max_ball_tracking_error: 85.333
+Checkpoint saved to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/breakout/optimization_checkpoint.json
+
+============================================================
+Outer-loop step 5/5 (policy v5)
+============================================================
+Requesting policy diagnosis from LLM...
+Saved policy diagnosis to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/breakout/diagnosis_v5.txt
+Requesting improved policy from clean diagnostic rewrite prompt...
+Saved policy to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/breakout/policy_v5.py
+Successfully loaded policy module
+
+Searching for optimal parameters (16 samples)...
+  CMA-ES will use policy defaults because resumed params are incompatible (missing=['tight_factor'], extra=['urgency_scale']).
+  CMA-ES: n=5 params, Î»=16 population, 5 generations
+    Gen 1: best=210.88, mean=71.21, Ïƒ=0.307, overall_best=210.88
+    Gen 2: best=302.00, mean=131.18, Ïƒ=0.391, overall_best=302.00
+    Gen 3: best=389.12, mean=193.18, Ïƒ=0.432, overall_best=389.12
+    Gen 4: best=329.38, mean=193.02, Ïƒ=0.442, overall_best=389.12
+    Gen 5: best=298.25, mean=218.80, Ïƒ=0.559, overall_best=389.12
+
+Results for iteration 5:
+  Search Return (10000 steps): 389.12
+  Average Return: 293.06
+  Player Score: 293.06
+  Enemy Score: 0.00
+  Win Rate: 100.00%
+
+Running detailed evaluation with the unified logger...
+  Logger metrics collected: 14 metrics
+    blocks_broken: 91.000
+    blocks_remaining: 17.000
+    block_clear_percentage: 0.843
+    avg_ball_tracking_error: 3.189
+    max_ball_tracking_error: 71.667
+  >>> New best overall!
+Checkpoint saved to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/breakout/optimization_checkpoint.json
+
+============================================================
+Optimization Complete!
+============================================================
+Best Score Achieved: 293.06
+Total Iterations: 5
+Results saved to: scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/breakout/optimization_results.json

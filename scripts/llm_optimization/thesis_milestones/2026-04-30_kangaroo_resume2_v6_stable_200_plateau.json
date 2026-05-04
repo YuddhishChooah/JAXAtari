@@ -1,0 +1,154 @@
+{
+  "milestone_id": "2026-04-30_kangaroo_resume2_v6_stable_200_plateau",
+  "created_at": "2026-04-30",
+  "project": {
+    "method_name": "LeGPS",
+    "method_expansion": "Language Guided Policy Search"
+  },
+  "why_this_milestone_exists": {
+    "purpose": "Record the second Kangaroo continuation run, which stabilized the 200-point behavior but did not exceed it.",
+    "trigger": "A continuation run from the policy_v3 first-reward baseline completed and produced policy_v6 as the saved best."
+  },
+  "run": {
+    "run_id": "kangaroo_resume2_20260430_141111",
+    "source_run": "kangaroo_resume_20260430_113346",
+    "run_dir": "scripts/llm_optimization/runs/single_game/kangaroo_resume2_20260430_141111",
+    "game": "kangaroo",
+    "status": "completed",
+    "seed": 20260480,
+    "protocol": {
+      "provider": "anthropic",
+      "model": "claude-opus-4-7",
+      "resume_from_results": true,
+      "max_iters": 2,
+      "num_envs": 8,
+      "num_episodes": 8,
+      "max_steps": 4000,
+      "search_max_steps": 2000,
+      "optimizer": "cma-es",
+      "param_samples": 6,
+      "cma_generations": 2
+    }
+  },
+  "artifacts": {
+    "results": "scripts/llm_optimization/runs/single_game/kangaroo_resume2_20260430_141111/optimization_results.json",
+    "best_policy": "scripts/llm_optimization/runs/single_game/kangaroo_resume2_20260430_141111/policy_v6.py",
+    "policy_v5": "scripts/llm_optimization/runs/single_game/kangaroo_resume2_20260430_141111/policy_v5.py",
+    "diagnosis_v5": "scripts/llm_optimization/runs/single_game/kangaroo_resume2_20260430_141111/diagnosis_v5.txt",
+    "diagnosis_v6": "scripts/llm_optimization/runs/single_game/kangaroo_resume2_20260430_141111/diagnosis_v6.txt",
+    "llm_io_dir": "scripts/llm_optimization/runs/single_game/kangaroo_resume2_20260430_141111/llm_io",
+    "policy_v6_gif": "scripts/llm_optimization/analysis/videos/kangaroo_resume2_20260430_141111_policy_v6.gif",
+    "followup_eval": "scripts/llm_optimization/analysis/evaluations/kangaroo_resume2_20260430_141111_followup_eval.json"
+  },
+  "result": {
+    "best_score": 200.0,
+    "best_policy": "policy_v6.py",
+    "policy_v5_run_eval": {
+      "avg_return": 150.0,
+      "search_avg_return": 200.0
+    },
+    "policy_v6_run_eval": {
+      "num_episodes": 8,
+      "max_steps": 4000,
+      "avg_return": 200.0,
+      "total_rewards": [
+        200.0,
+        200.0,
+        200.0,
+        200.0,
+        200.0,
+        200.0,
+        200.0,
+        200.0
+      ],
+      "score_events": 1.0,
+      "lives_lost": 1.0,
+      "max_upward_progress": 16.0,
+      "x_range": 107.0,
+      "up_action_rate": 0.26495072346768805,
+      "horizontal_action_rate": 0.7350492765323119
+    },
+    "followup_10000_step_eval": {
+      "num_episodes": 16,
+      "max_steps": 10000,
+      "avg_return": 200.0,
+      "nonzero_episodes": 16,
+      "min_episode_return": 200.0,
+      "max_episode_return": 200.0,
+      "logged_avg_reward": 200.0,
+      "logged_max_upward_progress": 16.0,
+      "logged_x_range": 107.25
+    },
+    "rendered_seed_summary": {
+      "steps": 816,
+      "total_reward": 200.0,
+      "reward_events": 1,
+      "final_score": 200,
+      "final_lives": 2,
+      "x_range": [
+        23.0,
+        132.0
+      ],
+      "y_range": [
+        132.0,
+        149.0
+      ]
+    },
+    "single_rollout_trace": {
+      "reward_event": {
+        "step": 613,
+        "action": "11:RIGHTFIRE",
+        "reward": 200.0,
+        "x": 132.0,
+        "y": 148.0,
+        "score": 200,
+        "lives": 3
+      },
+      "life_loss": {
+        "step": 815,
+        "action": "4:LEFT",
+        "reward": 0.0,
+        "x": 132.0,
+        "y": 132.0,
+        "score": 200,
+        "lives": 2,
+        "terminated": true
+      }
+    }
+  },
+  "interpretation": [
+    "policy_v6 is more stable than policy_v3 for the current first-reward behavior: the 16-episode, 10000-step follow-up scored exactly 200 in every episode.",
+    "The run did not break the 200-point plateau. Logger metrics and the rendered rollout still show one score event, one life lost, and limited upward progress.",
+    "The single-rollout trace shows the reward event is a RIGHTFIRE action at x=132, y=148, followed later by a life loss at y=132. This should not be interpreted as reaching Joey or completing the level.",
+    "Kangaroo remains exploratory. It now has a stable first-reward baseline, but not a successful full route policy."
+  ],
+  "code_changes_after_analysis": [
+    {
+      "path": "scripts/llm_optimization/llm_optimization_loop.py",
+      "change": "Clarified Kangaroo feedback so a stable 200-point event is treated as a plateau, not as solved route progress."
+    }
+  ],
+  "rq_relevance": {
+    "RQ1": "Positive but incomplete Kangaroo evidence: LeGPS can reliably produce one 200-point event, but has not solved the environment.",
+    "RQ2": "The trace and GIF prevent overclaiming: the score comes from a single event and the policy still dies before multi-platform progress.",
+    "RQ3": "No adaptation evidence yet.",
+    "RQ4": "No optimizer ablation evidence yet."
+  },
+  "next_steps": [
+    {
+      "priority": 1,
+      "step": "Do not launch another same-style paid Kangaroo continuation immediately.",
+      "why": "Two continuation attempts stabilized the 200-point plateau but did not exceed it."
+    },
+    {
+      "priority": 2,
+      "step": "Add or run more detailed route tracing around steps 600-820 to identify the missing post-reward transition.",
+      "why": "The bottleneck is now specific: after the 200-point RIGHTFIRE event, the policy climbs or moves to y≈132 and then loses a life without reaching a second reward."
+    },
+    {
+      "priority": 3,
+      "step": "Only resume paid LLM optimization after the second-route failure is converted into concrete prompt or logger feedback.",
+      "why": "The next LLM call should target the post-200 transition, not rediscover the first reward."
+    }
+  ]
+}

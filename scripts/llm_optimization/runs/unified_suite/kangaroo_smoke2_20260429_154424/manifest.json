@@ -1,0 +1,40 @@
+{
+  "run_id": "kangaroo_smoke2_20260429_154424",
+  "suite_dir": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/unified_suite/kangaroo_smoke2_20260429_154424",
+  "created_at": "2026-04-29 15:44:29",
+  "games": [
+    "kangaroo"
+  ],
+  "protocol": {
+    "provider": "anthropic",
+    "model": "claude-opus-4-7",
+    "temperature": null,
+    "max_iters": 2,
+    "target_score": 1000000000.0,
+    "num_envs": 4,
+    "num_episodes": 4,
+    "max_steps": 1000,
+    "search_max_steps": 1000,
+    "optimizer": "cma-es",
+    "param_samples": 4,
+    "cma_generations": 1,
+    "seed": 20260480,
+    "resume_from_results": false,
+    "stop_on_strong_best": false,
+    "completion_grace_seconds": 60
+  },
+  "results": {
+    "kangaroo": {
+      "status": "completed",
+      "returncode": 0,
+      "elapsed_seconds": 230.23678588867188,
+      "seed": 20260480,
+      "output_dir": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/unified_suite/kangaroo_smoke2_20260429_154424/kangaroo",
+      "stdout_log": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/unified_suite/kangaroo_smoke2_20260429_154424/kangaroo/outerloop.out.log",
+      "stderr_log": "/Users/adarshchooah/Documents/thesis/JAXAtari/scripts/llm_optimization/runs/unified_suite/kangaroo_smoke2_20260429_154424/kangaroo/outerloop.err.log",
+      "best_score": 0.0,
+      "best_policy_path": "scripts/llm_optimization/runs/unified_suite/kangaroo_smoke2_20260429_154424/kangaroo/policy_v1.py",
+      "terminated_after_results": false
+    }
+  }
+}

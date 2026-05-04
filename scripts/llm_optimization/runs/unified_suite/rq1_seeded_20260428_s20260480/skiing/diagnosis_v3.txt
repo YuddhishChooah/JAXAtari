@@ -1,0 +1,33 @@
+# Diagnosis
+
+## 1. Root cause
+The policy passes all 20 gates (perfect gate_pass_rate) but is extremely slow: ~2209 steps per episode with average_speed_y of only 1.14. The dominant return loss is the per-frame time penalty, not missed gates or collisions. The forward action `DOWN` is never actually emitted (down_action_rate = 0), so the skier never tucks, and the heading is too often off-straight to qualify for tucking anyway.
+
+## 2. Evidence from metrics
+- `down_action_rate = 0` despite `forward = where(near_straight, DOWN, NOOP)` — the near-straight condition is essentially never true.
+- `noop_rate = 0.598` — most non-turning frames default to NOOP instead of DOWN.
+- `turn_rate = 0.402` (LEFT 0.184 + RIGHT 0.218) — heavy steering churn.
+- `average_speed_y = 1.14` is low; episodes drag to ~2208 steps.
+- `gates_passed = 20`, `tree_collisions = 0`, `flag_collisions = 1.33` — accuracy is fine; speed is the bottleneck.
+- `average_gate_center_error = 12.05` is acceptable (gate half-width ~16) and does not justify aggressive steering.
+
+## 3. Policy logic causing it
+- `tuck_angle = 9.58°` but the discrete heading notches nearest straight are ±22.5°. The signed heading is essentially never within ±9.58° of zero, so `near_straight` is almost always false → DOWN is never chosen.
+- `heading_gain = 2.18` with `max_heading = 28.9°` means even small lateral errors saturate desired heading to ±28.9°, which exceeds the 22.5° straight notch and forces the controller to keep turning past straight into the 45° notch. The skier oscillates between 22.5° and 45° rather than locking onto the straight notches.
+- `heading_dead = 5.2°` is tight relative to the 22.5° quantization, causing constant correction churn (high turn_rate).
+- The "tree_shift = 27.5" lateral push is large and triggers further heading saturation when any tree is loosely "in path"; combined with no tree collisions, this is over-defensive.
+- Forward fallback uses NOOP whenever heading isn't tiny — wasting time on every coast frame.
+
+## 4. What to preserve
+- Gate selection logic (`_pick_gate`) — it's working; gates_passed = 20.
+- Signed-orientation conversion and proportional heading-tracking structure.
+- Tree-threat detection scaffold (no tree collisions).
+- Overall compact parametric form and parameter set.
+
+## 5. What to change next
+- Make the forward action DOWN by default and only NOOP when actively turning, OR raise `tuck_angle` so that the ±22.5° notch counts as "near-straight" (≥ ~25°). This single fix should sharply reduce step count.
+- Lower `heading_gain` (≈0.4–0.8) and lower `max_heading` to ~22.5° so the controller targets the straight notches (±22.5°) instead of saturating into the 45° notch. This preserves downhill speed.
+- Widen `heading_dead` to ~10–15° to match the 22.5° quantization and stop oscillation; this also reduces turn_rate.
+- Make tree avoidance gated more strictly (smaller `tree_danger_y`, narrower in-path band) and reduce `tree_shift` since tree_collisions = 0 — the avoidance is currently overpaying in speed.
+- Consider a "commit" rule: once the gate is within a small vertical distance and lateral error is within ~half gate width, force forward action (DOWN) regardless of heading, to avoid late micro-corrections that flatten the heading.
+- Avoid the previous failed direction (zero NOOP / aggressive turning); the fix is to convert NOOPs into DOWNs, not to add more steering.
