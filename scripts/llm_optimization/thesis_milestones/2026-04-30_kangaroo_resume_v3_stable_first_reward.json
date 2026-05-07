@@ -38,7 +38,7 @@
     "diagnosis_v4": "scripts/llm_optimization/runs/single_game/kangaroo_resume_20260430_113346/diagnosis_v4.txt",
     "llm_io_dir": "scripts/llm_optimization/runs/single_game/kangaroo_resume_20260430_113346/llm_io",
     "policy_v3_gif": "scripts/llm_optimization/analysis/videos/kangaroo_resume_20260430_113346_policy_v3.gif",
-    "followup_eval": "scripts/llm_optimization/analysis/evaluations/kangaroo_resume_20260430_113346_followup_eval.json"
+    "followup_eval": "scripts/llm_optimization/analysis/evaluations/kangaroo/kangaroo_resume_20260430_113346_followup_eval.json"
   },
   "result": {
     "best_score": 200.0,

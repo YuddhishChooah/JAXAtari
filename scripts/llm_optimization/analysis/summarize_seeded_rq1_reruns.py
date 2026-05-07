@@ -37,6 +37,7 @@ DEFAULT_OUTPUT = (
     / "llm_optimization"
     / "analysis"
     / "evaluations"
+    / "rq"
     / "rq1_seeded_reruns_summary.json"
 )
 

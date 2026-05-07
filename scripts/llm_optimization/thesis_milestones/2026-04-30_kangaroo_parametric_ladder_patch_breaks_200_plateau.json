@@ -23,7 +23,7 @@
   ],
   "evidence": {
     "strict_patch1_result": {
-      "artifact": "scripts/llm_optimization/analysis/evaluations/kangaroo_policy_v6_overlap_patch_eval32_10000steps.json",
+      "artifact": "scripts/llm_optimization/analysis/evaluations/kangaroo/kangaroo_policy_v6_overlap_patch_eval32_10000steps.json",
       "result": "The first strict overlap patch scored 0.0 over 32 episodes because it got stuck at the ladder top choosing RIGHT toward the same ladder column."
     },
     "patch2_short_debug": {
@@ -32,7 +32,7 @@
       "result": "850-step diagnostic trace reached reward 200.0 with zero explanation mismatches."
     },
     "patch2_32_episode_eval": {
-      "artifact": "scripts/llm_optimization/analysis/evaluations/kangaroo_policy_v6_overlap_patch2_eval32_10000steps.json",
+      "artifact": "scripts/llm_optimization/analysis/evaluations/kangaroo/kangaroo_policy_v6_overlap_patch2_eval32_10000steps.json",
       "mean": 2400.0,
       "min": 200.0,
       "max": 3600.0,
@@ -41,7 +41,7 @@
       "steps": 10000
     },
     "patch2_high_budget_eval": {
-      "artifact": "scripts/llm_optimization/analysis/evaluations/kangaroo_policy_v6_overlap_patch2_vectorized_128eps_50000steps.json",
+      "artifact": "scripts/llm_optimization/analysis/evaluations/kangaroo/kangaroo_policy_v6_overlap_patch2_vectorized_128eps_50000steps.json",
       "mean": 2634.38,
       "min": 200.0,
       "max": 3600.0,
@@ -50,7 +50,7 @@
       "steps": 50000
     },
     "patch2_retune": {
-      "artifact": "scripts/llm_optimization/analysis/evaluations/kangaroo_policy_v6_overlap_patch2_retune_cma6_eval32_10000steps.json",
+      "artifact": "scripts/llm_optimization/analysis/evaluations/kangaroo/kangaroo_policy_v6_overlap_patch2_retune_cma6_eval32_10000steps.json",
       "base_32_episode_mean": 2400.0,
       "retuned_32_episode_mean": 2568.75,
       "retuned_episodes_above_200": 27,
@@ -61,7 +61,7 @@
       }
     },
     "retuned_high_budget_eval": {
-      "artifact": "scripts/llm_optimization/analysis/evaluations/kangaroo_policy_v6_overlap_patch2_retuned_vectorized_128eps_50000steps.json",
+      "artifact": "scripts/llm_optimization/analysis/evaluations/kangaroo/kangaroo_policy_v6_overlap_patch2_retuned_vectorized_128eps_50000steps.json",
       "mean": 2656.25,
       "min": 200.0,
       "max": 3600.0,

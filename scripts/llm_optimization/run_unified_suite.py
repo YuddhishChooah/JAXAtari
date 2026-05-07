@@ -113,6 +113,8 @@ def main() -> int:
     parser.add_argument("--optimizer", type=str, default="cma-es", choices=["none", "random", "cma-es", "bayes"])
     parser.add_argument("--param-samples", type=int, default=16)
     parser.add_argument("--cma-generations", type=int, default=4)
+    parser.add_argument("--kangaroo-shaped-objective", action="store_true")
+    parser.add_argument("--kangaroo-dense-reward-objective", action="store_true")
     parser.add_argument("--seed", type=int, default=9000)
     parser.add_argument("--continue-on-error", action="store_true")
     parser.add_argument(
@@ -161,6 +163,8 @@ def main() -> int:
                 "optimizer": args.optimizer,
                 "param_samples": args.param_samples,
                 "cma_generations": args.cma_generations,
+                "kangaroo_shaped_objective": args.kangaroo_shaped_objective,
+                "kangaroo_dense_reward_objective": args.kangaroo_dense_reward_objective,
                 "seed": args.seed,
                 "resume_from_results": False,
                 "stop_on_strong_best": False,
@@ -233,6 +237,10 @@ def main() -> int:
         ]
         if args.temperature is not None:
             command.extend(["--temperature", str(args.temperature)])
+        if game == "kangaroo" and args.kangaroo_shaped_objective:
+            command.append("--kangaroo-shaped-objective")
+        if game == "kangaroo" and args.kangaroo_dense_reward_objective:
+            command.append("--kangaroo-dense-reward-objective")
 
         print(f"\n=== Running {game} ({index + 1}/{len(args.games)}) ===", flush=True)
         print(f"Output: {output_dir}", flush=True)

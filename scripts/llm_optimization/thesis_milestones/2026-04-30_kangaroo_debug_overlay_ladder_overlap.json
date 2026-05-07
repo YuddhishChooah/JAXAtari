@@ -13,8 +13,8 @@
     "debug_renderer": "scripts/llm_optimization/experiments/kangaroo/render_policy_debug_video.py",
     "debug_video": "scripts/llm_optimization/analysis/videos/kangaroo_resume3_policy_v6_debug.gif",
     "debug_trace": "scripts/llm_optimization/analysis/traces/kangaroo_resume3_policy_v6_debug_trace.json",
-    "long_eval": "scripts/llm_optimization/analysis/evaluations/kangaroo_resume3_policy_v6_vectorized_128eps_50000steps.json",
-    "parameter_retune": "scripts/llm_optimization/analysis/evaluations/kangaroo_resume3_policy_v6_param_retune_cma6_eval32_50000steps.json",
+    "long_eval": "scripts/llm_optimization/analysis/evaluations/kangaroo/kangaroo_resume3_policy_v6_vectorized_128eps_50000steps.json",
+    "parameter_retune": "scripts/llm_optimization/analysis/evaluations/kangaroo/kangaroo_resume3_policy_v6_param_retune_cma6_eval32_50000steps.json",
     "policy": "scripts/llm_optimization/runs/single_game/kangaroo_resume3_20260430_144102/policy_v6.py"
   },
   "debug_renderer_result": {

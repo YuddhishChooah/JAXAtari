@@ -5,7 +5,7 @@
   "context": {
     "previous_milestone": "2026-05-01_kangaroo_preservation_contract_after_failed_rerun.json",
     "run_directory": "scripts/llm_optimization/runs/single_game/kangaroo_20260501_211358_fresh_s20260501",
-    "followup_evaluation": "scripts/llm_optimization/analysis/evaluations/kangaroo_fresh_20260501_policy_v2_eval32_10000steps.json",
+    "followup_evaluation": "scripts/llm_optimization/analysis/evaluations/kangaroo/kangaroo_fresh_20260501_policy_v2_eval32_10000steps.json",
     "run_type": "fresh from scratch; no resume-from-results and no copied previous best"
   },
   "run_result": {

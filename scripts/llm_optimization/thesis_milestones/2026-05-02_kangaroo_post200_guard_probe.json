@@ -11,7 +11,7 @@
     "post200_guard": {
       "policy": "scripts/llm_optimization/experiments/kangaroo/policy_shaped_v2_post200_guard.py",
       "change": "Disable monkey punch priority when the player is already on a ladder column and near the ladder top.",
-      "evaluation": "scripts/llm_optimization/analysis/evaluations/kangaroo_shaped_v2_post200_guard_eval32_10000steps.json",
+      "evaluation": "scripts/llm_optimization/analysis/evaluations/kangaroo/kangaroo_shaped_v2_post200_guard_eval32_10000steps.json",
       "mean": 193.75,
       "max": 200.0,
       "episodes_above_200": 0,
@@ -25,7 +25,7 @@
     "post200_guard_dodge": {
       "policy": "scripts/llm_optimization/experiments/kangaroo/policy_shaped_v2_post200_guard_dodge.py",
       "change": "Use the post-200 punch guard and let coconut danger override near-top dismount.",
-      "evaluation": "scripts/llm_optimization/analysis/evaluations/kangaroo_shaped_v2_post200_guard_dodge_eval32_10000steps.json",
+      "evaluation": "scripts/llm_optimization/analysis/evaluations/kangaroo/kangaroo_shaped_v2_post200_guard_dodge_eval32_10000steps.json",
       "mean": 193.75,
       "max": 200.0,
       "episodes_above_200": 0,

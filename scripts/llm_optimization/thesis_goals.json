@@ -193,7 +193,7 @@
       "milestone": "RQ4 ablation suite",
       "description": "Run optimizer=none for all current games and compare against full LeGPS.",
       "status": "first_pass_completed",
-      "artifact": "scripts/llm_optimization/analysis/evaluations/rq4_optimizer_ablation_summary.json"
+      "artifact": "scripts/llm_optimization/analysis/evaluations/rq/rq4_optimizer_ablation_summary.json"
     },
     {
       "milestone": "Seeded RQ1 reruns",

@@ -67,6 +67,7 @@ class OptimizationConfig:
     frame_stack_size: int = 0  # 0 = use game default
     search_max_steps: int = 0  # 0 = use max_steps_per_episode
     kangaroo_shaped_objective: bool = False  # Optional scaffold for Kangaroo route-progress search.
+    kangaroo_dense_reward_objective: bool = False  # Ask Kangaroo policies to provide the CMA-ES dense objective.
     
     # Parameter search settings - CMA-ES
     optimizer: str = "cma-es"  # "none", "random", "cma-es", or "bayes"
@@ -718,6 +719,8 @@ or any memoryful API because the optimizer calls exactly `policy(obs_flat, param
 ### 3. measure_main(episode_rewards: jnp.ndarray, episode_scores: dict) -> float
 Return `jnp.sum(episode_rewards)`.
 
+{dense_reward_requirement}
+
 ## JAX Constraints
 1. Use `jax.lax.cond` or `jnp.where` for branching; no Python `if` in the traced policy.
 2. Do not use Python `int()` or `float()` inside `policy`.
@@ -775,6 +778,7 @@ Do not add complexity unless it directly addresses a concrete failure mode.
 6. Preserve any clearly working sub-logic unless feedback points to a specific failure.
 7. The policy function signature must remain exactly `policy(obs_flat, params)`.
 8. Do not add `state`, `init_state()`, or memoryful policy APIs.
+{dense_reward_requirement}
 
 Generate the improved policy now.
 """.strip()
@@ -862,6 +866,7 @@ Generate a complete replacement Python module that directly fixes the diagnosed 
 6. Return only valid Python module code, with no explanation.
 7. The policy function signature must be exactly `policy(obs_flat, params)`.
 8. Do not add `state`, `init_state()`, or any recurrent-memory API.
+{dense_reward_requirement}
 
 ## Game-Specific Improvement Guidelines
 {improvement_guidelines}
@@ -1426,6 +1431,8 @@ def load_policy_module(filepath: str) -> Tuple[Callable, Callable, Callable]:
         raise ValueError("Module missing 'policy' function")
     if not hasattr(module, 'measure_main'):
         raise ValueError("Module missing 'measure_main' function")
+    if hasattr(module, 'dense_reward'):
+        setattr(module.policy, "_legps_dense_reward_fn", module.dense_reward)
     
     return module.init_params, module.policy, module.measure_main
 
@@ -1507,6 +1514,33 @@ class ParallelEvaluator:
             raise ValueError(
                 f"policy() must return one scalar action, got shape {tuple(action.shape)}"
             )
+
+        if self.game == "kangaroo" and self.config.kangaroo_dense_reward_objective:
+            dense_reward_fn = getattr(policy_fn, "_legps_dense_reward_fn", None)
+            if dense_reward_fn is None:
+                raise ValueError(
+                    "Kangaroo dense-reward mode requires a module-level "
+                    "`dense_reward(obs_history, actions, rewards, total_reward, active_mask)` function."
+                )
+            dummy_obs_history = jnp.zeros((4, self.obs_size), dtype=jnp.float32)
+            dummy_actions = jnp.zeros((4,), dtype=jnp.int32)
+            dummy_rewards = jnp.zeros((4,), dtype=jnp.float32)
+            dummy_total_reward = jnp.array(0.0, dtype=jnp.float32)
+            dummy_active_mask = jnp.ones((4,), dtype=jnp.bool_)
+            dense_score = jnp.asarray(
+                dense_reward_fn(
+                    dummy_obs_history,
+                    dummy_actions,
+                    dummy_rewards,
+                    dummy_total_reward,
+                    dummy_active_mask,
+                )
+            )
+            if dense_score.shape != ():
+                raise ValueError(
+                    "`dense_reward(...)` must return one scalar objective, "
+                    f"got shape {tuple(dense_score.shape)}"
+                )
 
     def _kangaroo_shaped_objective(
         self,
@@ -1611,7 +1645,35 @@ class ParallelEvaluator:
         obs_history: jnp.ndarray,
         actions: jnp.ndarray,
         active_mask: jnp.ndarray,
+        dense_reward_fn: Optional[Callable] = None,
     ) -> Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray, jnp.ndarray, jnp.ndarray, jnp.ndarray]:
+        if self.game == "kangaroo" and self.config.kangaroo_dense_reward_objective:
+            if dense_reward_fn is None:
+                raise ValueError(
+                    "Kangaroo dense-reward mode requires a policy-provided dense_reward function."
+                )
+            (
+                _,
+                shaped_upward_progress,
+                shaped_score_events,
+                shaped_no_fire_penalty,
+                shaped_punch_farming_penalty,
+                shaped_post_reward_bonus,
+            ) = self._kangaroo_shaped_objective(
+                total_reward, rewards, obs_history, actions, active_mask
+            )
+            dense_score = jnp.asarray(
+                dense_reward_fn(obs_history, actions, rewards, total_reward, active_mask),
+                dtype=jnp.float32,
+            )
+            return (
+                dense_score,
+                shaped_upward_progress,
+                shaped_score_events,
+                shaped_no_fire_penalty,
+                shaped_punch_farming_penalty,
+                shaped_post_reward_bonus,
+            )
         if self.game == "kangaroo" and self.config.kangaroo_shaped_objective:
             return self._kangaroo_shaped_objective(
                 total_reward, rewards, obs_history, actions, active_mask
@@ -1634,6 +1696,7 @@ class ParallelEvaluator:
         # Use the dynamic observation size for the game
         obs_flat = obs[-self.obs_size:] if obs.shape[0] > self.obs_size else obs
         obs_flat = jnp.asarray(obs_flat, dtype=jnp.float32)
+        dense_reward_fn = getattr(policy_fn, "_legps_dense_reward_fn", None)
         
         def step_fn(carry, _):
             obs_flat, state, total_reward, done = carry
@@ -1744,6 +1807,7 @@ class ParallelEvaluator:
             obs_history,
             actions,
             active_mask,
+            dense_reward_fn,
         )
         
         return (
@@ -1800,11 +1864,18 @@ class ParallelEvaluator:
         avg_player_score = jnp.mean(player_scores)
         avg_enemy_score = jnp.mean(enemy_scores)
         win_rate = jnp.mean(player_scores > enemy_scores)
+        if self.game == "kangaroo" and self.config.kangaroo_dense_reward_objective:
+            objective_source = "policy_dense_reward"
+        elif self.game == "kangaroo" and self.config.kangaroo_shaped_objective:
+            objective_source = "kangaroo_shaped_objective"
+        else:
+            objective_source = "game_reward"
         
         return {
             'avg_return': float(avg_return),
             'optimization_score': float(avg_optimization_score),
-            'objective_is_shaped': bool(self.game == "kangaroo" and self.config.kangaroo_shaped_objective),
+            'objective_source': objective_source,
+            'objective_is_shaped': bool(objective_source != "game_reward"),
             'shaped_upward_progress': float(jnp.mean(shaped_upward_progress)),
             'shaped_score_events': float(jnp.mean(shaped_score_events)),
             'shaped_no_fire_penalty': float(jnp.mean(shaped_no_fire_penalties)),
@@ -2721,8 +2792,9 @@ def generate_feedback(metrics: Dict[str, Any], params: Dict, logger_metrics: Dic
         else:
             feedback_parts.append("The Kangaroo agent is scoring. Further gains likely come from safer route progress and better reward opportunities after reaching upper platforms.")
         if metrics.get("objective_is_shaped"):
+            objective_source = metrics.get("objective_source", "shaped")
             feedback_parts.append(
-                "Kangaroo parameter search used an explicitly shaped route objective for CMA-ES. "
+                f"Kangaroo parameter search used `{objective_source}` for CMA-ES. "
                 f"Real average return is still {avg_return:.2f}; the shaped optimization score is "
                 f"{float(metrics.get('optimization_score', avg_return)):.2f}. Treat shaped terms as a scaffold, not as final task success."
             )
@@ -3013,7 +3085,53 @@ class LLMOptimizationLoop:
                 "Keep the controller compact and optimizer-friendly for the shaped Kangaroo route objective, "
                 "while remembering that final evaluation remains real game reward."
             )
+        if self.game == "kangaroo" and self.config.kangaroo_dense_reward_objective:
+            context["method_objective"] += (
+                " For this Kangaroo dense-reward experiment only, you must also provide a "
+                "`dense_reward(...)` function. CMA-ES will optimize that policy-provided dense "
+                "objective during parameter search, while final success is still judged by real game reward."
+            )
+            context["method_design_rule"] += (
+                " Put policy thresholds in `init_params()` so CMA-ES can tune ladder overlap, "
+                "route progress, and hazard tradeoffs. Keep `dense_reward(...)` as a fixed "
+                "behavioural assessor rather than a tunable reward that CMA-ES can rewrite through params."
+            )
+            context["improvement_objective"] = (
+                "Improve real Kangaroo reward and route behavior. The inner optimizer is using the "
+                "policy-provided dense reward, so revise both policy logic and dense reward terms only "
+                "when the change helps ladder alignment, upward route progress, or post-200 survival."
+            )
+            context["rewrite_objective"] = (
+                "Keep the controller compact and optimizer-friendly, and include a JAX-safe "
+                "`dense_reward(...)` objective that gives CMA-ES useful intermediate route signals. "
+                "Final evaluation remains real game reward."
+            )
         return context
+
+    def _dense_reward_requirement(self) -> str:
+        if not (self.game == "kangaroo" and self.config.kangaroo_dense_reward_objective):
+            return ""
+
+        return """
+### 4. dense_reward(obs_history, actions, rewards, total_reward, active_mask) -> float
+Required for this Kangaroo run. CMA-ES will maximize this function during parameter search only.
+The final reported result still uses real Atari reward, so do not hide low real reward.
+
+Inputs:
+- `obs_history[t]` is the flattened object-centric observation before action `actions[t]`.
+- `actions[t]` is the raw action selected at that step.
+- `rewards[t]` is the real Atari reward for that step.
+- `total_reward` is the real episode return.
+- `active_mask[t]` is true for real episode steps and false for padding after termination.
+
+Dense reward design:
+- Return one scalar JAX expression.
+- Include `total_reward` as a major positive term.
+- Add bounded auxiliary terms for useful intermediate behaviour: correct ladder alignment, upward progress, first reward, post-200 transition progress, and hazard survival.
+- Penalize shortcut behaviours such as repeated punch farming without upward progress, early `UP` when not actually aligned to a ladder, and idling near the same ladder state.
+- Use only JAX operations (`jnp`, `jax.lax`); no Python `if`, `int()`, or `float()` on traced values.
+- Keep terms bounded so CMA-ES cannot win by exploiting the dense reward while real reward stays bad.
+""".strip()
 
     def _build_initial_prompt(self) -> str:
         return UNIFIED_INITIAL_PROMPT.format(
@@ -3023,6 +3141,7 @@ class LLMOptimizationLoop:
             design_principles=self.prompt_spec.design_principles,
             failure_modes=self.prompt_spec.failure_modes,
             benchmark_context=self.prompt_spec.benchmark_context,
+            dense_reward_requirement=self._dense_reward_requirement(),
         )
 
     def _build_improvement_prompt(
@@ -3104,6 +3223,7 @@ class LLMOptimizationLoop:
             change_budget=change_budget,
             benchmark_context=self.prompt_spec.benchmark_context,
             improvement_guidelines=self.prompt_spec.improvement_guidelines,
+            dense_reward_requirement=self._dense_reward_requirement(),
         )
 
     def _build_diagnostic_prompt(
@@ -3186,6 +3306,7 @@ class LLMOptimizationLoop:
             rewrite_strategy=rewrite_strategy,
             benchmark_context=self.prompt_spec.benchmark_context,
             improvement_guidelines=self.prompt_spec.improvement_guidelines,
+            dense_reward_requirement=self._dense_reward_requirement(),
         )
 
     def _record_llm_exchange(
@@ -3212,6 +3333,8 @@ class LLMOptimizationLoop:
             "temperature": self.config.temperature,
             "max_tokens": self.config.max_tokens,
             "optimizer": self.config.optimizer,
+            "kangaroo_shaped_objective": self.config.kangaroo_shaped_objective,
+            "kangaroo_dense_reward_objective": self.config.kangaroo_dense_reward_objective,
             "system_prompt": system_prompt,
             "user_prompt": prompt,
             "raw_response": response,
@@ -3714,6 +3837,10 @@ class LLMOptimizationLoop:
                     metrics['search_avg_return'],
                 )
                 metrics['objective_is_shaped'] = bool(search_metrics.get('objective_is_shaped', False))
+                metrics['objective_source'] = search_metrics.get(
+                    'objective_source',
+                    metrics.get('objective_source', 'game_reward'),
+                )
                 for shaped_key in [
                     'shaped_upward_progress',
                     'shaped_score_events',
@@ -3735,10 +3862,16 @@ class LLMOptimizationLoop:
             if 'search_avg_return' in metrics:
                 print(f"  Search Return ({self.config.search_max_steps or self.config.max_steps_per_episode} steps): {metrics['search_avg_return']:.2f}")
             if metrics.get('objective_is_shaped') and 'search_optimization_score' in metrics:
-                print(f"  Search Shaped Objective: {metrics['search_optimization_score']:.2f}")
+                print(
+                    f"  Search Objective ({metrics.get('objective_source', 'shaped')}): "
+                    f"{metrics['search_optimization_score']:.2f}"
+                )
             print(f"  Average Return: {metrics['avg_return']:.2f}")
             if metrics.get('objective_is_shaped'):
-                print(f"  Evaluation Shaped Objective: {metrics.get('optimization_score', metrics['avg_return']):.2f}")
+                print(
+                    f"  Evaluation Objective ({metrics.get('objective_source', 'shaped')}): "
+                    f"{metrics.get('optimization_score', metrics['avg_return']):.2f}"
+                )
             print(f"  Player Score: {metrics['avg_player_score']:.2f}")
             print(f"  Enemy Score: {metrics['avg_enemy_score']:.2f}")
             print(f"  Win Rate: {metrics['win_rate']:.2%}")
@@ -4086,6 +4219,8 @@ def main():
                        help='Inner-loop optimization horizon (0 = use --max-steps)')
     parser.add_argument('--kangaroo-shaped-objective', action='store_true',
                        help='Kangaroo only: use a documented shaped route-progress objective for inner-loop parameter search while still reporting real reward.')
+    parser.add_argument('--kangaroo-dense-reward-objective', action='store_true',
+                       help='Kangaroo only: require the policy module to provide dense_reward(...) and use it as the CMA-ES search objective while still reporting real reward.')
     
     # Optimization settings
     parser.add_argument('--optimizer', type=str, default='cma-es',
@@ -4152,6 +4287,7 @@ def main():
         frame_stack_size=args.frame_stack,
         search_max_steps=args.search_max_steps,
         kangaroo_shaped_objective=args.kangaroo_shaped_objective,
+        kangaroo_dense_reward_objective=args.kangaroo_dense_reward_objective,
         optimizer=args.optimizer,
         max_iterations=args.max_iters,
         target_score=args.target_score,
@@ -4175,6 +4311,7 @@ def main():
     print(f"Evaluation Horizon: {args.max_steps} steps")
     if args.game == "kangaroo":
         print(f"Kangaroo Shaped Objective: {args.kangaroo_shaped_objective}")
+        print(f"Kangaroo Dense Reward Objective: {args.kangaroo_dense_reward_objective}")
     print(f"Output: {args.output_dir}")
     print(f"{'='*60}\n")
     

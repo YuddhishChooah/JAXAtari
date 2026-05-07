@@ -1,0 +1,34 @@
+{
+  "created_at": "2026-05-05",
+  "purpose": "Compact validation of the first Kangaroo policy-provided dense-reward run.",
+  "source_run_dir": "scripts/llm_optimization/runs/single_game/kangaroo_20260505_154215_dense_reward_s20260505",
+  "source_run_dir_removed_after_compaction": true,
+  "source_policy_path": "scripts/llm_optimization/runs/single_game/kangaroo_20260505_154215_dense_reward_s20260505/policy_v3.py",
+  "protocol": {
+    "episodes": 32,
+    "steps": 10000,
+    "seed": 20260515,
+    "objective_source": "policy_dense_reward",
+    "final_metric": "real Atari reward"
+  },
+  "result": {
+    "avg_return": 18.75,
+    "std_return": 58.296119081805095,
+    "min_return": 0.0,
+    "max_return": 200.0,
+    "episodes_above_0": 3,
+    "episodes_above_200": 0,
+    "histogram": {
+      "0": 29,
+      "200": 3
+    },
+    "avg_optimization_score": 28.09859623014927,
+    "shaped_upward_progress": 15.75,
+    "shaped_score_events": 0.09375
+  },
+  "interpretation": [
+    "The policy-provided dense reward path works technically: CMA-ES receives an optimizer-facing score different from real game reward.",
+    "The first dense-reward run did not solve Kangaroo: most episodes still scored 0 and no episode exceeded the 200-point plateau.",
+    "Dense reward should remain exploratory evidence unless followed by a staged mechanics-discovery run focused on post-200 transition behaviour."
+  ]
+}

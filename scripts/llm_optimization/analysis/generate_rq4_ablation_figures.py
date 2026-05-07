@@ -36,6 +36,7 @@ DEFAULT_SUMMARY_PATH = (
     / "llm_optimization"
     / "analysis"
     / "evaluations"
+    / "rq"
     / "rq4_optimizer_ablation_summary.json"
 )
 

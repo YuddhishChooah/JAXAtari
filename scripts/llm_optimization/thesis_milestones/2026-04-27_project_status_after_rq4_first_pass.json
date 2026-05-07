@@ -159,7 +159,7 @@
     "thesis_goals": "scripts/llm_optimization/thesis_goals.json",
     "canonical_best_policies": "scripts/llm_optimization/runs/best_10000_steps",
     "canonical_reproducibility_result": "scripts/llm_optimization/analysis/evaluations/canonical_reproducibility/latest_canonical_evaluation.json",
-    "rq4_summary": "scripts/llm_optimization/analysis/evaluations/rq4_optimizer_ablation_summary.json",
+    "rq4_summary": "scripts/llm_optimization/analysis/evaluations/rq/rq4_optimizer_ablation_summary.json",
     "rq4_run": "scripts/llm_optimization/runs/unified_suite/rq4_llm_only_20260427"
   }
 }

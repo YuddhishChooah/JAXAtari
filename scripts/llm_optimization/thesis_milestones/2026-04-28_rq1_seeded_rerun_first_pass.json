@@ -12,7 +12,7 @@
   "run": {
     "run_id": "rq1_seeded_20260428_s20260480",
     "manifest": "scripts/llm_optimization/runs/unified_suite/rq1_seeded_20260428_s20260480/manifest.json",
-    "summary": "scripts/llm_optimization/analysis/evaluations/rq1_seeded_reruns_summary.json",
+    "summary": "scripts/llm_optimization/analysis/evaluations/rq/rq1_seeded_reruns_summary.json",
     "protocol": {
       "provider": "anthropic",
       "model": "claude-opus-4-7",

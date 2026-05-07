@@ -37,7 +37,7 @@
     "diagnosis_v2": "scripts/llm_optimization/runs/unified_suite/kangaroo_smoke3_20260429_160438/kangaroo/diagnosis_v2.txt",
     "llm_io_dir": "scripts/llm_optimization/runs/unified_suite/kangaroo_smoke3_20260429_160438/kangaroo/llm_io",
     "policy_v2_gif": "scripts/llm_optimization/analysis/videos/kangaroo_smoke3_20260429_160438_policy_v2.gif",
-    "followup_eval": "scripts/llm_optimization/analysis/evaluations/kangaroo_smoke3_20260429_160438_followup_eval.json"
+    "followup_eval": "scripts/llm_optimization/analysis/evaluations/kangaroo/kangaroo_smoke3_20260429_160438_followup_eval.json"
   },
   "result": {
     "best_score": 100.0,

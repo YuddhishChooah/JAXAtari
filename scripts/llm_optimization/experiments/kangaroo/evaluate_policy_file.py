@@ -45,6 +45,8 @@ def load_policy(policy_path: Path):
         raise RuntimeError(f"Could not load policy module from {policy_path}")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    if hasattr(module, "policy") and hasattr(module, "dense_reward"):
+        setattr(module.policy, "_legps_dense_reward_fn", module.dense_reward)
     return module
 
 
@@ -84,13 +86,25 @@ def as_float_params(params: dict[str, Any]) -> dict[str, jax.Array]:
     return {key: jnp.asarray(value, dtype=jnp.float32) for key, value in params.items()}
 
 
-def evaluate(policy_fn, params: dict[str, jax.Array], *, episodes: int, steps: int, seed: int, frame_stack: int):
+def evaluate(
+    policy_fn,
+    params: dict[str, jax.Array],
+    *,
+    episodes: int,
+    steps: int,
+    seed: int,
+    frame_stack: int,
+    dense_reward_objective: bool,
+    shaped_objective: bool,
+):
     config = OptimizationConfig(
         num_parallel_envs=episodes,
         num_eval_episodes=episodes,
         max_steps_per_episode=steps,
         search_max_steps=steps,
         frame_stack_size=frame_stack,
+        kangaroo_shaped_objective=shaped_objective,
+        kangaroo_dense_reward_objective=dense_reward_objective,
         verbose=False,
         seed=seed,
     )
@@ -113,6 +127,8 @@ def retune(policy_fn, base_params: dict[str, jax.Array], args: argparse.Namespac
         max_steps_per_episode=args.eval_steps,
         search_max_steps=args.search_steps,
         frame_stack_size=frame_stack,
+        kangaroo_shaped_objective=args.shaped_objective,
+        kangaroo_dense_reward_objective=args.dense_reward_objective,
         optimizer="cma-es",
         num_param_samples=args.param_samples,
         cma_es_generations=args.cma_generations,
@@ -159,6 +175,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=20260480)
     parser.add_argument("--frame-stack", type=int, default=1)
     parser.add_argument("--retune", action="store_true")
+    parser.add_argument("--shaped-objective", action="store_true")
+    parser.add_argument("--dense-reward-objective", action="store_true")
     parser.add_argument("--search-episodes", type=int, default=4)
     parser.add_argument("--search-steps", type=int, default=5000)
     parser.add_argument("--param-samples", type=int, default=8)
@@ -187,6 +205,8 @@ def main() -> int:
         steps=args.steps,
         seed=args.seed,
         frame_stack=args.frame_stack,
+        dense_reward_objective=args.dense_reward_objective,
+        shaped_objective=args.shaped_objective,
     )
     print(
         "Evaluation summary: "
@@ -220,6 +240,8 @@ def main() -> int:
             "steps": args.steps,
             "seed": args.seed,
             "frame_stack": args.frame_stack,
+            "shaped_objective": args.shaped_objective,
+            "dense_reward_objective": args.dense_reward_objective,
         },
         "metrics": to_jsonable(metrics),
         "reward_summary": reward_summary,

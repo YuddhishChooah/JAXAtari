@@ -14,7 +14,7 @@
   ],
   "evidence": {
     "high_scoring_episode": {
-      "source_evaluation": "scripts/llm_optimization/analysis/evaluations/kangaroo_policy_v6_overlap_patch2_retuned_vectorized_128eps_50000steps.json",
+      "source_evaluation": "scripts/llm_optimization/analysis/evaluations/kangaroo/kangaroo_policy_v6_overlap_patch2_retuned_vectorized_128eps_50000steps.json",
       "episode_index": 0,
       "trace": "scripts/llm_optimization/analysis/traces/kangaroo_policy_v6_overlap_patch2_retuned_ep000_success_trace.json",
       "video": "scripts/llm_optimization/analysis/videos/kangaroo_policy_v6_overlap_patch2_retuned_ep000_success_first1000_debug.gif",
@@ -30,7 +30,7 @@
       "reward_event_pattern": "All 18 reward events were RIGHTFIRE at approximately x=126,y=148 with punch_monkey_priority."
     },
     "failing_episode": {
-      "source_evaluation": "scripts/llm_optimization/analysis/evaluations/kangaroo_policy_v6_overlap_patch2_retuned_vectorized_128eps_50000steps.json",
+      "source_evaluation": "scripts/llm_optimization/analysis/evaluations/kangaroo/kangaroo_policy_v6_overlap_patch2_retuned_vectorized_128eps_50000steps.json",
       "episode_index": 6,
       "trace": "scripts/llm_optimization/analysis/traces/kangaroo_policy_v6_overlap_patch2_retuned_ep006_fail200_trace.json",
       "video": "scripts/llm_optimization/analysis/videos/kangaroo_policy_v6_overlap_patch2_retuned_ep006_fail200_debug.gif",

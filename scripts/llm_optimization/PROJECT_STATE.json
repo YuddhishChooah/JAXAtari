@@ -34,7 +34,7 @@
     },
     {
       "step": 6,
-      "path": "scripts/llm_optimization/analysis/evaluations/rq4_optimizer_ablation_summary.json",
+      "path": "scripts/llm_optimization/analysis/evaluations/rq/rq4_optimizer_ablation_summary.json",
       "reason": "First optimizer-ablation result comparing full LeGPS against LLM-only constants."
     }
   ],
