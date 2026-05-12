@@ -1,0 +1,112 @@
+{
+  "created_at": "2026-05-12 10:19:16",
+  "policy_path": "scripts\\llm_optimization\\runs\\single_game\\kangaroo_skill_spec_smoke3_20260510\\policy_v2.py",
+  "params_source": "scripts\\llm_optimization\\runs\\single_game\\kangaroo_skill_spec_post_first_auditfix_20260512\\optimization_results.json",
+  "protocol": {
+    "episodes": 16,
+    "steps": 10000,
+    "seed": 20260512,
+    "uses_saved_best_params": true
+  },
+  "runtime": {
+    "elapsed_seconds": 18.645991802215576,
+    "platform": "Windows-11-10.0.26200-SP0",
+    "jax_version": "0.6.0"
+  },
+  "metrics": {
+    "avg_return": 200.0,
+    "optimization_score": 200.0,
+    "objective_source": "game_reward",
+    "objective_is_shaped": false,
+    "shaped_upward_progress": 0.0,
+    "shaped_score_events": 0.0,
+    "shaped_no_fire_penalty": 0.0,
+    "shaped_punch_farming_penalty": 0.0,
+    "shaped_post_reward_bonus": 0.0,
+    "avg_player_score": 200.0,
+    "avg_enemy_score": 0.0,
+    "win_rate": 1.0,
+    "total_rewards": [
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0
+    ],
+    "optimization_scores": [
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0
+    ],
+    "player_scores": [
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0,
+      200.0
+    ],
+    "enemy_scores": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "reward_summary": {
+    "mean": 200.0,
+    "std": 0.0,
+    "min": 200.0,
+    "max": 200.0,
+    "episodes_above_200": 0,
+    "histogram": {
+      "200": 16
+    }
+  }
+}

@@ -1,6 +1,6 @@
 {
   "purpose": "Single entry point for resuming the LeGPS thesis work from a fresh chat or after a context reset.",
-  "last_updated": "2026-05-03",
+  "last_updated": "2026-05-12",
   "method": {
     "name": "LeGPS",
     "expansion": "Language Guided Policy Search",
@@ -19,8 +19,8 @@
     },
     {
       "step": 3,
-      "path": "scripts/llm_optimization/thesis_milestones/2026-05-03_kangaroo_top_ladder_transition_probe.json",
-      "reason": "Latest milestone. It records the bounded top-ladder sequence probe showing that a simple short forced-action prefix does not escape the 200-point Kangaroo plateau."
+      "path": "scripts/llm_optimization/thesis_milestones/2026-05-12_kangaroo_post_first_skill_spec_followup.json",
+      "reason": "Latest milestone. It records the post-first SkillSpec continuation, the stricter post-first audit, and the finding that Kangaroo still plateaus at exactly 200 after first-ladder progress."
     },
     {
       "step": 4,
@@ -96,6 +96,25 @@
       "Two API-free post-200 guard patches were tested: policy_shaped_v2_post200_guard.py and policy_shaped_v2_post200_guard_dodge.py. Both averaged 193.75 over 32 episodes at 10000 steps and never exceeded 200.",
       "A top-of-ladder action probe shows that at y=132 no atomic action can escape before life loss; at y=140, horizontal actions do not dismount, UP moves into the y=132 trap, and DOWN actions retreat downward.",
       "A bounded top-ladder transition sequence probe tested 216 short forced-action candidates from the y=140 post-reward state. No candidate exceeded 200; the best short prefix, DOWNRIGHTx24 + DOWNLEFTx16, delayed failure but a longer replay still died at score 200 near x=126,y=132.",
+      "Reward-aware LeGPS infrastructure now exists through --objective-mode env|llm_shaped|hybrid. The llm_shaped and hybrid modes require generated policies to include dense_reward(...), so CMA-ES can optimize skill-progress signals while final evaluation still reports real environment reward.",
+      "The unified prompt now asks for readable skill-like helper functions in multi-stage games, such as target selection, navigation, ladder climbing, hazard avoidance, and goal pursuit.",
+      "Two small reward-aware Kangaroo smoke runs completed. Both validated the new hybrid objective path and saved redacted artifacts, but both scored 0 real return.",
+      "The first reward-aware Kangaroo smoke showed the generated dense objective was too weak, with optimizer-facing scores around 0.9 and no real reward.",
+      "The second reward-aware Kangaroo smoke showed the dense objective had meaningful scale around 210, but still rewarded zero-return ladder proximity/alignment while suppressing FIRE; logger metrics flagged first_reward_suppressed_pattern=1 and no_fire_scoreless_pattern=1.",
+      "Dense-reward prompt instructions were tightened to forbid raw action-frequency rewards, unbounded survival/alignment accumulation, and Kangaroo no-FIRE scoreless behavior.",
+      "LeGPS now supports labeled skill stages through --skill-stage full_game|kangaroo_ladder_navigation|kangaroo_post_first_reward, keeping curriculum-style navigation experiments separate from full-game claims.",
+      "LeGPS now supports --tune-reward-weights for explicit future experiments where dense_reward(..., params) can use reward_ parameters in init_params; this is off by default.",
+      "A dense-reward audit now flags likely misaligned shaped objectives, including Kangaroo first-reward suppression and no-FIRE scoreless behavior.",
+      "A small Kangaroo ladder-navigation skill-stage smoke run completed at scripts/llm_optimization/runs/single_game/kangaroo_ladder_navigation_smoke_20260508. It scored 0 real return but produced route-like movement and climb-state metrics, so it is failure evidence rather than performance evidence.",
+      "A NEXUS-style skill specification stage now exists behind --skill-spec-mode llm. It asks the LLM for a structured skill/reward decomposition, saves skill_spec.json, records the raw LLM exchange in llm_io, and feeds the specification into policy-generation and rewrite prompts.",
+      "SkillSpec prompts now require semantic parameter clipping, after an early Kangaroo SkillSpec policy let CMA-ES tune a fraction threshold above its valid range and made climbing impossible.",
+      "Skill-stage shaped runs now track best_selection_score separately from best_score. Full-game runs still select by real environment return, but explicit skill-stage shaped runs penalize audit-failed candidates so no-climb reward policies do not displace skill-aligned candidates.",
+      "Three small Kangaroo SkillSpec smoke runs completed. The best third-smoke policy in scripts/llm_optimization/runs/single_game/kangaroo_skill_spec_smoke3_20260510 reached 200 real return, passed the dense-reward audit, showed max_upward_progress=16 and climb_rate=0.269, and retained best_selection_source=skill_stage_shaped_objective.",
+      "A 16-episode 10000-step follow-up for the third SkillSpec smoke scored exactly 200.0 in every episode. The policy reaches the first-ladder/top state but does not escape the post-ladder transition.",
+      "A targeted post-first SkillSpec continuation ran in scripts/llm_optimization/runs/single_game/kangaroo_skill_spec_post_first_20260512 after claude-opus-4-7 repeatedly returned Anthropic 529 overloaded errors; the exploratory run used claude-sonnet-4-6 and preserved 200 but did not exceed it.",
+      "The post-first audit was tightened after the first post-first run: policies with exactly one 200-point event, max_upward_progress<=18, no post_reward_bonus, and no score beyond 200 now fail the post-first stage.",
+      "Refreshed resumed-best policies are now re-audited before computing best_selection_score, preventing stale positive selection scores after audit-rule changes.",
+      "A stricter auditfix run in scripts/llm_optimization/runs/single_game/kangaroo_skill_spec_post_first_auditfix_20260512 marked both new post-first candidates and the copied baseline as audit-failed. The regenerated 16-episode 10000-step follow-up still scored exactly 200 in every episode.",
       "The unified suite runner exists.",
       "The optimizer=none RQ4 ablation path exists and has a first completed run.",
       "The thesis goal tracker and milestone log exist."
@@ -109,6 +128,8 @@
       "Evidence that a future Kangaroo candidate preserves the stable first 200-point RIGHTFIRE reward while improving post-200 route behavior.",
       "A working Kangaroo top-ladder transition sequence or policy routine that escapes the y=132 trap after the first reward.",
       "Evidence that a future Kangaroo candidate exceeds the 200-point plateau under standardized real-reward evaluation.",
+      "A successful post-ladder Kangaroo transition policy that exceeds the 200-point plateau under standardized real-reward evaluation.",
+      "Dedicated post-first logger metrics for post_reward_progress / above_first_ladder_progress so post-first audits do not rely only on max_upward_progress and score_events.",
       "A successful standardized 10000-step Kangaroo policy run and canonical reevaluation before counting it as covered.",
       "Broader environment coverage beyond the current five canonical games.",
       "Cleaner evidence that improvements come from the unified method rather than hidden per-game hand tuning."
@@ -117,38 +138,38 @@
   "recommended_next_steps": [
     {
       "priority": 1,
-      "task": "Do not launch another broad Kangaroo outer loop from the same setup as the main next action.",
-      "reason": "The bounded transition probe found no simple short forced-action prefix above 200, so another paid run without stronger mechanics guidance is likely to repeat the same plateau."
+      "task": "Trace the post-first SkillSpec policies around y≈132 before launching more LLM iterations.",
+      "reason": "The latest runs preserve first-ladder progress but still stall at exactly 200; the next fix should identify the exact action-priority or geometry failure for dismount, coconut escape, and next-ladder selection."
     },
     {
       "priority": 2,
-      "task": "Choose between a faster staged Kangaroo mechanics search and onboarding Seaquest for broader thesis coverage.",
-      "reason": "Kangaroo is now well-instrumented but still exploratory; the current thesis goal also prioritizes maximizing covered games."
+      "task": "Recover or recreate the stable 200-point Kangaroo baseline artifact if Kangaroo remains the priority.",
+      "reason": "The current checkout does not contain the original policy_v6 run directory needed for a clean --skill-stage kangaroo_post_first_reward resume run."
     },
     {
       "priority": 3,
-      "task": "If continuing Kangaroo, search for a staged top-ladder transition with an explicit success target.",
-      "reason": "A useful target is reaching a new platform, reaching the next ladder route, or scoring above 200 before handing control back to the policy."
+      "task": "Run --skill-stage kangaroo_post_first_reward with --resume-from-results once a valid stable baseline is available.",
+      "reason": "The from-scratch reward-aware and ladder-navigation runs still produce 0 real return; the next rational target is post-200 improvement while preserving the known first reward."
     },
     {
       "priority": 4,
-      "task": "Use exact episode-index debug replay before any more paid Kangaroo attempts.",
-      "reason": "It can now reproduce specific vectorized evaluation episodes and distinguish high-score shortcuts from intended task progress."
+      "task": "Continue auditing dense_reward(...) before trusting any shaped-objective improvement.",
+      "reason": "Recent smoke runs proved that valid LLM-generated objectives can still reward zero-return behavior."
     },
     {
       "priority": 5,
-      "task": "Keep low-level perception parameters separate from high-level route parameters.",
-      "reason": "Patch-2 shows that separating ladder overlap from route-column exclusion can materially improve Kangaroo without another LLM call."
+      "task": "Use debug replay and logger metrics to validate whether reward-aware Kangaroo behavior is real route progress.",
+      "reason": "A score increase only counts as useful evidence if it avoids punch farming and shows ladder/platform progress under real reward evaluation."
     },
     {
       "priority": 6,
-      "task": "Keep policy_v7 as a documented regression rather than deleting or hiding it.",
-      "reason": "Failed policies are useful method evidence and support honest RQ1/RQ2 interpretation."
+      "task": "After a valid single-game result, decide whether to extend reward-aware mode to another sparse/progression game or onboard Seaquest.",
+      "reason": "The thesis still needs broader coverage, but only after the new objective pathway is validated."
     },
     {
       "priority": 7,
-      "task": "Return to additional seeded RQ1 reruns and RQ2/RQ3/RQ4 probes after expanding coverage.",
-      "reason": "The RQs still need evidence, but the immediate direction is broader environment coverage."
+      "task": "Keep multi-seed and across-seed human-normalized summaries deferred for now.",
+      "reason": "The current requested scope is to implement and save the reward-aware method direction first, not to run stability statistics."
     },
     {
       "priority": 8,
@@ -169,6 +190,11 @@
     "run_rq1_seeded_rerun": "bash scripts/llm_optimization/run_rq1_seeded_rerun.sh",
     "run_kangaroo_smoke": "python scripts/llm_optimization/llm_optimization_loop.py --game kangaroo --max-iters 2 --num-envs 4 --num-episodes 4 --max-steps 1000 --search-max-steps 1000 --param-samples 4 --cma-generations 1 --output-dir scripts/llm_optimization/runs/single_game/kangaroo_smoke_<date>",
     "run_kangaroo_shaped_fresh": "bash scripts/llm_optimization/run_kangaroo_shaped_fresh_outer_loop.sh",
+    "run_reward_aware_kangaroo_smoke": "python scripts/llm_optimization/llm_optimization_loop.py --game kangaroo --objective-mode hybrid --max-iters 2 --num-envs 4 --num-episodes 4 --max-steps 1000 --search-max-steps 1000 --param-samples 4 --cma-generations 1 --output-dir scripts/llm_optimization/runs/single_game/kangaroo_reward_aware_smoke_<date>",
+    "run_kangaroo_ladder_navigation_smoke": "python scripts/llm_optimization/llm_optimization_loop.py --game kangaroo --objective-mode hybrid --skill-stage kangaroo_ladder_navigation --max-iters 2 --num-envs 4 --num-episodes 4 --max-steps 1000 --search-max-steps 1000 --param-samples 4 --cma-generations 1 --output-dir scripts/llm_optimization/runs/single_game/kangaroo_ladder_navigation_smoke_<date>",
+    "run_kangaroo_skill_spec_smoke": "python scripts/llm_optimization/llm_optimization_loop.py --game kangaroo --skill-spec-mode llm --objective-mode hybrid --skill-stage kangaroo_ladder_navigation --max-iters 2 --num-envs 4 --num-episodes 4 --max-steps 1000 --search-max-steps 1000 --param-samples 4 --cma-generations 1 --output-dir scripts/llm_optimization/runs/single_game/kangaroo_skill_spec_smoke_<date>",
+    "run_kangaroo_skill_spec_post_ladder_followup": "python scripts/llm_optimization/llm_optimization_loop.py --game kangaroo --skill-spec-mode llm --objective-mode hybrid --skill-stage kangaroo_post_first_reward --resume-from-results --max-iters 3 --num-envs 8 --num-episodes 16 --max-steps 10000 --search-max-steps 10000 --param-samples 16 --cma-generations 5 --output-dir <first_ladder_progress_run_dir>",
+    "run_kangaroo_post_first_reward_resume": "python scripts/llm_optimization/llm_optimization_loop.py --game kangaroo --objective-mode hybrid --skill-stage kangaroo_post_first_reward --resume-from-results --max-iters 3 --num-envs 8 --num-episodes 16 --max-steps 10000 --search-max-steps 10000 --param-samples 16 --cma-generations 5 --output-dir <stable_200_kangaroo_run_dir>",
     "render_kangaroo_policy": "python scripts/llm_optimization/experiments/kangaroo/render_policy_video.py --policy-dir scripts/llm_optimization/runs/unified_suite/kangaroo_smoke_20260429_152718/kangaroo --max-steps 450 --output scripts/llm_optimization/analysis/videos/kangaroo_policy_rollout.gif",
     "summarize_rq1_seeded_reruns": "python scripts/llm_optimization/analysis/summarize_seeded_rq1_reruns.py --suite-dirs scripts/llm_optimization/runs/unified_suite/rq1_seeded_<run_id_1> scripts/llm_optimization/runs/unified_suite/rq1_seeded_<run_id_2>",
     "generate_rq4_figures": "python -m scripts.llm_optimization.analysis.generate_rq4_ablation_figures",

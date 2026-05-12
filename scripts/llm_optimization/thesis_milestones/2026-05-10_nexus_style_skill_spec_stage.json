@@ -1,0 +1,37 @@
+{
+  "date": "2026-05-10",
+  "title": "NEXUS-style skill specification stage added to LeGPS",
+  "summary": "After checking Appendix F of NEXUS-1, LeGPS now has an optional explicit skill/reward decomposition stage. This implements the useful NEXUS idea of asking an LLM for skills, reward terms, anti-shortcut notes, and skill-selection rules before policy synthesis, without adopting the full NEXUS architecture.",
+  "motivation": [
+    "NEXUS first queries an LLM for task-relevant skills and associated reward functions using the game manual and object-centric observation schema.",
+    "NEXUS then queries the LLM for a fixed skill selector or meta-policy.",
+    "LeGPS previously encouraged skill-like helper functions and dense_reward(...), but it did not save a separate reusable skill specification before policy generation."
+  ],
+  "implemented_changes": [
+    "Added --skill-spec-mode off|llm to the single-game outer loop.",
+    "Added --refresh-skill-spec to regenerate skill_spec.json when needed.",
+    "When enabled, the loop asks the LLM for a structured JSON skill specification before the first policy is generated.",
+    "The skill specification is saved as skill_spec.json in the run directory and the raw LLM exchange is saved under llm_io.",
+    "Initial, diagnostic, diagnostic-rewrite, and improvement prompts now receive the saved skill specification as context.",
+    "The unified suite runner can forward --skill-spec-mode and --refresh-skill-spec to each game run.",
+    "Optimization results now record the skill_spec_mode and skill_spec_path."
+  ],
+  "what_this_does_not_claim": [
+    "This is not a full NEXUS implementation.",
+    "LeGPS still uses one generated interpretable Python policy and CMA-ES over numeric parameters, not separately trained neural skill policies.",
+    "No new performance result is claimed yet from the skill-spec stage.",
+    "The final evaluation metric remains real environment reward."
+  ],
+  "rq_mapping": {
+    "RQ1": "May improve policy generation on sparse or multi-stage games by making required skills explicit before code generation.",
+    "RQ2": "Provides a better audit artifact for checking whether generated behavior matches intended skills or exploits shortcuts.",
+    "RQ3": "Creates a reusable skill decomposition that can later support task-variation adaptation.",
+    "RQ4": "Adds a future ablation axis: standard LeGPS versus LeGPS with an LLM-generated skill specification."
+  },
+  "next_steps": [
+    "Run a small Kangaroo or Seaquest single-game smoke with --skill-spec-mode llm.",
+    "Inspect skill_spec.json before interpreting any policy result.",
+    "If objective_mode is llm_shaped or hybrid, verify dense_reward(...) follows the saved skill reward terms and does not reward shortcuts.",
+    "Only promote skill-spec results after standardized real-reward evaluation and video/logger checks."
+  ]
+}

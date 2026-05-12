@@ -1,0 +1,39 @@
+{
+  "date": "2026-05-08",
+  "title": "Reward-aware hierarchical LeGPS direction",
+  "status": "infrastructure_direction_saved",
+  "summary": "The next thesis direction is to keep the unified LeGPS setup, but add an LLM-generated skill/objective layer so CMA-ES can optimize intermediate progress instead of only sparse environment reward.",
+  "conversation_interpretation": {
+    "main_problem": "The LLM writes policies intended to solve the full game, but the numeric optimizer often sees only sparse environment reward. In games such as Kangaroo, this makes it difficult for CMA-ES to tune ladder alignment, platform transitions, or route progress, and it can reward shortcuts such as repeated lower-platform punching.",
+    "proposed_solution": "Ask the LLM to decompose the task into skills and provide a dense reward or auxiliary shaping function in addition to the policy. CMA-ES can then tune policy parameters against skill-progress signals while final reporting remains based on real environment reward.",
+    "hierarchical_policy_direction": "Policies should be structured as readable subskills where appropriate, such as target selection, navigation, ladder climbing, hazard avoidance, reward collection, and goal pursuit. This improves interpretability and supports later task adaptation experiments.",
+    "important_guardrail": "A shaped or LLM-generated objective is an optimizer scaffold, not final success. Real environment return must remain the reported metric and shortcut behavior must still be audited by video, traces, and logger metrics."
+  },
+  "explicitly_deferred": [
+    "Do not run multi-seed evaluation in this step.",
+    "Do not produce across-seed human-normalized aggregate figures in this step."
+  ],
+  "engineering_decision": {
+    "new_mode": "Add a general objective mode with options env, llm_shaped, and hybrid.",
+    "env": "CMA-ES optimizes real environment return only.",
+    "llm_shaped": "The generated policy module must provide dense_reward(...), and CMA-ES optimizes that dense objective directly. The prompt instructs dense_reward to include real return as a major term plus bounded skill-progress terms.",
+    "hybrid": "The generated policy module must provide dense_reward(...), and CMA-ES optimizes real return plus that auxiliary shaping term. The prompt instructs dense_reward not to include total_reward in this mode.",
+    "compatibility": "Existing Kangaroo-specific shaped-objective and dense-reward flags are preserved as compatibility paths."
+  },
+  "rq_mapping": {
+    "RQ1": "The mode may improve sparse-reward games and eventually produce stronger canonical policies, but no new performance claim is made yet.",
+    "RQ2": "The mode directly addresses shortcut learning by requiring skill-progress objectives and keeping real reward plus behavior audits separate from optimizer scaffolding.",
+    "RQ3": "Skill-structured policies are a prerequisite for later few-shot or zero-shot task-variation adaptation experiments.",
+    "RQ4": "This creates a future ablation axis: full LeGPS with environment reward versus LeGPS with LLM-shaped objective versus LLM-only/no-CMA."
+  },
+  "next_steps_after_this_milestone": [
+    "Smoke-test the reward-aware mode on Kangaroo with a small budget before any expensive outer loop.",
+    "Inspect the generated dense_reward(...) manually and reject objectives that are naive, unbounded, or misaligned.",
+    "Use video/debug replay to verify that any score increase corresponds to intended navigation rather than punch farming or another shortcut.",
+    "Only after a valid single-game smoke result, decide whether to run a larger Kangaroo attempt or extend the same mode to another sparse/progression game."
+  ],
+  "notes": [
+    "This milestone records direction and infrastructure, not a new experimental result.",
+    "API keys or credentials must not be stored in any milestone or run artifact."
+  ]
+}

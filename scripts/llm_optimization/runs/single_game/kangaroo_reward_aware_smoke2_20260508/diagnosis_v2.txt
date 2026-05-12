@@ -1,0 +1,34 @@
+## 1. Root cause
+The policy's punch branch is unreachable in practice, and the climb branch is also under-triggered. The horizontal-toward-ladder mover dominates early frames, and once the player reaches the first ladder column the dismount logic forces RIGHT at the top before any score event can occur. Net effect: the policy walks/climbs a little, never fires, never collects, and never reaches a second ladder — exactly the "first-reward suppressed" failure mode the metrics flag.
+
+## 2. Evidence from metrics
+- `fire_action_rate=0`, `punch_action_rate=0`, `rightfire_action_rate=0`, `score_events=0`, `reward_total=0`.
+- `first_reward_suppressed_pattern=1` and `no_fire_scoreless_pattern=1`: explicit detectors firing.
+- `climb_rate=0.61` but `up_action_rate=0.024` and `max_upward_progress=16`: player is in the climbing state most of the time, yet the policy almost never issues UP, so progress stalls at y≈132.
+- `horizontal_action_rate=0.976`, `x_range=105`: policy is sweeping horizontally instead of committing to climb.
+- `unique_action_count=2`: effectively only two actions used — confirms whole branches (FIRE, UP) are dead.
+- `final_player_y=132`, `min_player_y=132`: stuck at the first ladder bottom/top region.
+
+## 3. Policy logic causing it
+- `_select_ladder` requires `bot_dy < 18.0` AND `upward = ltop < p_bot - 4.0`. From the starting platform the first ladder's bottom may not satisfy this combined test every frame, so `has_ladder` flickers; when it's false, `on_col` is false, so `climbing` is false → no UP. This explains 61% climb-state but ~2% UP actions.
+- `_on_ladder_column` uses `half = max(lw*0.5 - 1.0, align_tol)`. With `align_tol≈4.2` and narrow ladders this band is tight; combined with the flickering `has_ladder`, the climb gate rarely latches.
+- The punch branch is gated by `same_row = mdy < 12.0` plus `|mdx| < punch_dx ≈ 17.7`. The starting kangaroo bbox vs. monkey y offset likely exceeds 12 px (player_y vs monkey_y centers differ), so `in_punch_range` is essentially always false → `rightfire_action_rate=0`. The stable-200 RIGHTFIRE branch is effectively deleted.
+- `dismount_dir` is hardcoded to RIGHT in all three `where` arms — meaningless ternary, and forces RIGHT off the ladder regardless of where the next reachable ladder is.
+- Hazard/punch overrides are gated by `~climbing`; since `climbing` rarely becomes true, those don't matter, but the punch override never fires anyway because of the row test.
+- Shaped reward gives `survival + approach + align` even with zero score, which is why the optimizer-facing score is 210 while real return is 0 — CMA-ES tuned `align_tol`, `top_tol`, `punch_dx` to maximize alignment time, not punching.
+
+## 4. What to preserve
+- The 440-feature index map and array slicing.
+- The `_select_ladder` structure (reach by `|lbot - p_bot|`, upward filter, active filter) — the geometry is correct.
+- The `_on_ladder_column` center-band concept (rule 12 fix) — keep parametric overlap, do not regress to any-x-overlap.
+- Compact parameter set tunable by CMA-ES.
+- The stable-200 contract: lower-platform approach, nearby-monkey detection, first RIGHTFIRE punch. Do not add `& ~on_column` to the punch predicate (rule 13).
+
+## 5. What to change next
+- Loosen and decouple the punch trigger from row equality: use a parametric `punch_dy_tol` separate from `align_tol`, defaulted generously (e.g., ~16–20), and let it activate even when `has_ladder` is true. Do not gate by `~climbing` or `~on_column`.
+- Make `has_ladder` more permissive at the starting platform: widen the reach test (separate `reach_tol` for bottom-dy already exists — use it instead of the hardcoded 18.0), and keep a fallback "best active ladder" so `on_col`/climb logic never fully blanks out.
+- Strengthen the climb branch: once the player has been in `on_col` for any frame, prefer UP until `near_top` regardless of small x-jitter. Since the policy is stateless, approximate this by widening the column band slightly when `p_bot` is between `ltop` and `lbot` (player vertically inside the ladder span), which is a pure-obs predicate.
+- Replace the degenerate `dismount_dir` ternary with a real next-ladder selection: after reaching `near_top`, recompute `_select_ladder` using the new `p_bot` (i.e., evaluate reachability from the just-reached platform) and steer horizontally toward that ladder's `lcx`. This addresses the post-200 transition without touching the pre-200 route.
+- Decouple FIRE/punch from horizontal-to-ladder traversal so the first-route monkey punch can execute while approaching the first ladder. Priority order should be: (1) imminent hazard dodge, (2) punch in range, (3) climb when vertically inside ladder span and roughly aligned, (4) horizontal toward target ladder, (5) NOOP.
+- Drop or down-weight `align_reward`, `survival`, and `approach_reward` in `dense_reward` until a real score event appears; otherwise CMA-ES keeps converging to "stand near a ladder forever." Tie a large multiplier to actual `total_reward` so optimizer pressure aligns with true return.
+- Add a small parameter `punch_dy_tol` and a `reach_tol_bot` to expose the currently hardcoded 12.0 and 18.0 to CMA-ES; the existing `reach_tol` is unused by `_select_ladder`.

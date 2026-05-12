@@ -1,0 +1,47 @@
+## 1. Root Cause
+
+The policy successfully reaches the first higher platform (~y=132) but cannot execute the post-climb sequence: it stalls inside the ladder column at the top, fails to dismount onto the new platform, and then dies to a falling coconut at nearly the same x/y coordinates every episode. The result is a hard ceiling of 200 points with zero subsequent upward progress.
+
+## 2. Evidence from Metrics
+
+- `final_player_y = 132`, `min_player_y = 132`: The player reaches y≈132 and never gets higher.
+- `max_upward_progress = 16`, `y_range = 16`: Total vertical displacement is only 16 pixels — consistent with climbing one short ladder segment and stopping.
+- `net_upward_progress = 16`: No further upward movement after the first gain.
+- `noop_rate = 0.3440`: ~34% NOOPs indicate the player is idling, likely stuck at the ladder top waiting for a condition that never resolves.
+- `up_action_rate = 0.0230`: Very few UP actions after the initial climb — climbing stops but dismount also fails.
+- `score_events = 1`: Only the single first-reward event (RIGHTFIRE monkey punch), nothing further.
+- `lives_lost = 1`: A falling coconut at x≈133, y≈129 kills the player while stalled at the ladder top.
+- `climb_rate = 0.2617` with `y_range = 16`: The player is registered as "climbing" for 26% of steps but only moves 16 pixels vertically, confirming the stall-in-column-top problem.
+- Route trace explicitly confirms: reward at step 613 near x=132, y=148 → player stays near x=132, y=132 → falling coconut kills.
+
+## 3. Policy Logic Causing It
+
+**Dismount condition fails or triggers wrong action:**
+`near_top_any` gates on `abs(py - col_top) <= dismount_tol` (~4.4 px). At the ladder top, this either: (a) never fires because `py` never gets close enough to `col_top` during the stall, or (b) fires but `dismount_action` sends the player in the wrong direction (back into the same column or toward the coconut).
+
+**`_next_ladder_from_upper_platform` produces no valid target (`has_next = False`):** The function searches for a ladder whose bottom is near `current_top_y + 16.0` within a tolerance. At the first ladder top (~y=132), this geometric guess likely misses all upper-platform ladders, so `has_next = False` and the fallback dismount direction defaults to a screen-center heuristic — which may be directly toward the falling coconut or back into the column.
+
+**Climb condition keeps re-asserting:** After dismount fires, if the player barely moves or the overlap fraction stays above `overlap_frac` (0.535), `can_climb` re-activates and overrides the dismount action, pushing UP again into the top of the column — a tight loop between climb and near-top that produces mostly NOOPs and stalls.
+
+**Falling coconut not evaded while on-column:** `on_ladder_coconut_escape` should trigger when `on_col_any & f_threat`, but the threat radius `coconut_dx` (~8 px) paired with the player being stationary in the column means the coconut arrives before avoidance activates or the escape direction is also into the coconut path.
+
+## 4. What to Preserve
+
+- The lower-platform horizontal traverse → RIGHTFIRE monkey punch → first 200-point reward sequence. This path is working and must not be touched.
+- The `_select_target_ladder` reachability logic (bottom-y proximity gating), which correctly avoids the wrong higher-platform ladder at game start.
+- The `in_punch_range → punch_action` branch at the bottom of priority (no gating by on-column state).
+- The `overlap_frac` climb entry threshold that prevents single-pixel false climbs.
+
+## 5. What to Change Next
+
+**Fix dismount trigger and direction:**
+Widen `dismount_tol` range or compute it as `abs(py - col_top) <= max(dismount_tol, player_h * 0.5)` so near-top is reliably detected. Once near-top fires, the dismount action must be issued for a minimum number of steps until x-overlap with the column drops below a lower threshold (e.g., 0.15), suppressing the climb re-assertion during that window.
+
+**Fix `_next_ladder_from_upper_platform`:**
+The `current_top_y + 16.0` offset is a hardcoded guess that fails at runtime. Replace it with `player_bottom_y` at dismount time (the actual feet position after climbing), and use `reach_y_tol` directly — the same logic as `_select_target_ladder` but called with the post-climb `player_bottom_y`. This removes the need for a separate function; simply re-run `_select_target_ladder` after dismounting.
+
+**Break the climb↔dismount oscillation loop:**
+Add a flag-equivalent: once `near_top_any` is true, the dismount action should dominate UP for a fixed window. Since stateless policy is required, approximate this by making the `can_climb` condition exclude cases where `abs(py - col_top) <= dismount_tol * 2.0` (a wider near-top exclusion zone), so the policy commits to dismounting before the climb condition can re-assert.
+
+**Improve falling coconut evasion while on-column:**
+Increase the vertical threat window for `f_threat` detection (current `fy < py + 30.0` is reasonable but the horizontal radius `coconut_dx` ≈ 8 px is too tight). The coconut at x≈133 is nearly collinear with the player at x≈132; raise `coconut_dx` bounds or widen the threat condition to trigger earlier dismount rather than sidestep, since sidestepping while on a ladder column is ineffective.

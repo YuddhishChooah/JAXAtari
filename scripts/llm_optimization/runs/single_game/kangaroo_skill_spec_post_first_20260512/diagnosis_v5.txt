@@ -1,0 +1,50 @@
+## 1. Root cause
+
+The agent scores its single 200-point event near (x≈132, y≈148), climbs partway up the first ladder to approximately y≈132, then **stalls in or immediately above that ladder column** until a falling coconut kills it. There is no working post-dismount transition: after reaching the ladder top area the policy neither reliably dismounts onto the upper platform nor selects and approaches the next reachable ladder from that new y-position.
+
+## 2. Evidence from metrics
+
+- `final_player_y = 132`, `min_player_y = 132`, `y_range = 16`: the agent never gets meaningfully above y≈132; the full climb height is only 16 pixels.
+- `max_upward_progress = 16`, `net_upward_progress = 16`: consistent with one partial ladder climb, then death at the same position every episode.
+- `score_events = 1`, `final_score = 200`: exactly one reward event, confirming the first-route RIGHTFIRE punch fires correctly but nothing beyond it succeeds.
+- `climb_rate = 0.2655`: significant time spent in the climbing state, implying the agent enters the ladder column and issues UP, but never exits it cleanly onto the upper platform.
+- `noop_rate = 0.3411`: high NOOP fraction after the climb stall, consistent with the skill selector falling into a no-valid-ladder, no-hazard, no-dismount limbo.
+- `up_action_rate = 0.0232`: very few UP actions relative to step count, meaning climbing stops early and the agent idles near y≈132.
+- `lives_lost = 1`, `final_lives = 2`: one death, always at the stall position, consistent with the falling-coconut trace at x≈133, y≈129.
+- `unique_action_count = 4`: only four distinct actions used across the whole episode, confirming the policy collapses to a tiny action repertoire after the first reward.
+
+## 3. Policy logic causing it
+
+**Dismount condition fires too late or not at all.** `near_top_any` requires `abs(py - col_top) <= dismount_tol` (≈4.5 px). If the ladder's stored `col_top` (ladder_y of the best-scoring on-column ladder) does not match the actual top the player reaches, the threshold is never crossed and the agent keeps issuing UP or NOOP.
+
+**`_on_any_climbable_ladder` hysteresis works against dismount.** The `hysteresis = dismount_tol` offset means the agent must be more than ~4.5 px *below* the ladder top to still register as "on column." Near the top, the `has_height` test (`py > col_top_with_hyst`) may flip off just before `near_top_any` flips on, creating a gap where neither climbing nor dismounting is triggered → NOOP.
+
+**`_next_ladder_from_upper_platform` uses `col_top` from the *on-column* detection**, which may be the wrong ladder index or stale. After the hysteresis gap clears `on_col_any`, `col_top` becomes garbage, so `_next_ladder_from_upper_platform(obs, p, col_top)` searches from an incorrect reference y and returns `has_next = False`, causing `dismount_action` to fall back to a direction heuristic that may point toward the same column.
+
+**`can_climb` is gated by `~near_top_any`**, but if `near_top_any` also never triggers (the gap above), `can_climb` stays True and UP continues to be issued even when the player is at or past the top, oscillating the player at the column top.
+
+**Punch priority overrides dismount.** The RIGHTFIRE branch has unconditional highest priority. If a monkey is still within `monkey_punch_dx`/`monkey_punch_dy` at the moment the player reaches the ladder top, punch overrides the dismount action and keeps the player stationary in the hazard zone.
+
+**Falling-coconut escape on-ladder** (`on_ladder_coconut_escape`) issues a horizontal action, which moves the player off the ladder without a proper dismount transition and without setting any post-dismount state, so the next-ladder selection from the new position gets no benefit from the `_next_ladder_from_upper_platform` path.
+
+## 4. What to preserve
+
+- The entire lower-platform approach: `_select_target_ladder` reachability filter (bottom-y proximity, not x-nearest), horizontal traverse, overlap-fraction on-column guard.
+- The RIGHTFIRE punch branch as the unconditional highest-priority action — it is the source of the 200 points.
+- The `_x_overlap_frac_arr` center-band guard preventing 1-pixel false positives.
+- The `_coconut_threat` widened lookahead (2.5× `coconut_dx`, 70 px above).
+- CMA-ES parameter set structure; do not change parameter names or add breaking new ones without backward defaults.
+
+## 5. What to change next
+
+**Fix the dismount gap.** Replace the two-condition `near_top_any` + `can_climb` split with a single explicit dismount trigger: when `py <= col_top + dismount_tol` (player y is at or above the ladder top within tolerance), issue the dismount action unconditionally — do not require the on-column flag to still be True at that exact moment. Track `col_top` from the *last confirmed on-column step* rather than re-reading from the potentially-cleared `_on_any_climbable_ladder` output.
+
+**Separate `col_top` state across calls.** Pass the last-known ladder top y as a sticky variable (computed when `on_col_any` is True, frozen otherwise) so `_next_ladder_from_upper_platform` always receives a valid reference even after hysteresis clears `on_col_any`.
+
+**Prioritise dismount over punch at the ladder top.** Narrow the punch branch activation: if `near_top_any` (or the new dismount trigger) is True, suppress the punch override so the agent exits the vulnerable zone before engaging any monkey.
+
+**Widen `dismount_tol` initial value and CMA-ES upper bound.** Current clipped range is [2, 12]; the trace shows the player stalls at y≈132 with the ladder top nearby — a wider tolerance (e.g., initial 8, upper bound 20) makes the trigger more robust to coordinate noise.
+
+**Post-dismount horizontal sweep must use `_select_target_ladder` from the *new* y, not the upper-platform offset heuristic.** After dismount is confirmed, call `_select_target_ladder` with the updated `player_y` and `player_bottom_y`; the current `_next_ladder_from_upper_platform` with its fixed `current_top_y + ph` estimate is fragile. Alternatively, remove the separate function and reuse `_select_target_ladder` with the already-correct live `obs` fields.
+
+**Add a small stall-breaking rule.** If the agent has issued NOOP or UP for more than ~10 consecutive steps without a y-decrease (detectable inside `dense_reward` as a shaped penalty, and structurally as a tie-breaker in the skill selector), force RIGHT to exit the column vicinity. This prevents the 0.34 NOOP-rate plateau.

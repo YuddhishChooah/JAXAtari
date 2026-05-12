@@ -1,0 +1,291 @@
+{
+  "schema_version": "1.2",
+  "game": "kangaroo",
+  "skill_stage": "kangaroo_post_first_reward",
+  "overall_goal": "Navigate the mother kangaroo upward through all platform levels by climbing reachable ladders, avoiding or punching hazards, and ultimately reaching the child Joey at the top of the screen.",
+  "skills": [
+    {
+      "name": "select_and_approach_reachable_ladder",
+      "purpose": "Identify the best active ladder reachable from the current platform (by vertical proximity of ladder_bottom_y to player_bottom_y) and move horizontally toward it.",
+      "activation_conditions": [
+        "No ladder column currently overlaps the player center-band (player is NOT climbing).",
+        "At least one active ladder exists where abs(ladder_bottom_y - player_bottom_y) < approach_vertical_threshold.",
+        "Player is not in immediate danger from a nearby threat within threat_close_radius."
+      ],
+      "completion_signals": [
+        "Player center_x enters the ladder center-band: abs(player_x + player_w*0.5 - ladder_center_x) < ladder_center_band_width.",
+        "Player transitions to the climb_ladder skill on the next step."
+      ],
+      "reward_terms": [
+        "clamp(-abs(player_cx - target_ladder_cx) / screen_width_norm, -1, 0)  # negative distance to target ladder center",
+        "+approach_bonus if abs(player_cx - target_ladder_cx) < ladder_center_band_width  # entered band",
+        "-stall_penalty if horizontal_displacement_last_N_steps < stall_displacement_threshold  # penalise standing still"
+      ],
+      "anti_shortcuts": [
+        "Must not select the nearest ladder by x-distance alone; select only ladders whose bottom_y is within approach_vertical_threshold of player_bottom_y.",
+        "Must not drift backward or oscillate left/right without net horizontal progress toward the target ladder.",
+        "Must not select a ladder that belongs to a higher platform than the player's current platform."
+      ],
+      "policy_helpers": [
+        "compute_player_bottom_y(obs)",
+        "find_reachable_ladders(obs, approach_vertical_threshold)",
+        "select_best_ladder(reachable_ladders, player_cx, player_y)",
+        "horizontal_action_toward(player_cx, target_cx, fire_mode=False)"
+      ],
+      "candidate_parameters": [
+        "approach_vertical_threshold: float  # e.g. 20.0, how close ladder_bottom_y must be to player_bottom_y",
+        "ladder_center_band_width: float  # e.g. 6.0, pixel tolerance to consider player inside ladder column",
+        "stall_displacement_threshold: float  # e.g. 2.0, min horizontal movement over N steps",
+        "stall_N_steps: int  # e.g. 8",
+        "approach_bonus: float  # e.g. 0.3",
+        "stall_penalty: float  # e.g. 0.1",
+        "screen_width_norm: float  # e.g. 160.0"
+      ]
+    },
+    {
+      "name": "climb_ladder",
+      "purpose": "Climb an active ladder upward until the player reaches or passes the ladder top, then dismount onto the new platform.",
+      "activation_conditions": [
+        "Player center_x is inside the target ladder center-band: abs(player_cx - ladder_center_x) < ladder_center_band_width.",
+        "Player bottom_y is within mount_vertical_threshold of ladder_bottom_y (first mount), OR player is already climbing (player_y is between ladder_top_y and ladder_bottom_y).",
+        "Ladder active flag is 1."
+      ],
+      "completion_signals": [
+        "player_y <= ladder_top_y + dismount_top_margin  # player reached near the top of the ladder",
+        "Player transitions to select_and_approach_reachable_ladder or navigate_platform_segment on the next step."
+      ],
+      "reward_terms": [
+        "clamp((player_y_prev - player_y) / climb_progress_norm, -1, 1)  # upward displacement per step (y decreases upward)",
+        "+dismount_bonus if player_y <= ladder_top_y + dismount_top_margin  # reached top of ladder",
+        "-wrong_direction_penalty if player_y > player_y_prev + descent_tolerance  # penalise descending on ladder"
+      ],
+      "anti_shortcuts": [
+        "Must not issue UP when there is only a 1-pixel x-overlap with the ladder; require the center-band test.",
+        "Must not keep climbing past ladder_top_y indefinitely; dismount once player_y <= ladder_top_y + dismount_top_margin.",
+        "Must not treat a ladder belonging to a lower platform as the climb target."
+      ],
+      "policy_helpers": [
+        "is_inside_ladder_column(obs, ladder_idx, ladder_center_band_width)",
+        "compute_ladder_top_y(obs, ladder_idx)",
+        "should_dismount(player_y, ladder_top_y, dismount_top_margin)",
+        "climb_action(hazard_present)"
+      ],
+      "candidate_parameters": [
+        "ladder_center_band_width: float  # e.g. 6.0, reuse from approach skill",
+        "mount_vertical_threshold: float  # e.g. 8.0, tolerance to begin climb from bottom",
+        "dismount_top_margin: float  # e.g. 4.0, pixels above ladder_top_y to trigger dismount",
+        "climb_progress_norm: float  # e.g. 20.0, normalises per-step y change",
+        "dismount_bonus: float  # e.g. 0.5",
+        "wrong_direction_penalty: float  # e.g. 0.2",
+        "descent_tolerance: float  # e.g. 1.0"
+      ]
+    },
+    {
+      "name": "navigate_platform_segment",
+      "purpose": "After dismounting a ladder onto a new platform, move horizontally toward the next upward route (next reachable ladder, child, or bell) while staying on the platform.",
+      "activation_conditions": [
+        "Player has recently dismounted a ladder (player_y <= last_ladder_top_y + dismount_top_margin + post_dismount_window).",
+        "No ladder center-band currently overlaps player.",
+        "No immediate hazard within close-threat radius."
+      ],
+      "completion_signals": [
+        "Player enters the center-band of the next reachable ladder.",
+        "Player reaches child_x vicinity (child_active == 1 and abs(player_cx - child_x) < child_reach_radius)."
+      ],
+      "reward_terms": [
+        "clamp((player_y_prev - player_y) / platform_y_norm, -1, 1)  # reward any net upward displacement after dismount",
+        "+next_ladder_approach_bonus * clamp(1 - abs(player_cx - next_target_cx) / screen_width_norm, 0, 1)  # proximity to next target",
+        "-stall_penalty if horizontal_displacement_last_N_steps < stall_displacement_threshold"
+      ],
+      "anti_shortcuts": [
+        "Must not stand still after dismount waiting for hazards to clear indefinitely.",
+        "Must not chase fruit objects if doing so moves the player away from the next ladder route.",
+        "Must not descend a ladder just climbed to farm the monkey encounter below."
+      ],
+      "policy_helpers": [
+        "find_next_route_target(obs, player_y, dismount_top_margin)",
+        "horizontal_action_toward(player_cx, target_cx, fire_mode=False)",
+        "is_on_platform(obs, player_bottom_y)"
+      ],
+      "candidate_parameters": [
+        "post_dismount_window: float  # e.g. 12.0, y-pixel window after dismount to activate skill",
+        "platform_y_norm: float  # e.g. 20.0",
+        "next_ladder_approach_bonus: float  # e.g. 0.4",
+        "stall_displacement_threshold: float  # e.g. 2.0",
+        "stall_N_steps: int  # e.g. 8",
+        "stall_penalty: float  # e.g. 0.1",
+        "child_reach_radius: float  # e.g. 12.0"
+      ]
+    },
+    {
+      "name": "evade_or_punch_hazard",
+      "purpose": "React to nearby active monkeys, thrown coconuts, and falling coconuts by punching (FIRE) if the threat is in front, or dodging by moving away or jumping.",
+      "activation_conditions": [
+        "Any active monkey exists where abs(monkey_y[i] - player_y) < threat_same_level_y_tol AND abs(monkey_x[i] - player_cx) < threat_close_x_radius.",
+        "OR any active thrown coconut with abs(coconut_y[i] - player_y) < coconut_y_tol AND abs(coconut_x[i] - player_cx) < coconut_x_radius.",
+        "OR falling_coconut_active == 1 AND abs(falling_coconut_x - player_cx) < falling_coconut_x_radius AND falling_coconut_y > player_y - falling_coconut_y_lookahead."
+      ],
+      "completion_signals": [
+        "All threatening objects either deactivate or move outside their respective threat radii.",
+        "Player survives without regressing to a lower y-position."
+      ],
+      "reward_terms": [
+        "+punch_threat_bonus if threat_was_present_prev AND nearest_threat_distance increased after FIRE action",
+        "-hazard_proximity_penalty * clamp(1 - nearest_threat_distance / threat_close_x_radius, 0, 1)  # continuous repulsion",
+        "+survival_bonus_per_step  # small constant for staying alive while hazard skill is active",
+        "-regression_penalty if player_y > player_y_at_skill_start + regression_tolerance  # penalise losing height"
+      ],
+      "anti_shortcuts": [
+        "Must not repeatedly punch a monkey that is out of punching range just to farm punch-bonus points.",
+        "Must not stay in punch-farming mode when no threat is active; hazard skill must deactivate.",
+        "Must not move backward (increase y) to chase a passing coconut when dodging upward or sideways is possible.",
+        "Punch bonus must not dominate the composite reward to the point where climbing is never attempted."
+      ],
+      "policy_helpers": [
+        "find_nearest_threat(obs, player_cx, player_y)",
+        "threat_is_in_front(player_orientation, threat_x, player_cx)",
+        "choose_evade_or_punch_action(threat_dist, threat_in_front, player_orientation)",
+        "compute_threat_level(obs)"
+      ],
+      "candidate_parameters": [
+        "threat_same_level_y_tol: float  # e.g. 16.0",
+        "threat_close_x_radius: float  # e.g. 30.0",
+        "coconut_y_tol: float  # e.g. 12.0",
+        "coconut_x_radius: float  # e.g. 20.0",
+        "falling_coconut_x_radius: float  # e.g. 18.0",
+        "falling_coconut_y_lookahead: float  # e.g. 40.0",
+        "punch_threat_bonus: float  # e.g. 0.3",
+        "survival_bonus_per_step: float  # e.g. 0.01",
+        "regression_tolerance: float  # e.g. 8.0",
+        "regression_penalty: float  # e.g. 0.4"
+      ]
+    },
+    {
+      "name": "ring_bell_if_adjacent",
+      "purpose": "If the bell is active and the player is on the same platform level and nearby, move to and activate the bell for bonus reward, without detouring far from the upward route.",
+      "activation_conditions": [
+        "bell_active == 1.",
+        "abs(bell_y - player_y) < bell_same_level_y_tol.",
+        "abs(bell_x - player_cx) < bell_detour_x_limit.",
+        "No immediate hazard present (threat_level < hazard_threshold).",
+        "No reachable ladder is currently closer horizontally than the bell (bell is on the way or only a small detour)."
+      ],
+      "completion_signals": [
+        "bell_active transitions from 1 to 0 (bell was rung).",
+        "Player passed bell_x and continues toward the upward route."
+      ],
+      "reward_terms": [
+        "+bell_ring_bonus if bell_active_prev == 1 AND bell_active == 0",
+        "clamp(-abs(player_cx - bell_x) / screen_width_norm, -1, 0) * bell_approach_weight  # approach shaping (only while skill active)"
+      ],
+      "anti_shortcuts": [
+        "Must not chase the bell when it requires significant backward horizontal movement away from the next ladder.",
+        "Must not activate this skill when the player is mid-climb on a ladder.",
+        "Must not loop near the bell after ringing it; deactivate skill immediately on bell_active == 0."
+      ],
+      "policy_helpers": [
+        "bell_is_on_route(bell_x, player_cx, next_ladder_cx, bell_detour_x_limit)",
+        "horizontal_action_toward(player_cx, bell_x, fire_mode=False)"
+      ],
+      "candidate_parameters": [
+        "bell_same_level_y_tol: float  # e.g. 14.0",
+        "bell_detour_x_limit: float  # e.g. 35.0",
+        "bell_ring_bonus: float  # e.g. 0.4",
+        "bell_approach_weight: float  # e.g. 0.2",
+        "hazard_threshold: float  # e.g. 0.3"
+      ]
+    },
+    {
+      "name": "reach_child",
+      "purpose": "When the player is on the top platform and near the child, move directly toward the child to complete the level.",
+      "activation_conditions": [
+        "child_active == 1.",
+        "player_y < top_platform_y_threshold  # player is near the top of the screen",
+        "abs(player_y - child_y) < child_same_level_y_tol."
+      ],
+      "completion_signals": [
+        "abs(player_cx - child_x) < child_reach_radius  # player reached child position",
+        "child_active transitions from 1 to 0 (child rescued)."
+      ],
+      "reward_terms": [
+        "clamp(1 - abs(player_cx - child_x) / screen_width_norm, 0, 1) * child_approach_weight  # proximity bonus",
+        "+child_rescue_bonus if child_active_prev == 1 AND child_active == 0"
+      ],
+      "anti_shortcuts": [
+        "Must not activate when player_y is far below child_y; avoids pulling the agent upward by raw y-distance before it has climbed ladders.",
+        "Must not suppress hazard evasion; hazard skill takes priority if threats are present even on the top platform."
+      ],
+      "policy_helpers": [
+        "child_is_reachable(obs, player_y, top_platform_y_threshold, child_same_level_y_tol)",
+        "horizontal_action_toward(player_cx, child_x, fire_mode=False)"
+      ],
+      "candidate_parameters": [
+        "top_platform_y_threshold: float  # e.g. 50.0, player_y below which the top platform is reached",
+        "child_same_level_y_tol: float  # e.g. 16.0",
+        "child_reach_radius: float  # e.g. 10.0",
+        "child_approach_weight: float  # e.g. 0.6",
+        "child_rescue_bonus: float  # e.g. 1.0"
+      ]
+    }
+  ],
+  "skill_selector": {
+    "priority_order": [
+      "evade_or_punch_hazard",
+      "reach_child",
+      "climb_ladder",
+      "navigate_platform_segment",
+      "ring_bell_if_adjacent",
+      "select_and_approach_reachable_ladder"
+    ],
+    "selection_rules": [
+      "1. Compute threat_level from all active monkeys, thrown coconuts, and falling coconut within their respective radii. If threat_level >= hazard_activation_threshold, activate evade_or_punch_hazard regardless of other skill states.",
+      "2. Else if child_active == 1 AND player_y < top_platform_y_threshold AND abs(player_y - child_y) < child_same_level_y_tol, activate reach_child.",
+      "3. Else if player center_x is inside any active ladder center-band AND that ladder's bottom_y is within mount_vertical_threshold of player_bottom_y OR player is between ladder_top_y and ladder_bottom_y, activate climb_ladder.",
+      "4. Else if player recently dismounted a ladder (tracked via last_dismount_step, current_step - last_dismount_step < post_dismount_window_steps) AND next route target exists, activate navigate_platform_segment.",
+      "5. Else if bell_active == 1 AND bell is on route within bell_detour_x_limit AND no hazard, activate ring_bell_if_adjacent.",
+      "6. Default: activate select_and_approach_reachable_ladder."
+    ],
+    "fallback_behavior": "Issue NOOP for one step, then re-evaluate skill selection. If stall_N consecutive NOOPs are issued, issue RIGHT to break deadlock."
+  },
+  "dense_reward_design": {
+    "use_when_objective_mode": "hybrid",
+    "composition_rule": "Weighted sum of per-skill reward terms, all clamped to [-1, 1] individually, then combined as: r_total = w_evade * r_evade + w_climb * r_climb + w_approach * r_approach + w_navigate * r_navigate + w_bell * r_bell + w_child * r_child. Only the active skill's terms are non-zero each step, except hazard terms which are always active when threat_level > 0. Final scalar clamped to [-1, 1].",
+    "must_include": [
+      "upward_displacement_reward: (player_y_prev - player_y) / y_norm, bounded, active when climbing or navigating",
+      "ladder_band_entry_bonus: one-time bonus when player center enters a new ladder center-band",
+      "dismount_bonus: one-time bonus when player reaches ladder_top_y region",
+      "hazard_repulsion: continuous negative signal proportional to proximity to active threats",
+      "survival_per_step: tiny positive constant each step the agent is alive and making upward progress"
+    ],
+    "must_not_include": [
+      "Raw Euclidean distance to child as a standalone reward term (ignores platform/ladder structure)",
+      "Score or RAM-based score proxy as a shaped reward (encourages punch farming)",
+      "Fruit collection reward (distracts from upward route)",
+      "Reward for punching any monkey regardless of location (enables punch-farming loop)",
+      "Reward for any downward displacement (player_y increasing) as a progress signal"
+    ],
+    "real_reward_relationship": "The shaped dense reward approximates the true sparse environment reward by decomposing it into measurable sub-goals (reachable ladder selection, ladder climbing, hazard survival, child rescue). The shaped reward should correlate positively with true episode return without replacing it: CMA-ES optimises the hybrid combination (lambda * shaped + (1-lambda) * real), and the real reward remains the ground truth signal for policy ranking."
+  },
+  "alignment_risks": [
+    "Punch-farming: if the hazard skill's punch_threat_bonus or survival_bonus_per_step dominates, the agent may park near a monkey and punch repeatedly for shaped reward without climbing. Mitigate by deactivating hazard skill when no threat is within radius and capping punch_threat_bonus below climb progress rewards.",
+    "Wrong-ladder selection at start: selecting the x-nearest ladder rather than the reachable (bottom_y-close) ladder will cause the agent to climb the wrong ladder and make no real progress. The reachable-ladder filter is critical and must be preserved.",
+    "Stall at ladder top: if dismount_top_margin is too large, the agent may never trigger dismount and oscillate at the top of the ladder. Keep dismount_top_margin small and include a stall penalty.",
+    "Hazard-skill over-activation: if threat radii are too large, the agent spends most time in evade mode and never climbs. Tune threat_close_x_radius carefully.",
+    "Bell detour trap: if bell_detour_x_limit is too large, the agent chases bells far from the upward route and regresses in height.",
+    "Naive upward displacement reward: a small constant UP reward could be gamed by the agent oscillating vertically on a ladder without net progress. Use displacement only in conjunction with ladder-band and dismount checks.",
+    "Post-first-reward regression: changes to the first-route parameters (approach_vertical_threshold, ladder_center_band_width) can break the stable 200-point baseline. The preservation contract must hold: verify the first-reward route before testing post-200 improvements.",
+    "Child-skill premature activation: if top_platform_y_threshold is set too low, reach_child activates before the player is actually on the top platform, pulling the agent diagonally and disrupting the ladder route."
+  ],
+  "implementation_notes": [
+    "compute_player_bottom_y(obs): returns obs[1] + obs[3], the player sprite bottom edge.",
+    "find_reachable_ladders(obs, threshold): iterate ladder indices 0-19, filter by active==1 AND abs((ladder_y[i]+ladder_h[i]) - player_bottom_y) < threshold. Return filtered list of (index, ladder_center_x, ladder_top_y).",
+    "select_best_ladder(reachable, player_cx, player_y): among reachable ladders, prefer the one with the smallest abs(ladder_top_y - player_y) (highest upward gain) as primary sort, breaking ties by horizontal distance.",
+    "is_inside_ladder_column(obs, idx, band): abs((obs[168+idx] + obs[208+idx]*0.5) - (obs[0] + obs[2]*0.5)) < band.",
+    "The 'on-ladder' guard must use the center-band test (is_inside_ladder_column), NOT a single-pixel bounding-box overlap test, to avoid the known 1-pixel false-positive bug.",
+    "Preserve the existing stable-200 route: the lower-platform RIGHTFIRE branch when a monkey is at threat range on the first platform must remain active. Do not disable FIRE actions globally.",
+    "Track last_dismount_step as a simple integer counter reset whenever should_dismount() returns True. Use it to keep navigate_platform_segment active for post_dismount_window_steps steps after dismount.",
+    "All candidate_parameters should be collected into a single flat numpy array for CMA-ES; the policy function receives this parameter vector and unpacks named thresholds from it.",
+    "Skill selector must be a pure function of obs and the parameter vector, with no hidden mutable state except last_dismount_step (passed as argument or closure).",
+    "For CMA-ES initialisation, use the documented example values as the initial mean vector and set sigma0 to roughly 10-20% of each parameter's expected range."
+  ]
+}

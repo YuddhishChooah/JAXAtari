@@ -1,0 +1,50 @@
+## 1. Root Cause
+
+The policy successfully executes the first-platform RIGHTFIRE punch and earns 200 points, but then **stalls at y≈132 in the first ladder's top zone** until a falling coconut kills the player. The post-200 route never activates: the agent neither dismounts onto the upper platform nor selects and approaches the next reachable ladder. The dismount logic fires (`near_top_any` via `dismount_tol`) but the resulting `dismount_action` sends the player to an unsafe or incorrect position, and `_next_ladder_from_upper_platform` either fails to find a valid ladder or returns a target that the traversal logic never reaches before the coconut arrives.
+
+---
+
+## 2. Evidence from Metrics
+
+- `final_player_y = 132`, `min_player_y = 132`, `y_range = 16`: the player never meaningfully rises above the first ladder's top; maximum upward displacement is only 16 pixels from the start.
+- `net_upward_progress = 16`, `max_upward_progress = 16`: zero progress after the first reward event at step 613.
+- `climb_rate = 0.2655` but `up_action_rate = 0.0232`: the agent spends 27% of steps "on a column" but issues UP only 2% of the time—indicating it detects itself as on a ladder but repeatedly triggers `near_top_any` (dismount) before climbing far, or the `can_climb` condition is suppressed by `near_top_any`.
+- `noop_rate = 0.3411`: high NOOP rate implies the skill selector repeatedly falls through to `fallback` with no valid target, leaving the player stationary at the dangerous y≈132 position.
+- `lives_lost = 1`, `score_events = 1`: a single life is lost to the coconut at x≈133, y≈129, confirming the stall-then-death pattern.
+- `unique_action_count = 4`: only NOOP, RIGHTFIRE, RIGHT, UP are used; LEFT is absent, confirming the traversal toward the next ladder (which would require LEFT) never engages.
+
+---
+
+## 3. Policy Logic Causing It
+
+**`near_top_any` triggers prematurely or persistently.** The hysteresis in `_on_any_climbable_ladder` (using `dismount_tol` ≈ 4.5 px as the `col_top_with_hyst` offset) means the player is considered "near top" while still several pixels below the ladder top. Once `near_top_any = True`, `can_climb` is suppressed, so the agent stops climbing and issues `dismount_action` instead. But `dismount_action` depends on `has_next` from `_next_ladder_from_upper_platform`, which uses `current_top_y = col_top`—a value derived from the *currently detected* climbable column. If `col_top` is slightly wrong (ladder the player is still partially overlapping), `est_feet_y = col_top + ph` may not match the bottom of the true next ladder, `valid` stays all-False, `has_next = False`, and `dismount_action` falls back to a direction based on `pcx < 80.0` (RIGHT, since pcx ≈ 132 > 80). The player then moves RIGHT or issues NOOP while staying in the coconut's drop zone.
+
+**`_next_ladder_from_upper_platform` exclusion logic is too tight.** The `not_same` filter (`abs(ly - current_top_y) > 4.0`) combined with the `above_ok` check (`ly < current_top_y - min_top_above`) can simultaneously exclude both the current ladder and higher ladders whose y-coordinates happen to be close to `current_top_y`. With `min_top_above ≈ 6.3`, any ladder whose top is within 6–10 px of `current_top_y` is excluded, potentially filtering out the correct next ladder on the upper platform.
+
+**`on_col_any` hysteresis prevents re-entry but also blocks the dismount-traverse transition.** After `near_top_any` triggers, if the player's y stays close to `col_top` (because the dismount action isn't moving them fast enough), the column overlap remains active, keeping `on_col_any = True`. This prevents `post_dismount_traverse` from activating (it only runs when the player is off the column), so the agent cycles between `near_top_any → dismount_action → still on column → near_top_any` without escaping.
+
+**Falling-coconut threat is not detected early enough in this zone.** The coconut at y≈129 is nearly at player level before `f_threat` activates (requires `fy > py - 70` and `fy < py + 20`), and when it does, `on_ladder_coconut_escape` sends the player in a direction that may still be inside the column or toward the coconut's path.
+
+---
+
+## 4. What to Preserve
+
+- The `_select_target_ladder` function and the lower-platform reachable-ladder logic (bottom_y proximity filter).
+- The `in_punch_range → punch_action` branch (RIGHTFIRE) as the highest-priority action with no ladder gate.
+- The `overlap_frac`-based `on_sel_ladder` test and `can_climb` → UP logic for the first ladder ascent.
+- The `x_align_tol`-based horizontal traversal toward `tgt_cx`.
+- The `_coconut_threat` structure and `coc_threat & ~on_col_any → sidestep` branch.
+
+---
+
+## 5. What to Change Next
+
+**a. Fix dismount escape from the top zone.** When `near_top_any` is True, the player should immediately move horizontally *away* from the current column (toward the next ladder or, failing that, toward the center of the platform) using a **RIGHTFIRE or direction action that also clears the column x-band**. The current `dismount_action` can resolve to NOOP or the same-side direction that keeps the player in the column. Add a condition: if `near_top_any` has been True for a parametric number of consecutive implied steps (or if `on_col_any` is still True while `near_top_any` is True), force a horizontal step that changes `pcx` enough to exit the column center-band.
+
+**b. Make `_next_ladder_from_upper_platform` less restrictive and more geometrically correct.** Pass the actual `player_bottom_y` (not `col_top + ph`) as the reference feet position when the player is already near the top. Relax `not_same` to exclude only the ladder whose `lx` matches the current column's `lx` within a few pixels (not by `ly` proximity), preventing valid upper-platform ladders from being filtered. Increase the `reach_y_tol + 8.0` additive margin or make it a separate tunable parameter.
+
+**c. Decouple the post-dismount traversal from `on_col_any`.** After `near_top_any` triggers, set a flag or use `py < col_top + dismount_tol` as the post-dismount condition rather than `~on_col_any`, since the overlap lingers. The `post_dismount_traverse` branch should activate based on player height relative to the former ladder top, not column overlap state.
+
+**d. Prioritize falling-coconut evasion at the top of a ladder.** When `near_top_any` and `f_threat` are both True, `ladder_escape_action` should unconditionally override `dismount_action` and move the player horizontally away from the coconut's x. Currently the priority ordering has `on_ladder_coconut_escape` above `near_top_any` already, but the direction of escape (`fcx_safe_dir`) may coincide with staying in the column. Ensure the escape direction is also constrained to exit the ladder center-band (i.e., move far enough horizontally, not just one pixel).
+
+**e. Add a stall-break condition.** If `noop_rate` is high near the ladder top (the player is issuing NOOP because `fallback` has no valid target), add a tie-breaker: if `has_next` is False but `any_valid` is also False and `near_top_any` is True, force `RIGHT` or `LEFT` based on `pcx` relative to screen center, to physically move off the column and create a new observation context where `_next_ladder_from_upper_platform` may find a valid target.

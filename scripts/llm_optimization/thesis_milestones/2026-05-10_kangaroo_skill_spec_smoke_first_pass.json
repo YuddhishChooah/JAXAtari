@@ -1,0 +1,47 @@
+{
+  "date": "2026-05-10",
+  "title": "First Kangaroo SkillSpec smoke runs",
+  "summary": "The NEXUS-style SkillSpec stage now runs end-to-end on Kangaroo. The best third-smoke policy reaches the stable 200-point reward and shows measurable first-ladder upward progress, but a 10000-step follow-up remains exactly at 200 in all episodes, so Kangaroo is still not solved.",
+  "runs": [
+    {
+      "path": "scripts/llm_optimization/runs/single_game/kangaroo_skill_spec_smoke_20260510",
+      "protocol": "2 outer iterations, 4 envs, 4 eval episodes, 1000 steps, hybrid objective, kangaroo_ladder_navigation, skill_spec_mode=llm",
+      "result": "Best real return 200.0 in the smoke run; 16-episode 10000-step follow-up with saved best_params scored exactly 200.0 in every episode.",
+      "diagnosis": "The generated skill_spec was useful, but the best policy let CMA-ES tune overlap_frac_min above 1.0, making the climb gate impossible. Dense-reward audit failed for no measurable ladder climbing or upward progress."
+    },
+    {
+      "path": "scripts/llm_optimization/runs/single_game/kangaroo_skill_spec_smoke2_20260510",
+      "protocol": "Same small SkillSpec smoke after adding prompt instructions to clamp semantic parameters.",
+      "result": "Best real return 150.0; generated policies clipped fraction parameters, but the retained best still failed the navigation-stage audit.",
+      "diagnosis": "The LLM reduced the impossible-parameter failure, but the outer loop still selected by real reward, so no-climb first-reward behavior could beat lower-reward skill-aligned behavior."
+    },
+    {
+      "path": "scripts/llm_optimization/runs/single_game/kangaroo_skill_spec_smoke3_20260510",
+      "protocol": "Same small SkillSpec smoke after changing skill-stage shaped runs to select best policy by audited skill objective rather than raw real return.",
+      "result": "Best real return 200.0, best selection score 302.09, dense-reward audit passed, max_upward_progress=16.0, climb_rate=0.269, score_without_climb_pattern=0.0. A 16-episode 10000-step follow-up scored exactly 200.0 in every episode.",
+      "diagnosis": "The policy now climbs to y≈132 after the first reward, but it stalls at the top of the first ladder and dies to the falling coconut. The remaining failure is post-ladder dismount and next-ladder transition, not the earlier no-climb plateau."
+    }
+  ],
+  "implemented_fixes_from_smoke": [
+    "Policy prompts now require semantic parameter clipping so CMA-ES cannot make fractions exceed valid ranges or distances go negative.",
+    "Skill-stage shaped runs now retain best candidates by a skill-stage selection score. Audit-failed candidates receive a large selection penalty, while full-game runs still select by real environment return.",
+    "Optimization results and suite manifests now record best_selection_score and best_selection_source separately from best_score."
+  ],
+  "interpretation": [
+    "The SkillSpec stage is useful as an audit and decomposition artifact: it identified reachable-ladder selection, traversal, climbing, dismount/replan, and hazard avoidance.",
+    "The third smoke is the first SkillSpec run where the retained policy shows real first-ladder upward progress rather than only horizontal punch behavior.",
+    "This is still not canonical Kangaroo performance evidence because no 10000-step episode exceeded 200 and the policy does not transition beyond the first ladder."
+  ],
+  "rq_mapping": {
+    "RQ1": "Partial exploratory progress for Kangaroo: the method recovers 200 and first-ladder progress, but not a successful full-game agent.",
+    "RQ2": "Strong evidence that logger/audit metrics are necessary: real reward alone would select no-climb policies, while skill audit reveals whether the policy matches intended navigation.",
+    "RQ3": "Skill decomposition is now operational but has not yet been used for task-variation adaptation.",
+    "RQ4": "The run creates a future ablation axis for SkillSpec versus no-SkillSpec; no ablation result is claimed yet."
+  },
+  "next_steps": [
+    "Target the post-ladder transition explicitly: dismount from y≈132, avoid the falling coconut, and select the next reachable ladder/platform.",
+    "Tighten or extend the SkillSpec/audit for post-ladder transition so reaching y≈132 alone is not enough to pass later-stage experiments.",
+    "Consider a kangaroo_post_first_reward SkillSpec run initialized from the current first-ladder-progress policy once a clean resume artifact is available.",
+    "Keep real reward, selection score, dense-reward audit, logger metrics, and video/trace evidence separate in interpretation."
+  ]
+}

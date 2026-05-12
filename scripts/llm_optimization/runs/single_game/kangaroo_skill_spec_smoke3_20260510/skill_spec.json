@@ -1,0 +1,268 @@
+{
+  "schema_version": "1.0",
+  "game": "Kangaroo",
+  "skill_stage": "kangaroo_ladder_navigation",
+  "overall_goal": "Climb from the bottom platform to the child at the top by repeatedly choosing a ladder that is reachable from the current platform, traversing to it, climbing it, and dismounting safely while avoiding monkeys and coconuts.",
+  "skills": [
+    {
+      "name": "select_reachable_ladder",
+      "purpose": "Pick a target ladder whose bottom is on the same platform as the player's feet and whose top is above the player.",
+      "activation_conditions": [
+        "player_active == 1",
+        "Player is not currently inside a ladder column (no significant x-overlap with any active ladder).",
+        "At least one active ladder exists with abs((ladder_y+ladder_h) - (player_y+player_h)) < reach_y_tol AND ladder_y < player_y."
+      ],
+      "completion_signals": [
+        "A target ladder index is chosen and persisted as the current sub-goal.",
+        "abs(player_center_x - ladder_center_x[target]) decreases over consecutive steps."
+      ],
+      "reward_terms": [
+        "+w_select if a reachable ladder is selected (bottom near player feet, top above player)",
+        "-w_bad_select if the selected ladder fails the reach-y test (e.g., higher-platform ladder)",
+        "+w_persist for keeping the same target ladder while still reachable (avoid oscillation)"
+      ],
+      "anti_shortcuts": [
+        "Selecting the ladder with smallest |dx| ignoring reach-y test.",
+        "Switching ladder targets every step."
+      ],
+      "policy_helpers": [
+        "compute_player_feet_y",
+        "ladder_reach_score",
+        "select_target_ladder"
+      ],
+      "candidate_parameters": {
+        "reach_y_tol": 8.0,
+        "min_top_above": 4.0,
+        "persist_bias": 0.5,
+        "max_dx_consider": 80.0
+      }
+    },
+    {
+      "name": "traverse_to_ladder",
+      "purpose": "Move horizontally along the current platform toward the selected ladder's center x while preserving the proven first-reward RIGHTFIRE branch when a near monkey threatens.",
+      "activation_conditions": [
+        "A target ladder is selected.",
+        "Player is on a platform (no x-overlap with target ladder column above overlap_frac).",
+        "abs(player_center_x - target_ladder_center_x) > x_align_tol."
+      ],
+      "completion_signals": [
+        "Player x-overlap fraction with target ladder >= overlap_frac.",
+        "abs(player_center_x - target_ladder_center_x) <= x_align_tol."
+      ],
+      "reward_terms": [
+        "+w_dx_progress * max(0, prev_abs_dx - cur_abs_dx) bounded by step_cap",
+        "+w_punch_branch if a monkey is close ahead in player_orientation direction and FIRE-direction action is issued (preserves stable-200 punch)",
+        "-w_wrong_dir if action moves away from target_ladder_center_x without hazard justification"
+      ],
+      "anti_shortcuts": [
+        "Standing still and farming punches on lower-platform monkeys with zero UP actions.",
+        "Reversing direction repeatedly to accumulate dx_progress."
+      ],
+      "policy_helpers": [
+        "horizontal_action_toward",
+        "monkey_threat_in_facing_direction",
+        "should_punch_now"
+      ],
+      "candidate_parameters": {
+        "x_align_tol": 3.0,
+        "overlap_frac": 0.4,
+        "monkey_threat_dx": 16.0,
+        "monkey_threat_dy": 10.0,
+        "w_dx_progress": 1.0,
+        "w_punch_branch": 0.5,
+        "step_cap": 2.0
+      }
+    },
+    {
+      "name": "climb_ladder",
+      "purpose": "Issue UP (or UPFIRE if a coconut/monkey is directly above) while inside the target ladder column until near its top.",
+      "activation_conditions": [
+        "Player x-overlap fraction with target ladder >= overlap_frac (parametric, not 1-pixel).",
+        "ladder_top_y[target] < player_y - min_top_above.",
+        "Player is not currently airborne from a jump arc."
+      ],
+      "completion_signals": [
+        "player_y decreases (player moves up).",
+        "abs(player_y - ladder_top_y[target]) <= dismount_tol triggers dismount."
+      ],
+      "reward_terms": [
+        "+w_climb * max(0, prev_player_y - cur_player_y) bounded by climb_cap",
+        "+w_reach_top when player_y within dismount_tol of ladder_top_y[target]",
+        "-w_fall if player_y increases by more than fall_tol while skill active"
+      ],
+      "anti_shortcuts": [
+        "Treating any 1-pixel x-overlap as 'on ladder' and issuing UP off-ladder.",
+        "Holding UP forever even after reaching the top."
+      ],
+      "policy_helpers": [
+        "x_overlap_fraction",
+        "is_on_target_ladder",
+        "near_ladder_top"
+      ],
+      "candidate_parameters": {
+        "overlap_frac": 0.5,
+        "dismount_tol": 6.0,
+        "min_top_above": 4.0,
+        "fall_tol": 4.0,
+        "w_climb": 1.0,
+        "climb_cap": 3.0,
+        "w_reach_top": 2.0
+      }
+    },
+    {
+      "name": "dismount_and_replan",
+      "purpose": "After reaching a ladder top, step horizontally onto the new platform and clear the target so a new ladder can be selected.",
+      "activation_conditions": [
+        "Skill climb_ladder produced near_ladder_top within last few steps.",
+        "Player x-overlap with target ladder still high but player_y near ladder_top_y[target]."
+      ],
+      "completion_signals": [
+        "Player x-overlap fraction with previous target ladder < overlap_frac.",
+        "Player feet y matches a new platform's top y within platform_y_tol.",
+        "Target ladder reset to none so select_reachable_ladder runs again."
+      ],
+      "reward_terms": [
+        "+w_dismount when overlap drops below overlap_frac while player_y stays near new platform",
+        "+w_new_select when a new reachable ladder above is selected after dismount",
+        "-w_redescend if player goes back down the same ladder"
+      ],
+      "anti_shortcuts": [
+        "Stalling at the ladder top (the post-200 failure mode).",
+        "Re-entering the same ladder repeatedly to harvest climb reward."
+      ],
+      "policy_helpers": [
+        "choose_dismount_direction",
+        "platform_under_feet",
+        "reset_target_ladder"
+      ],
+      "candidate_parameters": {
+        "platform_y_tol": 4.0,
+        "dismount_step_frames": 6,
+        "w_dismount": 1.0,
+        "w_new_select": 1.0,
+        "prefer_dismount_dir": 0.0
+      }
+    },
+    {
+      "name": "avoid_hazards",
+      "purpose": "React to nearby active monkeys, thrown coconuts, and falling coconuts with punch or sidestep, without abandoning vertical progress.",
+      "activation_conditions": [
+        "Any active monkey with |mx-player_x|<hazard_dx and |my-player_y|<hazard_dy, OR",
+        "falling_coconut_active and |falling_coconut_x-player_x|<coconut_dx and falling_coconut_y between player_y-coconut_dy_above and player_y+coconut_dy_below, OR",
+        "any active thrown coconut within hazard_dx, hazard_dy of player."
+      ],
+      "completion_signals": [
+        "Hazard no longer satisfies activation thresholds.",
+        "Player still on intended platform (player_y change within fall_tol)."
+      ],
+      "reward_terms": [
+        "+w_punch when FIRE issued in player_orientation toward an in-range monkey",
+        "+w_sidestep when horizontal action moves player out of falling_coconut_x band",
+        "-w_hit_proxy when hazard remains within tight inner band for >hit_frames consecutive steps"
+      ],
+      "anti_shortcuts": [
+        "Punching repeatedly with no monkey in range (punch farming).",
+        "Sidestepping so far that the player leaves the ladder approach lane."
+      ],
+      "policy_helpers": [
+        "nearest_monkey_threat",
+        "falling_coconut_threat",
+        "thrown_coconut_threat"
+      ],
+      "candidate_parameters": {
+        "hazard_dx": 14.0,
+        "hazard_dy": 10.0,
+        "coconut_dx": 6.0,
+        "coconut_dy_above": 40.0,
+        "coconut_dy_below": 4.0,
+        "hit_frames": 3,
+        "w_punch": 0.5,
+        "w_sidestep": 0.5,
+        "w_hit_proxy": 1.0
+      }
+    },
+    {
+      "name": "approach_child",
+      "purpose": "Once on the topmost reachable platform, walk toward child_x to trigger rescue.",
+      "activation_conditions": [
+        "child_active == 1.",
+        "abs((child_y) - (player_y)) < top_band_tol (player is on the child's platform tier).",
+        "No reachable upward ladder from current platform."
+      ],
+      "completion_signals": [
+        "abs(player_center_x - child_x) decreases.",
+        "Episode reward jump occurs (handled by env, not invented)."
+      ],
+      "reward_terms": [
+        "+w_child_dx * max(0, prev_abs_child_dx - cur_abs_child_dx) bounded by child_cap"
+      ],
+      "anti_shortcuts": [
+        "Activating this skill before actually reaching the top tier."
+      ],
+      "policy_helpers": [
+        "on_child_tier",
+        "horizontal_action_toward_child"
+      ],
+      "candidate_parameters": {
+        "top_band_tol": 12.0,
+        "w_child_dx": 1.0,
+        "child_cap": 2.0
+      }
+    }
+  ],
+  "skill_selector": {
+    "priority_order": [
+      "avoid_hazards",
+      "dismount_and_replan",
+      "climb_ladder",
+      "traverse_to_ladder",
+      "select_reachable_ladder",
+      "approach_child"
+    ],
+    "selection_rules": [
+      "If any hazard activation condition holds AND a safe punch/sidestep exists, run avoid_hazards but bias action choice to also respect current traversal direction.",
+      "If climb_ladder recently signaled near_ladder_top, run dismount_and_replan until target ladder overlap drops below overlap_frac.",
+      "Else if player has x-overlap fraction with target ladder >= overlap_frac and ladder_top_y[target] < player_y - min_top_above, run climb_ladder.",
+      "Else if a target ladder is set and not yet aligned, run traverse_to_ladder.",
+      "Else if no target ladder set, run select_reachable_ladder using reach_y_tol on player_feet_y vs ladder_bottom_y.",
+      "If on the child's tier with no upward ladder reachable, run approach_child."
+    ],
+    "fallback_behavior": "If no skill applies (e.g., between platforms during a jump), issue NOOP and re-evaluate next step; never default to holding UP."
+  },
+  "dense_reward_design": {
+    "use_when_objective_mode": "hybrid",
+    "composition_rule": "shaped = clip(sum_k active_k * w_k * term_k, -R_MAX, R_MAX) where active_k is 1 only for the currently selected skill plus avoid_hazards; final objective = real_env_reward + lambda_shape * shaped with lambda_shape small.",
+    "must_include": [
+      "Bounded upward-progress term based on decrease in player_y while climb_ladder is active.",
+      "Bounded horizontal-alignment term toward the selected target ladder's center_x while traverse_to_ladder is active.",
+      "Reach-y validity term that penalizes selecting a ladder whose bottom is not near player_feet_y.",
+      "Dismount term that rewards leaving the ladder column near its top onto a higher platform."
+    ],
+    "must_not_include": [
+      "Raw Euclidean distance to child as the primary signal.",
+      "Unbounded fruit-collection bonuses that incentivize ignoring upward progress.",
+      "Per-step FIRE rewards that don't require a monkey in range (punch farming).",
+      "Rewards for any tiny 1-pixel x-overlap with a ladder."
+    ],
+    "real_reward_relationship": "Shaped terms are auxiliary and must remain small relative to real environment reward. They encode the documented stable-200 contract (approach + valid punch + first ladder) and add post-200 progress signals (dismount, next-ladder selection, climb on higher platforms) so CMA-ES can extend beyond 200 without erasing the first-reward route."
+  },
+  "alignment_risks": [
+    "Punch-farming lower-platform monkeys for high score with zero UP actions.",
+    "Treating 1-pixel ladder x-overlap as 'on ladder' and issuing UP off-platform, causing falls.",
+    "Selecting the nearest ladder by x at start, picking the higher-platform ladder near x=20.",
+    "Oscillating between LEFT and RIGHT near start, never climbing.",
+    "Holding UP every step, gaining nothing and losing a life.",
+    "Over-aggressive post-200 rewrites that disrupt the working first-reward route.",
+    "Reward hacking via repeated re-entry of the same ladder to harvest climb reward."
+  ],
+  "implementation_notes": [
+    "Compute player_feet_y = player_y + player_h and ladder_bottom_y = ladder_y + ladder_h before any reach test.",
+    "Implement x_overlap_fraction(player, ladder) = max(0, min(px+pw, lx+lw) - max(px, lx)) / max(1, min(pw, lw)) and require >= overlap_frac (e.g., 0.4-0.5) before climbing.",
+    "Persist the chosen target ladder index across steps; only clear it on dismount or when the reach-y test fails.",
+    "Preserve a clearly gated RIGHTFIRE branch when monkey_threat_in_facing_direction holds near the start to keep the stable-200 baseline.",
+    "Avoid_hazards should override action choice but not change the active navigation skill, so the policy resumes climbing/traversing after the hazard clears.",
+    "Keep all candidate_parameters as a flat numeric vector for CMA-ES; do not let the LLM hard-code level-specific x/y constants beyond initial means.",
+    "Bound every shaped term per step (e.g., clipped to [-1, 1]) so CMA-ES cannot exploit unbounded shaping.",
+    "Treat ladder selection, climb gating, and dismount as three separable parameter groups; tune them in this order if staged optimization is used."
+  ]
+}

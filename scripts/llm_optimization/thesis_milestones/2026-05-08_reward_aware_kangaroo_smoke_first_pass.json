@@ -1,0 +1,48 @@
+{
+  "date": "2026-05-08",
+  "title": "Reward-aware Kangaroo smoke first pass",
+  "status": "completed_failure_evidence",
+  "summary": "Two small Kangaroo smoke runs validated the new reward-aware objective execution path, but both scored 0 real return. The runs exposed that LLM-generated dense rewards can still be misaligned if they over-reward ladder proximity, survival, or weak route progress without preserving the first reward event.",
+  "runs": [
+    {
+      "path": "scripts/llm_optimization/runs/single_game/kangaroo_reward_aware_smoke_20260508",
+      "objective_mode": "hybrid",
+      "budget": "2 outer iterations, 4 environments, 4 episodes, 1000 steps, 4 CMA-ES samples, 1 CMA-ES generation",
+      "best_real_return": 0.0,
+      "best_optimization_score": 0.9137059450149536,
+      "main_observation": "The infrastructure worked, dense_reward(...) was generated and optimized, but the dense signal was tiny and the policy produced no reward event."
+    },
+    {
+      "path": "scripts/llm_optimization/runs/single_game/kangaroo_reward_aware_smoke2_20260508",
+      "objective_mode": "hybrid",
+      "budget": "2 outer iterations, 4 environments, 4 episodes, 1000 steps, 4 CMA-ES samples, 1 CMA-ES generation",
+      "best_real_return": 0.0,
+      "best_optimization_score": 210.46763610839844,
+      "main_observation": "After prompt tightening, the dense objective had meaningful scale, but it still rewarded ladder approach/alignment while the policy suppressed FIRE and produced no score events."
+    }
+  ],
+  "diagnosis": {
+    "execution_path": "The new --objective-mode hybrid path works locally and saves redacted config, LLM IO, policies, params, diagnostics, and optimization results.",
+    "policy_failure": "Generated Kangaroo policies reached shallow upward progress near y=132 but did not preserve the first RIGHTFIRE reward branch.",
+    "objective_failure": "The generated dense rewards still allowed zero-return behavior to receive positive optimizer-facing scores through upward progress, alignment, survival, or approach terms.",
+    "metric_alignment": "Logger metrics match the interpretation: reward_total=0, score_events=0, first_reward_suppressed_pattern=1, no_fire_scoreless_pattern=1, and no punch/fire actions in the best smoke2 policy."
+  },
+  "code_changes_from_this_pass": [
+    "Added general --objective-mode env|llm_shaped|hybrid to the main outer loop and unified suite runner.",
+    "Extended prompts to request skill-like helper decomposition for multi-stage games.",
+    "Extended dense_reward(...) instructions to forbid raw action-frequency reward, require observation-grounded skill completion, require meaningful bounded scale, and warn against episode-length growth in survival/alignment terms.",
+    "Added Kangaroo-specific dense-reward guidance to penalize no-FIRE scoreless behavior, first-reward suppression, and idling near ladder states."
+  ],
+  "rq_mapping": {
+    "RQ1": "No new success evidence; Kangaroo remains exploratory and not canonical.",
+    "RQ2": "Strong new failure evidence showing that LLM-generated dense objectives themselves must be audited for shortcut or misalignment.",
+    "RQ3": "The policy prompt now encourages hierarchical skills, but no adaptation experiment has been run.",
+    "RQ4": "A new objective ablation axis exists, but these smoke runs are not performance ablations."
+  },
+  "next_steps": [
+    "Before a larger reward-aware run, inspect generated dense_reward(...) after iteration 1 and reject objectives that reward zero-return ladder proximity too much.",
+    "Consider using a resume/preservation prompt from the stable 200-point Kangaroo policy so the dense objective improves post-200 behavior instead of rediscovering zero-score first-route failures.",
+    "If running from scratch again, require the LLM-shaped objective to make first reward preservation and score events dominate any survival/alignment term.",
+    "Do not use these smoke runs as evidence that reward-aware LeGPS improves Kangaroo performance."
+  ]
+}

@@ -66,6 +66,12 @@ class OptimizationConfig:
     num_eval_episodes: int = 1024  # Evaluate over 1024 episodes
     frame_stack_size: int = 0  # 0 = use game default
     search_max_steps: int = 0  # 0 = use max_steps_per_episode
+    objective_mode: str = "env"  # "env", "llm_shaped", or "hybrid"
+    skill_stage: str = "full_game"  # "full_game", "kangaroo_ladder_navigation", or "kangaroo_post_first_reward"
+    skill_spec_mode: str = "off"  # "off" or "llm"; llm saves a NEXUS-style skill/reward decomposition.
+    refresh_skill_spec: bool = False  # Regenerate skill_spec.json even when one already exists.
+    dense_reward_audit: bool = True  # Flag likely misaligned LLM-generated objectives.
+    tune_reward_weights: bool = False  # Allow dense_reward(..., params) for explicit reward-weight experiments.
     kangaroo_shaped_objective: bool = False  # Optional scaffold for Kangaroo route-progress search.
     kangaroo_dense_reward_objective: bool = False  # Ask Kangaroo policies to provide the CMA-ES dense objective.
     
@@ -636,17 +642,20 @@ Your job is to produce a complete Python module that:
 1. defines a small tunable parameter dictionary,
 2. maps the provided flat observation to a valid raw game action,
 3. uses only JAX-safe control flow,
-4. is simple enough for derivative-free optimization such as CMA-ES.
+4. is simple enough for derivative-free optimization such as CMA-ES,
+5. decomposes the policy into readable skill-like helper functions when the task has multiple stages.
 
 The method is:
 - the LLM proposes policy structure,
-- CMA-ES tunes only the numeric parameters inside that structure.
+- CMA-ES tunes only the numeric parameters inside that structure,
+- optional reward-shaping modes may ask the LLM to provide an optimizer-facing dense objective, while final success is still measured with real environment reward.
 
 So optimize for:
 - simple logic,
 - 3-8 tunable float parameters,
 - readable constants and aliases,
 - robust action semantics,
+- named subskills such as target selection, navigation, hazard avoidance, and goal pursuit when appropriate,
 - behavior that is easy for black-box search to refine.
 
 Output discipline:
@@ -684,10 +693,75 @@ Output discipline:
 - Before finalizing, check that the module is syntactically valid and that parentheses/brackets are balanced.
 """.strip()
 
+SKILL_SPEC_SYSTEM_PROMPT = """
+You are an expert reinforcement-learning task decomposition auditor.
+Your job is to produce a compact, structured skill and reward specification for an interpretable policy-search method.
+Return only valid JSON, with no markdown or commentary.
+""".strip()
+
+SKILL_SPEC_PROMPT = """
+Create a reusable skill specification for Atari {game_name}.
+
+{environment_description}
+
+## LeGPS Method Context
+The final agent will be interpretable Python code. The LLM will generate the policy structure, then CMA-ES will optimize only numeric parameters.
+We do not need the full NEXUS architecture, but we do want the NEXUS-style idea of explicitly splitting the task into skills and reward signals.
+
+Current optimizer mode: {optimizer}
+Current objective mode: {objective_mode}
+Current skill stage: {skill_stage}
+
+## Output Schema
+Return one valid JSON object with exactly these top-level keys:
+- "schema_version": string
+- "game": string
+- "skill_stage": string
+- "overall_goal": string
+- "skills": list of 3 to 6 skill objects
+- "skill_selector": object
+- "dense_reward_design": object
+- "alignment_risks": list of strings
+- "implementation_notes": list of strings
+
+Each skill object must contain:
+- "name": short snake_case name
+- "purpose": what behavior this skill should create
+- "activation_conditions": observation-grounded conditions for when this skill should matter
+- "completion_signals": observation-grounded signs that the skill made progress
+- "reward_terms": bounded pseudo-reward terms useful for CMA-ES or dense_reward(...)
+- "anti_shortcuts": behaviors this skill reward must not accidentally encourage
+- "policy_helpers": suggested helper function names for generated Python policy code
+- "candidate_parameters": numeric thresholds CMA-ES could tune
+
+The skill_selector object must contain:
+- "priority_order": list of skill names
+- "selection_rules": simple observation-grounded rules for choosing the active skill
+- "fallback_behavior": what to do when no skill-specific target is active
+
+The dense_reward_design object must contain:
+- "use_when_objective_mode": one of "off", "llm_shaped", "hybrid", or "both_shaped_modes"
+- "composition_rule": how per-skill reward terms should combine into one bounded scalar
+- "must_include": signals that must be present if dense_reward(...) is requested
+- "must_not_include": misleading or exploitable signals to avoid
+- "real_reward_relationship": how this shaped objective relates to final real environment reward
+
+Rules:
+1. Use only the observation and action semantics documented above.
+2. Do not invent hidden state, RAM fields, score fields, or unavailable game APIs.
+3. Prefer skills that can be checked from object-centric observations, not vague human concepts.
+4. Do not use naive final-goal Euclidean distance as the only progress measure when lanes, ladders, platforms, or hazards matter.
+5. Make reward terms bounded and aligned with intended task progress.
+6. Keep the specification game-specific but not overfit to one exact seed.
+7. Return JSON only.
+""".strip()
+
 UNIFIED_INITIAL_PROMPT = """
 You are generating an initial parametric policy for Atari {game_name}.
 
 {environment_description}
+
+{skill_spec_context}
 
 ## Shared Method Objective
 {method_objective}
@@ -697,7 +771,9 @@ You are generating an initial parametric policy for Atari {game_name}.
 2. Use the object-centric observation exactly as documented.
 3. Prefer simple score-seeking logic over complex hand-crafted heuristics.
 4. Use named constants and helper aliases instead of unexplained magic indices.
-5. {method_design_rule}
+5. Decompose multi-stage games into small readable helper functions for subskills such as target selection, navigation, hazard avoidance, route progress, and goal pursuit.
+6. Clamp parameters with semantic bounds before using them. Fractions must stay in [0, 1], distances must stay positive, and weights must stay bounded so CMA-ES cannot make a necessary skill gate impossible.
+7. {method_design_rule}
 
 ## Game-Specific Design Principles
 {design_principles}
@@ -748,6 +824,8 @@ You are improving a parametric policy for Atari {game_name}.
 
 {benchmark_context}
 
+{skill_spec_context}
+
 ## Current Policy Code
 ```python
 {previous_code}
@@ -778,6 +856,7 @@ Do not add complexity unless it directly addresses a concrete failure mode.
 6. Preserve any clearly working sub-logic unless feedback points to a specific failure.
 7. The policy function signature must remain exactly `policy(obs_flat, params)`.
 8. Do not add `state`, `init_state()`, or memoryful policy APIs.
+9. Clamp parameters with semantic bounds before using them; never allow CMA-ES to make a fraction threshold exceed its mathematically possible range.
 {dense_reward_requirement}
 
 Generate the improved policy now.
@@ -802,6 +881,8 @@ Diagnose why the current Atari {game_name} parametric policy is underperforming.
 - Best Parameters: {best_params}
 
 {benchmark_context}
+
+{skill_spec_context}
 
 ## Current Policy Code
 ```python
@@ -840,6 +921,8 @@ Use only the task context below, the current policy, and the diagnosis. Ignore a
 
 {benchmark_context}
 
+{skill_spec_context}
+
 ## Current Policy Code
 ```python
 {previous_code}
@@ -866,6 +949,7 @@ Generate a complete replacement Python module that directly fixes the diagnosed 
 6. Return only valid Python module code, with no explanation.
 7. The policy function signature must be exactly `policy(obs_flat, params)`.
 8. Do not add `state`, `init_state()`, or any recurrent-memory API.
+9. Clamp semantic parameters before use; for example, any overlap/fraction threshold must be clipped into a valid range before comparison.
 {dense_reward_requirement}
 
 ## Game-Specific Improvement Guidelines
@@ -1281,6 +1365,31 @@ class LLMClient:
     def ask(self, prompt: str, system_prompt: Optional[str] = None) -> str:
         """Send a prompt to the LLM and get a response."""
         system_prompt = system_prompt or "You are an expert AI programmer specializing in JAX and reinforcement learning."
+        last_error = None
+        for attempt in range(4):
+            try:
+                return self._ask_once(prompt, system_prompt)
+            except Exception as exc:
+                last_error = exc
+                status_code = getattr(exc, "status_code", None)
+                error_text = str(exc).lower()
+                is_transient = (
+                    status_code in {408, 409, 429, 500, 502, 503, 504, 529}
+                    or "overloaded" in error_text
+                    or "rate limit" in error_text
+                    or "temporarily" in error_text
+                )
+                if not is_transient or attempt >= 3:
+                    raise
+                wait_seconds = 10 * (2 ** attempt)
+                print(
+                    f"Transient LLM API error ({exc}); retrying in {wait_seconds}s "
+                    f"({attempt + 1}/3)..."
+                )
+                time.sleep(wait_seconds)
+        raise last_error  # pragma: no cover
+
+    def _ask_once(self, prompt: str, system_prompt: str) -> str:
         if self.config.llm_provider == "openai":
             kwargs = {}
             if self.config.temperature is not None:
@@ -1354,6 +1463,31 @@ def extract_python_code(response: str) -> str:
     
     # If no code blocks at all, return the whole response
     return response.strip()
+
+
+def extract_json_object(response: str) -> Dict[str, Any]:
+    """Extract one JSON object from an LLM response."""
+    text = response.strip()
+    if text.startswith("```"):
+        lines = text.splitlines()
+        if lines and lines[0].strip().startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        text = "\n".join(lines).strip()
+
+    try:
+        parsed = json.loads(text)
+    except json.JSONDecodeError:
+        start = text.find("{")
+        end = text.rfind("}")
+        if start == -1 or end == -1 or end <= start:
+            raise ValueError("LLM response did not contain a JSON object")
+        parsed = json.loads(text[start:end + 1])
+
+    if not isinstance(parsed, dict):
+        raise ValueError("Skill specification must be a JSON object")
+    return parsed
 
 
 def save_policy_module(code: str, version: int, output_dir: str) -> str:
@@ -1433,6 +1567,18 @@ def load_policy_module(filepath: str) -> Tuple[Callable, Callable, Callable]:
         raise ValueError("Module missing 'measure_main' function")
     if hasattr(module, 'dense_reward'):
         setattr(module.policy, "_legps_dense_reward_fn", module.dense_reward)
+        dense_signature = inspect.signature(module.dense_reward)
+        dense_positional = [
+            p
+            for p in dense_signature.parameters.values()
+            if p.kind in (
+                inspect.Parameter.POSITIONAL_ONLY,
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            )
+        ]
+        accepts_params = len(dense_positional) >= 6
+        setattr(module.policy, "_legps_dense_reward_accepts_params", accepts_params)
+        setattr(module.dense_reward, "_legps_accepts_params", accepts_params)
     
     return module.init_params, module.policy, module.measure_main
 
@@ -1515,11 +1661,15 @@ class ParallelEvaluator:
                 f"policy() must return one scalar action, got shape {tuple(action.shape)}"
             )
 
-        if self.game == "kangaroo" and self.config.kangaroo_dense_reward_objective:
+        requires_dense_reward = (
+            self.config.objective_mode in ("llm_shaped", "hybrid")
+            or (self.game == "kangaroo" and self.config.kangaroo_dense_reward_objective)
+        )
+        if requires_dense_reward:
             dense_reward_fn = getattr(policy_fn, "_legps_dense_reward_fn", None)
             if dense_reward_fn is None:
                 raise ValueError(
-                    "Kangaroo dense-reward mode requires a module-level "
+                    "LLM-shaped objective mode requires a module-level "
                     "`dense_reward(obs_history, actions, rewards, total_reward, active_mask)` function."
                 )
             dummy_obs_history = jnp.zeros((4, self.obs_size), dtype=jnp.float32)
@@ -1527,14 +1677,22 @@ class ParallelEvaluator:
             dummy_rewards = jnp.zeros((4,), dtype=jnp.float32)
             dummy_total_reward = jnp.array(0.0, dtype=jnp.float32)
             dummy_active_mask = jnp.ones((4,), dtype=jnp.bool_)
+            dense_args = [
+                dummy_obs_history,
+                dummy_actions,
+                dummy_rewards,
+                dummy_total_reward,
+                dummy_active_mask,
+            ]
+            if getattr(policy_fn, "_legps_dense_reward_accepts_params", False):
+                if not self.config.tune_reward_weights:
+                    raise ValueError(
+                        "`dense_reward(..., params)` is only allowed when "
+                        "--tune-reward-weights is explicitly set."
+                    )
+                dense_args.append(params)
             dense_score = jnp.asarray(
-                dense_reward_fn(
-                    dummy_obs_history,
-                    dummy_actions,
-                    dummy_rewards,
-                    dummy_total_reward,
-                    dummy_active_mask,
-                )
+                dense_reward_fn(*dense_args)
             )
             if dense_score.shape != ():
                 raise ValueError(
@@ -1646,28 +1804,42 @@ class ParallelEvaluator:
         actions: jnp.ndarray,
         active_mask: jnp.ndarray,
         dense_reward_fn: Optional[Callable] = None,
+        params: Optional[Dict] = None,
     ) -> Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray, jnp.ndarray, jnp.ndarray, jnp.ndarray]:
-        if self.game == "kangaroo" and self.config.kangaroo_dense_reward_objective:
+        uses_policy_dense_reward = (
+            self.config.objective_mode in ("llm_shaped", "hybrid")
+            or (self.game == "kangaroo" and self.config.kangaroo_dense_reward_objective)
+        )
+        if uses_policy_dense_reward:
             if dense_reward_fn is None:
                 raise ValueError(
-                    "Kangaroo dense-reward mode requires a policy-provided dense_reward function."
+                    "LLM-shaped objective mode requires a policy-provided dense_reward function."
                 )
-            (
-                _,
-                shaped_upward_progress,
-                shaped_score_events,
-                shaped_no_fire_penalty,
-                shaped_punch_farming_penalty,
-                shaped_post_reward_bonus,
-            ) = self._kangaroo_shaped_objective(
-                total_reward, rewards, obs_history, actions, active_mask
-            )
-            dense_score = jnp.asarray(
-                dense_reward_fn(obs_history, actions, rewards, total_reward, active_mask),
-                dtype=jnp.float32,
-            )
+            if self.game == "kangaroo":
+                (
+                    _,
+                    shaped_upward_progress,
+                    shaped_score_events,
+                    shaped_no_fire_penalty,
+                    shaped_punch_farming_penalty,
+                    shaped_post_reward_bonus,
+                ) = self._kangaroo_shaped_objective(
+                    total_reward, rewards, obs_history, actions, active_mask
+                )
+            else:
+                zero = jnp.array(0.0, dtype=jnp.float32)
+                shaped_upward_progress = zero
+                shaped_score_events = zero
+                shaped_no_fire_penalty = zero
+                shaped_punch_farming_penalty = zero
+                shaped_post_reward_bonus = zero
+            dense_args = [obs_history, actions, rewards, total_reward, active_mask]
+            if getattr(dense_reward_fn, "_legps_accepts_params", False) and params is not None:
+                dense_args.append(params)
+            dense_score = jnp.asarray(dense_reward_fn(*dense_args), dtype=jnp.float32)
+            optimization_score = total_reward + dense_score if self.config.objective_mode == "hybrid" else dense_score
             return (
-                dense_score,
+                optimization_score,
                 shaped_upward_progress,
                 shaped_score_events,
                 shaped_no_fire_penalty,
@@ -1808,6 +1980,7 @@ class ParallelEvaluator:
             actions,
             active_mask,
             dense_reward_fn,
+            params,
         )
         
         return (
@@ -1864,7 +2037,11 @@ class ParallelEvaluator:
         avg_player_score = jnp.mean(player_scores)
         avg_enemy_score = jnp.mean(enemy_scores)
         win_rate = jnp.mean(player_scores > enemy_scores)
-        if self.game == "kangaroo" and self.config.kangaroo_dense_reward_objective:
+        if self.config.objective_mode == "llm_shaped":
+            objective_source = "llm_shaped_dense_reward"
+        elif self.config.objective_mode == "hybrid":
+            objective_source = "hybrid_env_plus_llm_shaping"
+        elif self.game == "kangaroo" and self.config.kangaroo_dense_reward_objective:
             objective_source = "policy_dense_reward"
         elif self.game == "kangaroo" and self.config.kangaroo_shaped_objective:
             objective_source = "kangaroo_shaped_objective"
@@ -2764,6 +2941,23 @@ def generate_feedback(metrics: Dict[str, Any], params: Dict, logger_metrics: Dic
     enemy_score = metrics['avg_enemy_score']
     win_rate = metrics['win_rate']
 
+    if metrics.get("objective_is_shaped"):
+        objective_source = metrics.get("objective_source", "shaped")
+        feedback_parts.append(
+            f"Parameter search used `{objective_source}` for CMA-ES. "
+            f"Real average return is still {avg_return:.2f}; the optimizer-facing score is "
+            f"{float(metrics.get('optimization_score', avg_return)):.2f}. Treat shaped terms as a scaffold, not final task success."
+        )
+        audit = metrics.get("dense_reward_audit") or {}
+        if audit and not audit.get("passed", True):
+            feedback_parts.append("\n## Dense Reward Audit Failure")
+            feedback_parts.append(
+                "The generated dense reward appears misaligned with the intended task. "
+                "Revise `dense_reward(...)` as well as the policy; do not only tune thresholds."
+            )
+            for reason in audit.get("reasons", []):
+                feedback_parts.append(f"- {reason}")
+
     if game == "pong":
         if avg_return < 0:
             feedback_parts.append("The agent is losing on average. The enemy scores more points than the player.")
@@ -2791,13 +2985,6 @@ def generate_feedback(metrics: Dict[str, Any], params: Dict, logger_metrics: Dic
             feedback_parts.append("The Kangaroo agent is scoring only lightly. It needs more reliable upward route execution and safer transitions between ladders/platforms.")
         else:
             feedback_parts.append("The Kangaroo agent is scoring. Further gains likely come from safer route progress and better reward opportunities after reaching upper platforms.")
-        if metrics.get("objective_is_shaped"):
-            objective_source = metrics.get("objective_source", "shaped")
-            feedback_parts.append(
-                f"Kangaroo parameter search used `{objective_source}` for CMA-ES. "
-                f"Real average return is still {avg_return:.2f}; the shaped optimization score is "
-                f"{float(metrics.get('optimization_score', avg_return)):.2f}. Treat shaped terms as a scaffold, not as final task success."
-            )
     elif game == "asterix":
         if avg_return < 500:
             feedback_parts.append("The agent is still close to random-level Asterix performance. It likely misses too many collectibles, idles in safe lanes, or changes lanes too cautiously.")
@@ -3011,6 +3198,8 @@ class LLMOptimizationLoop:
         
         self.iteration = 0
         self.history = []
+        self.skill_spec: Optional[Dict[str, Any]] = None
+        self.skill_spec_path: Optional[Path] = None
         
         # Keep the logger in the provided-metrics/full-state regime for the
         # current unified thesis experiments.
@@ -3033,6 +3222,128 @@ class LLMOptimizationLoop:
         self.prompt_spec = GAME_PROMPT_SPECS.get(self.game, GAME_PROMPT_SPECS[fallback_game])
         self.environment_description = self.prompt_spec.environment_description
         self.system_prompt = LLM_ONLY_SYSTEM_PROMPT if self.config.optimizer == "none" else UNIFIED_SYSTEM_PROMPT
+
+    def _skill_spec_file(self) -> Path:
+        return Path(self.config.output_dir) / "skill_spec.json"
+
+    def _build_skill_spec_prompt(self) -> str:
+        return SKILL_SPEC_PROMPT.format(
+            game_name=self.game.capitalize(),
+            environment_description=self.prompt_spec.environment_description,
+            optimizer=self.config.optimizer,
+            objective_mode=self.config.objective_mode,
+            skill_stage=self.config.skill_stage,
+        )
+
+    def _validate_skill_spec(self, spec: Dict[str, Any]) -> None:
+        required_keys = {
+            "schema_version",
+            "game",
+            "skill_stage",
+            "overall_goal",
+            "skills",
+            "skill_selector",
+            "dense_reward_design",
+            "alignment_risks",
+            "implementation_notes",
+        }
+        missing = sorted(required_keys - set(spec))
+        if missing:
+            raise ValueError(f"Skill specification missing keys: {missing}")
+
+        skills = spec.get("skills")
+        if not isinstance(skills, list) or not skills:
+            raise ValueError("Skill specification must contain a non-empty skills list")
+
+        skill_required = {
+            "name",
+            "purpose",
+            "activation_conditions",
+            "completion_signals",
+            "reward_terms",
+            "anti_shortcuts",
+            "policy_helpers",
+            "candidate_parameters",
+        }
+        for index, skill in enumerate(skills):
+            if not isinstance(skill, dict):
+                raise ValueError(f"Skill entry {index} is not an object")
+            missing_skill_keys = sorted(skill_required - set(skill))
+            if missing_skill_keys:
+                raise ValueError(
+                    f"Skill entry {index} missing keys: {missing_skill_keys}"
+                )
+
+    def _ensure_skill_spec(self) -> None:
+        """Load or generate the structured skill/reward decomposition for this run."""
+        if self.config.skill_spec_mode == "off":
+            return
+        if self.config.skill_spec_mode != "llm":
+            raise ValueError(f"Unknown skill_spec_mode: {self.config.skill_spec_mode}")
+
+        path = self._skill_spec_file()
+        if path.exists() and not self.config.refresh_skill_spec:
+            existing_spec = json.loads(path.read_text(encoding="utf-8-sig"))
+            self._validate_skill_spec(existing_spec)
+            spec_game = str(existing_spec.get("game", "")).lower()
+            spec_stage = str(existing_spec.get("skill_stage", ""))
+            if spec_game == self.game and spec_stage == self.config.skill_stage:
+                self.skill_spec = existing_spec
+                self.skill_spec_path = path
+                if self.config.verbose:
+                    print(f"Loaded existing skill specification: {path}")
+                return
+            if self.config.verbose:
+                print(
+                    "Existing skill specification does not match current game/stage; "
+                    f"regenerating ({spec_game}/{spec_stage} -> "
+                    f"{self.game}/{self.config.skill_stage})."
+                )
+
+        if self.config.verbose:
+            print("Requesting NEXUS-style skill/reward specification from LLM...")
+
+        prompt = self._build_skill_spec_prompt()
+        response = self.llm_client.ask(prompt, system_prompt=SKILL_SPEC_SYSTEM_PROMPT)
+        spec = extract_json_object(response)
+        self._validate_skill_spec(spec)
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(spec, indent=2), encoding="utf-8")
+        self.skill_spec = spec
+        self.skill_spec_path = path
+        self._record_llm_exchange(
+            kind="skill_spec",
+            prompt=prompt,
+            system_prompt=SKILL_SPEC_SYSTEM_PROMPT,
+            response=response,
+            extracted_output=json.dumps(spec, indent=2),
+        )
+        if self.config.verbose:
+            print(f"Saved skill specification to: {path}")
+
+    def _skill_spec_prompt_context(self) -> str:
+        if not self.skill_spec:
+            return ""
+        spec_json = json.dumps(self.skill_spec, indent=2)
+        return f"""
+## Structured Skill And Reward Specification
+This run uses a separate NEXUS-style task decomposition generated before policy synthesis.
+Use this specification to structure helper functions, skill selection, and dense_reward(...) terms when requested.
+Do not contradict the observation/action semantics in the environment description.
+
+```json
+{spec_json}
+```
+
+Policy-generation requirements from this spec:
+1. Reflect the listed skills in readable helper functions where practical.
+2. If a skill selector is useful, implement it as simple JAX-safe logic inside policy helpers; do not add recurrent state.
+3. If dense_reward(...) is required, derive its bounded terms from the skill reward terms and anti-shortcut notes.
+4. Final reported success remains real environment reward, not shaped reward.
+5. Clamp semantic parameters before use so CMA-ES cannot make a skill impossible. For example, parameters named like `*_frac`, `*_prob`, `*_weight`, or `overlap_frac_min` must be mapped to valid ranges with JAX operations such as `jnp.clip`; distance thresholds should be kept positive with `jnp.maximum` or bounded clips.
+6. Do not compare an unclipped fraction parameter against a value that is mathematically limited to [0, 1].
+""".strip()
 
     def _method_prompt_context(self) -> Dict[str, str]:
         if self.config.optimizer == "none":
@@ -3058,10 +3369,11 @@ class LLMOptimizationLoop:
         context = {
             "method_objective": (
                 "Produce one clean parametric controller that can be optimized by CMA-ES. "
-                "The structure should generalize well and avoid game-specific prompt hacks."
+                "The structure should generalize well and avoid game-specific prompt hacks. "
+                "For multi-stage tasks, organize the policy as readable skill-like helpers rather than one opaque decision tree."
             ),
             "method_design_rule": (
-                "Keep the policy optimizer-friendly: small parameter count, shallow logic, no brittle special cases."
+                "Keep the policy optimizer-friendly: small parameter count, shallow logic, named subskills, no brittle special cases."
             ),
             "improvement_objective": "Improve score while keeping the controller simple enough for CMA-ES.",
             "rewrite_objective": "Keep the controller compact and optimizer-friendly.",
@@ -3085,7 +3397,83 @@ class LLMOptimizationLoop:
                 "Keep the controller compact and optimizer-friendly for the shaped Kangaroo route objective, "
                 "while remembering that final evaluation remains real game reward."
             )
-        if self.game == "kangaroo" and self.config.kangaroo_dense_reward_objective:
+        if self.config.objective_mode in ("llm_shaped", "hybrid"):
+            if self.config.objective_mode == "llm_shaped":
+                objective_text = (
+                    "CMA-ES will optimize the policy-provided `dense_reward(...)` directly during "
+                    "parameter search. That dense objective must include real reward as a major term "
+                    "and add bounded skill-progress terms."
+                )
+                reward_text = (
+                    "The dense reward should be a full optimizer objective: real return plus bounded "
+                    "sub-rewards for necessary skills."
+                )
+            else:
+                objective_text = (
+                    "CMA-ES will optimize a hybrid objective: real environment return plus the "
+                    "policy-provided `dense_reward(...)` auxiliary shaping term."
+                )
+                reward_text = (
+                    "The dense reward should be auxiliary shaping only; do not include `total_reward` "
+                    "inside it because the loop adds real return separately."
+                )
+            context["method_objective"] += (
+                " In this reward-aware LeGPS mode, you must also decompose the task into skills "
+                f"and provide a JAX-safe `dense_reward(...)`. {objective_text} Final success is still "
+                "reported with real environment reward."
+            )
+            context["method_design_rule"] += (
+                " Expose tunable thresholds in `init_params()` for the policy, but keep the dense "
+                "reward itself as a fixed behavioural assessor that rewards subskill progress and "
+                "penalizes shortcut solutions."
+            )
+            context["improvement_objective"] = (
+                "Improve real game reward and intended-task behavior. Revise both policy logic and "
+                f"the LLM-shaped objective only when the change supports necessary subskills. {reward_text}"
+            )
+            context["rewrite_objective"] = (
+                "Keep the controller compact and skill-structured, and include a JAX-safe "
+                "`dense_reward(...)` that gives CMA-ES useful intermediate skill signals. "
+                "Final evaluation remains real game reward."
+            )
+        if self.config.skill_stage == "kangaroo_ladder_navigation":
+            context["method_objective"] += (
+                " This is an explicitly labeled Kangaroo ladder-navigation skill-stage experiment. "
+                "The goal is to learn the prerequisite subskill of selecting a reachable ladder, "
+                "moving to it, climbing only when actually aligned, and reaching a higher platform. "
+                "Do not claim this as full-game success."
+            )
+            context["improvement_objective"] = (
+                "Improve the Kangaroo ladder-navigation subskill while preserving real reward reporting. "
+                "The policy should produce measurable upward progress, real ladder-column climbing, "
+                "and safe platform transitions rather than score-only punch shortcuts."
+            )
+            context["rewrite_objective"] = (
+                "Generate a compact skill-stage controller for Kangaroo ladder navigation with readable "
+                "helpers for ladder selection, approach, climb, dismount, and hazard avoidance."
+            )
+        elif self.config.skill_stage == "kangaroo_post_first_reward":
+            context["method_objective"] += (
+                " This is an explicitly labeled Kangaroo post-first-reward skill-stage experiment. "
+                "Preserve the known first RIGHTFIRE reward route, then optimize the post-200 "
+                "dismount, hazard escape, and next-ladder transition."
+            )
+            context["improvement_objective"] = (
+                "Preserve the first 200-point Kangaroo behavior and improve only the post-200 route. "
+                "A useful candidate must not suppress FIRE or lose the first reward, but it must also "
+                "make measurable progress after the first ladder. Exactly one 200-point event followed "
+                "by a stall at y≈132 is a failure for this stage."
+            )
+            context["rewrite_objective"] = (
+                "Generate a conservative post-first-reward Kangaroo patch: keep the first reward route "
+                "intact and modify only top-of-ladder, hazard, dismount, and next-ladder behavior. "
+                "The rewrite must target movement beyond the first-ladder top, not merely preserve 200 points."
+            )
+        if (
+            self.game == "kangaroo"
+            and self.config.kangaroo_dense_reward_objective
+            and self.config.objective_mode == "env"
+        ):
             context["method_objective"] += (
                 " For this Kangaroo dense-reward experiment only, you must also provide a "
                 "`dense_reward(...)` function. CMA-ES will optimize that policy-provided dense "
@@ -3109,13 +3497,63 @@ class LLMOptimizationLoop:
         return context
 
     def _dense_reward_requirement(self) -> str:
-        if not (self.game == "kangaroo" and self.config.kangaroo_dense_reward_objective):
+        requires_dense_reward = (
+            self.config.objective_mode in ("llm_shaped", "hybrid")
+            or (self.game == "kangaroo" and self.config.kangaroo_dense_reward_objective)
+        )
+        if not requires_dense_reward:
             return ""
 
+        if self.config.objective_mode == "hybrid":
+            mode_rule = (
+                "In this `hybrid` mode, return only an auxiliary shaping term. "
+                "Do not include `total_reward` because the evaluator adds real return separately."
+            )
+        else:
+            mode_rule = (
+                "In this `llm_shaped` mode, return a full optimizer objective. "
+                "Include `total_reward` as a major positive term and add bounded skill-progress terms."
+            )
+        if self.config.tune_reward_weights:
+            signature_rule = (
+                "Use signature `dense_reward(obs_history, actions, rewards, total_reward, active_mask, params)`. "
+                "If you add tunable reward weights, put them in `init_params()` with a `reward_` prefix and keep "
+                "them bounded in effect so CMA-ES cannot exploit the reward model while real reward stays low."
+            )
+        else:
+            signature_rule = (
+                "Use signature `dense_reward(obs_history, actions, rewards, total_reward, active_mask)`. "
+                "Do not add a `params` argument unless --tune-reward-weights is explicitly enabled."
+            )
+        if self.config.skill_stage == "kangaroo_ladder_navigation":
+            stage_rule = (
+                "This is a Kangaroo ladder-navigation skill stage: prioritize reaching a reachable ladder, "
+                "real column-overlap climbing, lower `player_y`, and safe dismount to a higher platform. "
+                "Do not reward punch-only score or standing near a ladder without upward progress."
+            )
+        elif self.config.skill_stage == "kangaroo_post_first_reward":
+            stage_rule = (
+                "This is a Kangaroo post-first-reward skill stage: first reward preservation and score events "
+                "must dominate, but preserving the first 200-point event alone is not enough. Penalize no-FIRE "
+                "scoreless behavior, then reward post-200 dismount, coconut escape, movement beyond y≈132, "
+                "and next-ladder/platform progress. A policy that reaches y≈132, scores exactly one 200-point "
+                "event, and stalls there must receive a poor post-first objective."
+            )
+        else:
+            stage_rule = (
+                "This is a full-game objective: subskill terms should support final real return, not replace it."
+            )
+
         return """
-### 4. dense_reward(obs_history, actions, rewards, total_reward, active_mask) -> float
-Required for this Kangaroo run. CMA-ES will maximize this function during parameter search only.
+### 4. dense_reward(...) -> float
+Required for this reward-aware LeGPS run. CMA-ES will use this function during parameter search only.
 The final reported result still uses real Atari reward, so do not hide low real reward.
+
+Signature rule:
+- {signature_rule}
+
+Skill-stage rule:
+- {stage_rule}
 
 Inputs:
 - `obs_history[t]` is the flattened object-centric observation before action `actions[t]`.
@@ -3126,17 +3564,25 @@ Inputs:
 
 Dense reward design:
 - Return one scalar JAX expression.
-- Include `total_reward` as a major positive term.
-- Add bounded auxiliary terms for useful intermediate behaviour: correct ladder alignment, upward progress, first reward, post-200 transition progress, and hazard survival.
-- Penalize shortcut behaviours such as repeated punch farming without upward progress, early `UP` when not actually aligned to a ladder, and idling near the same ladder state.
+- {mode_rule}
+- Decompose the game into necessary subskills and add bounded terms for measurable progress on those skills.
+- Prefer hierarchical skill signals such as navigation progress, target alignment, hazard avoidance, survival, task-stage transition, and goal approach.
+- Use observation-grounded skill completion signals, not raw action-frequency rewards. For example, do not reward UP action rate by itself; reward UP only when it coincides with real ladder-column overlap and upward position change.
+- Scale auxiliary terms large enough to distinguish meaningful partial progress during sparse-reward search, typically tens to hundreds of points, while still bounded below real task completion.
+- Do not let survival, alignment, approach, or action-count terms grow unbounded with episode length. Use averages, clips, or event bonuses so "stand near a useful object for many frames" cannot beat actual task progress.
+- Penalize shortcut behaviours where score or shaped reward improves without intended-task progress.
+- For Kangaroo specifically, reward ladder alignment, upward progress, first reward preservation, post-200 transition progress, and hazard survival; penalize repeated punch farming without upward progress, early `UP` when not actually aligned to a ladder, no-FIRE scoreless behavior, first-reward suppression, and idling near the same ladder state.
+- For Kangaroo, include real reward-event pressure: a policy that reaches y≈132 but has `total_reward == 0` and no FIRE actions must receive a much worse dense objective than one that preserves the known first RIGHTFIRE reward route.
+- Do not use naive absolute Euclidean distance to the final goal as the only progress measure when platforms, lanes, ladders, or obstacles make that distance misleading.
 - Use only JAX operations (`jnp`, `jax.lax`); no Python `if`, `int()`, or `float()` on traced values.
 - Keep terms bounded so CMA-ES cannot win by exploiting the dense reward while real reward stays bad.
-""".strip()
+""".format(mode_rule=mode_rule, signature_rule=signature_rule, stage_rule=stage_rule).strip()
 
     def _build_initial_prompt(self) -> str:
         return UNIFIED_INITIAL_PROMPT.format(
             game_name=self.game.capitalize(),
             environment_description=self.prompt_spec.environment_description,
+            skill_spec_context=self._skill_spec_prompt_context(),
             **self._method_prompt_context(),
             design_principles=self.prompt_spec.design_principles,
             failure_modes=self.prompt_spec.failure_modes,
@@ -3211,6 +3657,7 @@ Dense reward design:
         return UNIFIED_IMPROVEMENT_PROMPT.format(
             game_name=self.game.capitalize(),
             environment_description=self.prompt_spec.environment_description,
+            skill_spec_context=self._skill_spec_prompt_context(),
             avg_return=avg_return,
             avg_player_score=metrics.get('avg_player_score', 0),
             avg_enemy_score=metrics.get('avg_enemy_score', 0),
@@ -3237,6 +3684,7 @@ Dense reward design:
         return UNIFIED_DIAGNOSTIC_PROMPT.format(
             game_name=self.game.capitalize(),
             environment_description=self.prompt_spec.environment_description,
+            skill_spec_context=self._skill_spec_prompt_context(),
             avg_return=float(metrics.get('avg_return', 0.0)),
             avg_player_score=metrics.get('avg_player_score', 0),
             avg_enemy_score=metrics.get('avg_enemy_score', 0),
@@ -3294,6 +3742,7 @@ Dense reward design:
         return UNIFIED_DIAGNOSTIC_REWRITE_PROMPT.format(
             game_name=self.game.capitalize(),
             environment_description=self.prompt_spec.environment_description,
+            skill_spec_context=self._skill_spec_prompt_context(),
             avg_return=avg_return,
             avg_player_score=metrics.get('avg_player_score', 0),
             avg_enemy_score=metrics.get('avg_enemy_score', 0),
@@ -3333,6 +3782,12 @@ Dense reward design:
             "temperature": self.config.temperature,
             "max_tokens": self.config.max_tokens,
             "optimizer": self.config.optimizer,
+            "objective_mode": self.config.objective_mode,
+            "skill_stage": self.config.skill_stage,
+            "skill_spec_mode": self.config.skill_spec_mode,
+            "skill_spec_path": str(self.skill_spec_path) if self.skill_spec_path else None,
+            "dense_reward_audit": self.config.dense_reward_audit,
+            "tune_reward_weights": self.config.tune_reward_weights,
             "kangaroo_shaped_objective": self.config.kangaroo_shaped_objective,
             "kangaroo_dense_reward_objective": self.config.kangaroo_dense_reward_objective,
             "system_prompt": system_prompt,
@@ -3498,6 +3953,106 @@ Dense reward design:
 
         return avg_return >= self.config.target_score
 
+    def _audit_dense_objective(
+        self,
+        metrics: Dict[str, Any],
+        logger_metrics: Optional[Dict[str, float]],
+    ) -> Dict[str, Any]:
+        """Flag likely misaligned LLM-generated dense objectives.
+
+        This does not replace final real-reward evaluation. It gives the next
+        prompt explicit negative evidence when a shaped objective rewards
+        behavior that the task metrics say is still invalid.
+        """
+        audit = {
+            "enabled": bool(self.config.dense_reward_audit),
+            "passed": True,
+            "severity": "none",
+            "reasons": [],
+        }
+        if not self.config.dense_reward_audit or not metrics.get("objective_is_shaped"):
+            return audit
+
+        logger_metrics = logger_metrics or {}
+        avg_return = float(metrics.get("avg_return", 0.0))
+        opt_score = float(metrics.get("optimization_score", avg_return))
+        score_events = float(logger_metrics.get("score_events", metrics.get("shaped_score_events", 0.0)))
+        max_up = float(logger_metrics.get("max_upward_progress", metrics.get("shaped_upward_progress", 0.0)))
+        climb_rate = float(logger_metrics.get("climb_rate", 0.0))
+
+        if self.game == "kangaroo":
+            if (
+                self.config.skill_stage == "full_game"
+                and avg_return <= 0.0
+                and opt_score >= 25.0
+                and score_events <= 0.0
+            ):
+                audit["reasons"].append(
+                    "Dense objective assigns substantial score to a zero-return Kangaroo policy with no score events."
+                )
+            if logger_metrics.get("first_reward_suppressed_pattern", 0.0) > 0.5:
+                audit["reasons"].append(
+                    "First-reward suppression detected: reward shaping did not preserve the known useful RIGHTFIRE route."
+                )
+            if logger_metrics.get("no_fire_scoreless_pattern", 0.0) > 0.5:
+                audit["reasons"].append(
+                    "No-FIRE scoreless behavior detected: policy makes route-like movement but never triggers reward-producing FIRE."
+                )
+            if (
+                self.config.skill_stage == "kangaroo_ladder_navigation"
+                and max_up < 12.0
+                and climb_rate < 0.05
+            ):
+                audit["reasons"].append(
+                    "Navigation-stage objective did not produce measurable ladder climbing or upward progress."
+                )
+            if (
+                self.config.skill_stage == "kangaroo_post_first_reward"
+                and avg_return < 200.0
+            ):
+                audit["reasons"].append(
+                    "Post-first-reward stage failed to preserve the known 200-point first reward."
+                )
+            if self.config.skill_stage == "kangaroo_post_first_reward":
+                post_reward_bonus = float(metrics.get("shaped_post_reward_bonus", 0.0))
+                if (
+                    avg_return <= 200.0
+                    and score_events <= 1.0
+                    and max_up <= 18.0
+                    and post_reward_bonus <= 0.0
+                ):
+                    audit["reasons"].append(
+                        "Post-first-reward stage did not progress beyond the first-ladder 200-point plateau."
+                    )
+
+        if audit["reasons"]:
+            audit["passed"] = False
+            audit["severity"] = "high" if avg_return <= 0.0 else "medium"
+        return audit
+
+    def _selection_score(self, metrics: Dict[str, Any]) -> Tuple[float, str]:
+        """Score used to retain the best policy structure for the current run mode.
+
+        Full-game runs are selected by real environment return. Explicit skill-stage
+        shaped runs are different: the point is to learn a prerequisite skill, so a
+        high real reward that fails the skill audit should not replace a lower-score
+        candidate that actually satisfies the skill objective.
+        """
+        avg_return = float(metrics.get("avg_return", float("-inf")))
+        if (
+            self.config.skill_stage != "full_game"
+            and metrics.get("objective_is_shaped")
+        ):
+            audit = metrics.get("dense_reward_audit") or {}
+            if audit.get("enabled") and not audit.get("passed", True):
+                return avg_return - 1_000_000.0, (
+                    "real_return_with_skill_audit_penalty"
+                )
+            return float(metrics.get("optimization_score", avg_return)), (
+                "skill_stage_shaped_objective"
+            )
+        return avg_return, "real_environment_return"
+
     def _load_resume_state(self) -> Optional[Dict[str, Any]]:
         """Load the best policy and metrics from a previous optimization_results.json."""
         results_path = Path(self.config.output_dir) / "optimization_results.json"
@@ -3537,6 +4092,7 @@ Dense reward design:
         best_metrics = data.get("best_metrics") or {}
         best_params = data.get("best_params") or {}
         best_score = float(data.get("best_score", best_metrics.get("avg_return", float("-inf"))))
+        best_selection_score = float(data.get("best_selection_score", best_score))
 
         print(f"Resuming from previous best policy: {policy_path}")
         print(f"Previous best score: {best_score:.2f}")
@@ -3547,6 +4103,7 @@ Dense reward design:
             "best_metrics": best_metrics,
             "best_params": best_params,
             "best_score": best_score,
+            "best_selection_score": best_selection_score,
             "best_policy_path": str(policy_path),
             "best_overall_params": best_params,
         }
@@ -3685,16 +4242,22 @@ Dense reward design:
         best_metrics: Optional[Dict[str, Any]],
         best_overall_params: Optional[Dict[str, Any]],
         best_policy_path: Optional[str],
+        best_selection_score: Optional[float] = None,
+        best_selection_source: Optional[str] = None,
     ) -> None:
         """Persist current loop state so long runs do not lose evaluated candidates."""
         snapshot = {
             'best_score': best_score,
+            'best_selection_score': best_selection_score,
+            'best_selection_source': best_selection_source,
             'seed': seed,
             'config': to_jsonable({
                 key: ("<redacted>" if key == "api_key" and value else value)
                 for key, value in self.config.__dict__.items()
             }),
             'runtime': get_runtime_metadata(),
+            'skill_spec_mode': self.config.skill_spec_mode,
+            'skill_spec_path': str(self.skill_spec_path) if self.skill_spec_path else None,
             'best_params': best_overall_params,
             'best_metrics': best_metrics,
             'history': self.history,
@@ -3717,12 +4280,16 @@ Dense reward design:
         print("=" * 60)
         print(f"LLM Policy Optimization Loop for JAXAtari {self.game.upper()}")
         print("=" * 60)
+
+        self._ensure_skill_spec()
         
         current_code = None
         best_metrics = None
         best_params = None
         best_code = None
         best_score = float('-inf')
+        best_selection_score = float('-inf')
+        best_selection_source = "real_environment_return"
         best_policy_path = None
         best_overall_params = None
         no_improvement_streak = 0
@@ -3736,6 +4303,7 @@ Dense reward design:
                 best_params = resume_state["best_params"]
                 best_code = resume_state["best_code"]
                 best_score = resume_state["best_score"]
+                best_selection_score = resume_state["best_selection_score"]
                 best_policy_path = resume_state["best_policy_path"]
                 best_overall_params = resume_state["best_overall_params"]
                 refresh_key, key = jrandom.split(key)
@@ -3745,10 +4313,21 @@ Dense reward design:
                     refresh_key,
                 )
                 if refreshed_metrics is not None:
+                    refreshed_audit = self._audit_dense_objective(
+                        refreshed_metrics,
+                        refreshed_metrics.get("logger_metrics"),
+                    )
+                    refreshed_metrics["dense_reward_audit"] = refreshed_audit
                     best_metrics = refreshed_metrics
                     # Use the refreshed score as the current-run baseline so the
                     # next rewrite is judged against the fixed diagnostic path.
                     best_score = refreshed_metrics["avg_return"]
+                    best_selection_score, best_selection_source = self._selection_score(refreshed_metrics)
+                    if refreshed_audit.get("enabled") and refreshed_metrics.get("objective_is_shaped"):
+                        status = "passed" if refreshed_audit.get("passed") else "FAILED"
+                        print(f"Refreshed resumed-best dense reward audit: {status}")
+                        for reason in refreshed_audit.get("reasons", []):
+                            print(f"  - {reason}")
         
         for iteration in range(self.config.max_iterations):
             self.iteration = version_offset + iteration + 1
@@ -3894,10 +4473,26 @@ Dense reward design:
                 except Exception as e:
                     print(f"  Logger evaluation failed: {e}")
                     logger_metrics = None
+
+            dense_reward_audit = self._audit_dense_objective(metrics, logger_metrics)
+            metrics["dense_reward_audit"] = dense_reward_audit
+            if dense_reward_audit.get("enabled") and metrics.get("objective_is_shaped"):
+                status = "passed" if dense_reward_audit.get("passed") else "FAILED"
+                print(f"  Dense reward audit: {status}")
+                for reason in dense_reward_audit.get("reasons", []):
+                    print(f"    - {reason}")
+
+            selection_score, selection_source = self._selection_score(metrics)
+            metrics["selection_score"] = selection_score
+            metrics["selection_source"] = selection_source
+            if selection_source != "real_environment_return":
+                print(f"  Selection Score ({selection_source}): {selection_score:.2f}")
             
             # Track best overall
-            if metrics['avg_return'] > best_score:
+            if selection_score > best_selection_score:
                 best_score = metrics['avg_return']
+                best_selection_score = selection_score
+                best_selection_source = selection_source
                 best_metrics = metrics
                 best_metrics['logger_metrics'] = logger_metrics  # Add logger metrics
                 best_params = current_params
@@ -3905,7 +4500,7 @@ Dense reward design:
                 best_code = current_code
                 best_policy_path = filepath
                 no_improvement_streak = 0
-                print("  >>> New best overall!")
+                print("  >>> New best for this run objective!")
             else:
                 no_improvement_streak += 1
                 if self.config.stop_on_strong_best and self._is_strong_result(best_metrics):
@@ -3919,7 +4514,9 @@ Dense reward design:
                         'iteration': self.iteration,
                         'metrics': history_metrics,
                         'best_params': to_jsonable(current_params),
-                        'filepath': filepath
+                        'filepath': filepath,
+                        'selection_score': selection_score,
+                        'selection_source': selection_source,
                     })
                     break
             
@@ -3933,7 +4530,9 @@ Dense reward design:
                 'iteration': self.iteration,
                 'metrics': history_metrics,
                 'best_params': to_jsonable(current_params),
-                'filepath': filepath
+                'filepath': filepath,
+                'selection_score': selection_score,
+                'selection_source': selection_source,
             })
 
             checkpoint_path = Path(self.config.output_dir) / "optimization_checkpoint.json"
@@ -3944,6 +4543,8 @@ Dense reward design:
                 best_metrics,
                 best_overall_params,
                 best_policy_path,
+                best_selection_score,
+                best_selection_source,
             )
             print(f"Checkpoint saved to: {checkpoint_path}")
             
@@ -3959,15 +4560,20 @@ Dense reward design:
         print("Optimization Complete!")
         print("=" * 60)
         print(f"Best Score Achieved: {best_score:.2f}")
+        print(f"Best Selection Score: {best_selection_score:.2f} ({best_selection_source})")
         print(f"Total Iterations: {self.iteration}")
         
         results = {
             'best_score': best_score,
+            'best_selection_score': best_selection_score,
+            'best_selection_source': best_selection_source,
             'best_params': best_overall_params,
             'best_metrics': best_metrics,
             'history': self.history,
             'best_policy_path': best_policy_path,
             'best_code': best_code,
+            'skill_spec_mode': self.config.skill_spec_mode,
+            'skill_spec_path': str(self.skill_spec_path) if self.skill_spec_path else None,
         }
 
         results_path = Path(self.config.output_dir) / "optimization_results.json"
@@ -3978,6 +4584,8 @@ Dense reward design:
             best_metrics,
             best_overall_params,
             best_policy_path,
+            best_selection_score,
+            best_selection_source,
         )
         print(f"Results saved to: {results_path}")
         
@@ -4217,10 +4825,29 @@ def main():
                        help='Frame stack size (0 = game default, Pong uses 2)')
     parser.add_argument('--search-max-steps', type=int, default=0,
                        help='Inner-loop optimization horizon (0 = use --max-steps)')
+    parser.add_argument('--objective-mode', type=str, default='env',
+                       choices=['env', 'llm_shaped', 'hybrid'],
+                       help=(
+                           'Inner-loop search objective. env uses real reward. '
+                           'llm_shaped requires policy dense_reward(...) as the full CMA-ES objective. '
+                           'hybrid optimizes real reward plus dense_reward(...) auxiliary shaping.'
+                       ))
+    parser.add_argument('--skill-stage', type=str, default='full_game',
+                       choices=['full_game', 'kangaroo_ladder_navigation', 'kangaroo_post_first_reward'],
+                       help='Optional labeled skill/curriculum stage. Keeps exploratory skill runs separate from full-game claims.')
+    parser.add_argument('--skill-spec-mode', type=str, default='off',
+                       choices=['off', 'llm'],
+                       help='Generate/load a NEXUS-style skill_spec.json before policy synthesis.')
+    parser.add_argument('--refresh-skill-spec', action='store_true',
+                       help='Regenerate skill_spec.json even if one already exists in the output directory.')
+    parser.add_argument('--no-dense-reward-audit', action='store_true',
+                       help='Disable automatic dense-objective misalignment warnings for shaped objective modes.')
+    parser.add_argument('--tune-reward-weights', action='store_true',
+                       help='Allow generated dense_reward(..., params) functions with explicit reward-weight parameters.')
     parser.add_argument('--kangaroo-shaped-objective', action='store_true',
                        help='Kangaroo only: use a documented shaped route-progress objective for inner-loop parameter search while still reporting real reward.')
     parser.add_argument('--kangaroo-dense-reward-objective', action='store_true',
-                       help='Kangaroo only: require the policy module to provide dense_reward(...) and use it as the CMA-ES search objective while still reporting real reward.')
+                       help='Deprecated compatibility alias for --objective-mode llm_shaped on Kangaroo.')
     
     # Optimization settings
     parser.add_argument('--optimizer', type=str, default='cma-es',
@@ -4275,6 +4902,17 @@ def main():
             f"Set the relevant environment variable or pass --demo explicitly."
         )
     
+    objective_mode = args.objective_mode
+    if args.kangaroo_dense_reward_objective and objective_mode == "env":
+        objective_mode = "llm_shaped"
+    if args.kangaroo_shaped_objective and objective_mode != "env":
+        raise SystemExit(
+            "--kangaroo-shaped-objective is the fixed Kangaroo scaffold and cannot be combined "
+            "with --objective-mode llm_shaped or hybrid."
+        )
+    if args.skill_stage.startswith("kangaroo_") and args.game != "kangaroo":
+        raise SystemExit("Kangaroo skill stages can only be used with --game kangaroo.")
+
     # Create config
     config = OptimizationConfig(
         llm_provider=args.provider,
@@ -4286,6 +4924,12 @@ def main():
         max_steps_per_episode=args.max_steps,
         frame_stack_size=args.frame_stack,
         search_max_steps=args.search_max_steps,
+        objective_mode=objective_mode,
+        skill_stage=args.skill_stage,
+        skill_spec_mode=args.skill_spec_mode,
+        refresh_skill_spec=args.refresh_skill_spec,
+        dense_reward_audit=not args.no_dense_reward_audit,
+        tune_reward_weights=args.tune_reward_weights,
         kangaroo_shaped_objective=args.kangaroo_shaped_objective,
         kangaroo_dense_reward_objective=args.kangaroo_dense_reward_objective,
         optimizer=args.optimizer,
@@ -4307,6 +4951,9 @@ def main():
     print(f"\n{'='*60}")
     print(f"Game: {args.game.upper()}")
     print(f"Optimizer: {args.optimizer}")
+    print(f"Objective Mode: {objective_mode}")
+    print(f"Skill Stage: {args.skill_stage}")
+    print(f"Skill Spec Mode: {args.skill_spec_mode}")
     print(f"Search Horizon: {args.search_max_steps or args.max_steps} steps")
     print(f"Evaluation Horizon: {args.max_steps} steps")
     if args.game == "kangaroo":

@@ -1,0 +1,34 @@
+# Kangaroo Policy Diagnosis
+
+## 1. Root cause
+The policy earns the first 200-point RIGHTFIRE reward at the lower platform but then stalls at the top of the first ladder (x≈132, y≈132) and dies to a falling coconut. The dismount branch never fires because `near_top` requires `on_ladder` (high overlap) AND `|py - tgt_top| <= dismount_tol`, but once the player climbs near the ladder top, the same ladder fails the selection criteria (it's no longer "above"), so `any_valid` flips false, `idx` becomes garbage, `tgt_top` is wrong, and `near_top` never latches. Without a persisted target, the policy falls through to the `fallback = RIGHT` branch while still in the ladder column, gets stuck, and is hit by the coconut.
+
+## 2. Evidence from metrics
+- `final_player_y=132`, `min_player_y=132`, `max_upward_progress=16`: climbed exactly one ladder and froze.
+- `climb_rate=0.2922` with `up_action_rate=0.0231`: the player is in a climbing *state* often, but the policy almost never issues UP — it's drifting/standing on the ladder, not actively climbing or dismounting.
+- `noop_rate=0.3105`, `horizontal_action_rate=0.6664`: large idle + horizontal sweeping at the top with no productive vertical replan.
+- `score_events=1`, `lives_lost=1`: single reward then coconut death, matching the documented x≈133, y≈129 hazard.
+- `unique_action_count=4`: extremely narrow action repertoire — dismount/UP/UPFIRE branches are effectively unreachable.
+
+## 3. Policy logic causing it
+- **Target ladder is recomputed every step with no persistence.** Once the player is mid/near-top of a ladder, that ladder fails `above_ok = ltop < py - min_top_above` and `any_valid` collapses or selects a different ladder. `tgt_top`, `tgt_lx` then refer to the wrong ladder, breaking `near_top` and `can_climb`.
+- **`near_top` is gated by `on_ladder` (overlap_frac), but on_ladder is computed against the freshly re-selected idx**, not the ladder being climbed. The dismount condition is structurally unreachable at the moment it's needed.
+- **Dismount direction is hardcoded by `pcx < 80.0`**, not by where the next reachable ladder is or where the new platform extends. After the first climb the player is at x≈132, so dismount picks LEFT — straight back toward the column where the coconut falls.
+- **Coconut threat sidestep uses only `f_threat` direction (`side_sign = sign(fx - pcx)`)**, but on a ladder, sidestepping doesn't move the player off the column; it should trigger a dismount (horizontal off-ladder step) instead.
+- **No "next ladder from the new platform" search** — after dismount the player would need a second reach test from the upper-platform feet_y, but selection re-queries against the same feet without any post-dismount platform model.
+- The "fallback RIGHT" when `any_valid` is false guarantees the player drifts horizontally on the upper platform with no goal.
+
+## 4. What to preserve
+- The early-route RIGHTFIRE punch branch (`in_punch_range` → `punch_action`) — this is the entire 200-point contract.
+- The reachable-ladder selection at level start using `feet_y` vs `ladder_bottom_y` with `reach_y_tol`, which correctly picks the x≈132 ladder over the x≈20 trap.
+- The parametric `overlap_frac` gating (no 1-pixel UP issuance).
+- `_clip_params` ranges and the flat parameter vector for CMA-ES.
+
+## 5. What to change next
+- **Persist the target ladder index across steps via observation-derivable state** (no recurrent state): keep the climbing-target alive by relaxing `above_ok` to `ltop < feet_y` (top above feet, not above head) so the active ladder remains valid through the climb, and tie-break by overlap fraction, not just |dx|.
+- **Decouple `near_top` from re-selection.** Compute `near_top` directly from "any active ladder where overlap >= overlap_frac AND |py - ltop| <= dismount_tol", independent of the selection argmax.
+- **Add a post-dismount upper-platform branch.** When `near_top` triggers, choose dismount direction by scanning active ladders whose `ltop < py - min_top_above` AND whose bottom is near the *upper* platform's feet_y (i.e., `ly + lh ≈ tgt_top`), then move toward that next ladder's center_x. Add one parameter for "next-ladder lookahead band".
+- **Treat falling-coconut threat while on a ladder as a dismount trigger, not a sidestep.** Add a branch: if `on_ladder & f_threat`, issue the horizontal action toward the safer side of the column (away from `falling_coconut_x`) to step off the ladder, with priority above climb but below punch.
+- **Replace the `pcx < 80.0` dismount heuristic** with a parametric direction chosen by next-ladder dx sign; keep a single "prefer_dismount_dir" param as fallback when no next ladder is found.
+- **Cap consecutive frames spent at the same (x,y) bucket on a ladder** by adding a small bias so when `near_top` holds the dismount action dominates climb (currently `can_climb` and `near_top` can both be true; near_top should strictly override climb — verify the `jnp.where` order does this; it does, but `near_top` requires the broken `on_ladder`-via-idx, see point 2).
+- **Do not modify `in_punch_range` gating or add ladder-state exclusions to it** (per rule 13). All changes should live in the climb/near_top/dismount/next-ladder selection path.

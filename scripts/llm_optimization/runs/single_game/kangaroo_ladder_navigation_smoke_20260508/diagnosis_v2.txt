@@ -1,0 +1,36 @@
+# Kangaroo Policy Diagnosis
+
+## 1. Root cause
+The policy is firing the punch branch almost every step, blocking the horizontal-traversal-then-climb route. The monkey-detection predicate is too permissive (uses `|dx| < punch_dx≈18` plus a loose `|dy| < p_h+6` band), so monkeys on adjacent platforms or behind the player trigger LEFTFIRE/RIGHTFIRE while the agent has not yet reached the first ladder column. The result: the agent oscillates near the start, never aligns with the x≈132 ladder, and never produces the stable first-reward RIGHTFIRE in the correct context.
+
+## 2. Evidence from metrics
+- `punch_action_rate=0.238` and `fire_action_rate=0.270` — high, but `score_events=0`. Punches are firing at non-scoring positions.
+- `up_action_rate=0.024` while `climb_rate=0.608` — the engine reports player in climb state, but the policy almost never issues UP. The on-column predicate fails when the ladder selector picked the wrong (unreachable, higher) ladder.
+- `max_upward_progress=16`, `min_player_y=132` — agent reached the first platform edge but never climbed.
+- `horizontal_action_rate=0.945`, `x_range=106` — heavy lateral sweeping, consistent with chasing a moving `lcx` target while the punch branch keeps interrupting.
+- `reward_total=0`, `lives_lost=1` — first-reward route never executes.
+- `leftfire_rate == rightfire_rate = 0.119` — punches split symmetrically, indicating monkeys on both sides are matching the loose dx band, not a directed punch.
+
+## 3. Policy logic causing it
+- `punch_in_range` uses absolute `dx` without a sign check against `player_orientation`, and `dy_ok` uses `|my - p_y| < p_h + 6` which spans roughly a full sprite height — monkeys one platform away qualify.
+- Punch branch is the top of the decision tree, so it overrides ladder approach and climbing unconditionally.
+- `select_ladder` ranks valid ladders by `|lcx - p_cx|`. When no ladder satisfies `reachable & useful`, `any_valid` is false and the agent falls through to `no_ladder_action` (move toward child x), but the punch branch fires before that anyway.
+- `on_ladder_column` uses `ladder_align_x≈4`, which is fine, but the selected ladder may not be the reachable x≈132 one if multiple ladders pass the reach gate near the start (or none do, then horizontal target is undefined).
+- `climb_top_margin≈8` plus dismount via `child_dx` sign causes immediate dismount the moment the player nears any ladder top, before the platform transition stabilises — but the agent never gets there to exhibit this.
+- Hazard branch fires `FIRE` (jump in place), which on a ladder is a death trap; `crash_rate` is small only because the agent rarely climbs.
+
+## 4. What to preserve
+- The `select_ladder` reach test using `player_bottom_y` vs `ladder_bottom_y` (rule 10 compliant).
+- The `on_ladder_column` parametric overlap predicate (insight 12).
+- The existence of a punch branch and its first RIGHTFIRE behaviour around the lower platform (insights 14, 15; rule 12).
+- The compact 6-parameter surface — CMA-ES is converging on it; do not add many new params.
+- The decision-tree shape (no recurrent state, no Python control flow).
+
+## 5. What to change next
+- Tighten `punch_in_range`: require `dy` within a small band (e.g. `|my - p_y| < punch_dy_band` with a new ~4-pixel param, not `p_h+6`), and require sign(dx) to match `player_orientation` (90=right, 270=left). This keeps the first useful RIGHTFIRE without farming or false positives. Do **not** gate on `~on_column` (rule 13).
+- Reorder the decision tree: ladder-column climbing should win over punching once `on_col & ~near_top & any_valid`. Punch should only fire when not climbing AND a monkey is within the tight band AND on the same platform row (use `|my+monkey_h - p_bot|` proxy via `|my - p_y| < small`).
+- Replace the FIRE-in-place hazard dodge with a directional dodge: move horizontally away from the hazard's x; only FIRE when on solid platform and hazard is overhead. On-ladder hazards should accelerate climb (UP) or descend, not jump.
+- Make ladder selection prefer the ladder whose `lbot` is closest to `p_bot` (vertical reach) before tie-breaking on x. Currently x distance dominates and can pick a far-x ladder over a same-platform one.
+- Add a post-dismount stickiness: after `near_top` triggers, bias horizontal motion toward the next reachable ladder selected from the *new* platform (i.e., re-run selection with `p_y` already decreased) rather than toward `child_x` directly. The current `dismount = sign(child_dx)` skips intermediate ladder approach.
+- Confirm `ladder_reach_v≈13.65` is large enough for Level 1's first ladder (h≈36, bottom near y=168, player bottom near y≈156–160). If reach test fails at start, `any_valid` is false and the agent never approaches x=132. Consider raising the search bound or adding a second looser fallback gate.
+- Drop or down-weight the `farm_penalty` term in `dense_reward` while the first-route is still failing — it may be discouraging the legitimate first RIGHTFIRE when paired with low upward progress, biasing CMA-ES toward fire-suppressing parameter regions (consistent with `up_action_rate≈0.02` despite high `climb_rate`).

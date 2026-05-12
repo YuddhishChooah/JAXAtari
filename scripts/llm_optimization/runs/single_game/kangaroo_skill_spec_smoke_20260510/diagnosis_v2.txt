@@ -1,0 +1,41 @@
+# Diagnosis: Kangaroo Stable-200 Plateau
+
+## 1. Root cause
+The policy never enters the climb branch because the on-column gate is unreachable in practice. After the first RIGHTFIRE scores 200 near x≈132, y≈148, the player is adjacent to the ladder column but `select_reachable_ladder` keeps picking that same ladder, the traverse branch keeps issuing RIGHT/RIGHTFIRE, and the player oscillates horizontally past the ~5px center band without ever overlapping enough of the ladder width at the same instant the centered test passes. UP is never emitted, so y_range=0 and climb_rate=0. The agent then dies to a falling coconut while still on the start platform.
+
+## 2. Evidence from metrics
+- `up_action_rate=0`, `climb_rate=0`, `y_range=0`, `min_player_y=148=final_player_y`: zero climbing despite a reachable ladder being present.
+- `horizontal_action_rate=1`, `x_range=113`, `unique_action_count=3` (RIGHT/LEFT/RIGHTFIRE): pure horizontal dithering after the first reward.
+- `score_events=1`, `final_score=200`, `lives_lost=1`: classic stable-200 plateau ending in a coconut hit.
+- `horizontal_only_failure=1`, `score_without_climb_pattern=1`: confirmed structural pattern.
+- Trace context: stall at x≈132, y≈132 with falling coconut at x≈133, y≈129 → hazard branch is also failing to dodge because dodging just flips horizontal direction inside the same column.
+
+## 3. Policy logic causing it
+- **Climb gate too strict / conjunctive**: `on_column = (overlap >= overlap_frac_min) & (|lcx - pcx| < center_band_w)`. With `center_band_w≈4.9` and `overlap_frac_min≈1.02` (note: param drifted >1.0, making overlap test essentially impossible since `overlap = intersection / player_w ≤ 1.0`), the climb branch is mathematically unreachable. This is the dominant bug.
+- **`overlap_frac_min` > 1.0** in best params guarantees `on_column=False` forever, which is why up_action_rate is exactly 0.
+- **Hazard dodge ignores ladder/route**: `dodge_action = RIGHT/LEFT` based only on hazard x-sign, with no vertical evasion (UP into ladder or jump) and no preservation of column position; against a falling coconut directly above, lateral dodge with hazard_x_tol≈10 toggles direction each frame.
+- **Traverse keeps re-issuing RIGHTFIRE near the monkey** (same_dir + same_platform) even after the monkey is gone / score collected, because `punch_now` doesn't require an active monkey post-score, contributing to the dither.
+- **Dismount branch unreachable**: requires `on_column & ~can_climb_up`, but on_column is never true.
+- **`select_reachable_ladder` reselects the same already-climbed-base ladder** each step; no notion that the agent needs to commit to climbing once near it.
+
+## 4. What to preserve
+- The first RIGHTFIRE reward branch: monkey-in-row punch with `same_dir & same_platform`, producing the 200-point event near x≈132, y≈148. Do not gate this on `~on_column` or remove the FIRE option from the traverse.
+- `select_reachable_ladder` filter: `reach_y_tol` on `lby - pby` AND `ly < py - min_climb_gain` AND `active`. This correctly rejects the x≈20, y≈84 trap.
+- Overall skill ordering: hazard → climb → dismount → traverse → reselect.
+- Overlap-fraction concept (not 1-pixel overlap) — but the threshold must actually be < 1.
+
+## 5. What to change next
+Structural policy changes (parametric, no recurrence):
+- **Fix `overlap_frac_min` bounds**: it must be in (0,1]; clamp/initialize around 0.35–0.5. Current best param 1.02 is the proximate cause of zero climbing. Either clip inside the policy or shrink the CMA search range.
+- **Disjoin or soften the climb gate**: allow `on_column = (overlap >= overlap_frac_min) | (|lcx - pcx| < center_band_w)` rather than AND, OR widen `center_band_w` materially (8–12). Currently both tests must pass simultaneously, which fails on a 4–8px-wide ladder against a moving player.
+- **Add a "commit to climb" hysteresis via geometry, not memory**: when `|lcx - pcx| < center_band_w_wide` AND ladder reachable, output UP even if overlap is marginal. This avoids dithering past the column.
+- **Decouple post-200 traverse from punch repetition**: only emit RIGHTFIRE/LEFTFIRE when a monkey is actually active in `monkey_in_punch_range`; otherwise plain RIGHT/LEFT. This still preserves the first punch but stops re-firing into empty space.
+- **Vertical hazard response**: when a falling coconut is overhead AND a reachable ladder column overlaps, prefer UP (climb away) or a single jump (FIRE), not lateral toggling. Add a parametric vertical proximity term.
+- **Make dismount reachable**: define top-reached as `py <= sel_ly + dismount_margin` independent of `on_column`, so dismount fires even with marginal overlap after the climb. Pick dismount direction toward the *next* reachable ladder from the new platform (re-run selection after a virtual `pby ← sel_ly`).
+
+Dense-reward changes:
+- The current shaping rewards `got_reward` (40) and reach_term (30) generously while `climb_dy` only fires when `on_col>0.5` — the same broken gate, so climb never gets rewarded. Make climb_dy reward gated on a *softer* alignment test (center distance < band) so CMA-ES has gradient toward climbing.
+- Penalize horizontal-only behavior explicitly: term proportional to `x_range_used * (1 - height_gain_normalized)` to break the horizontal-dither attractor.
+- Remove or down-weight `got_reward=40` flat bonus; it locks the optimizer onto the 200-plateau. Replace with a milestone for `min_player_y < start_py - threshold` that pays more than the punch reward.
+- Add explicit penalty for life loss (`final_lives` decrease) tied to staying in a column with an overhead falling coconut, not just generic hit detection.
+- Ensure all per-term clips are tighter and weights rebalanced so upward progress dominates the punch event, not vice versa.

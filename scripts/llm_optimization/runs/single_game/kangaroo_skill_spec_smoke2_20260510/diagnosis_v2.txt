@@ -1,0 +1,41 @@
+# Diagnosis
+
+## 1. Root cause
+The policy reliably triggers the stable 200-point RIGHTFIRE punch event but never enters a ladder column, never climbs, and never dismounts. The selected target ladder almost certainly resolves to a non-reachable one (or the climb gate never satisfies overlap), so the controller stays in horizontal-traverse mode after the punch and dies to the falling coconut.
+
+## 2. Evidence from metrics
+- `up_action_rate=0`, `climb_rate=0`, `min_player_y=148==final_player_y`, `y_range=0`, `max_upward_progress=0`: the agent never issued any UP-family action and never moved vertically.
+- `score_without_climb_pattern=1`, `score_events=1`, `reward_total=200`: a single punch event, exactly the stable-200 plateau.
+- `noop_rate=0.5625`, `horizontal_action_rate=0.4375`, `x_range=113`: pure horizontal sweep with frequent NOOPs.
+- `lives_lost=1` while staying at y=148: post-punch hazard not avoided.
+- Best params show `min_overlap_frac≈0.89` and `climb_x_band≈6.2`: extremely tight climb gate — CMA-ES drove it toward "never climb" because the dense reward pays out more for wide horizontal approach + survival + fire-early than for risky climbing.
+
+## 3. Policy logic causing it
+- `_select_target_ladder` requires `ltop < py - 1.0` AND `reach_dy < reach_y_tol`. With `pby = 148 + ph`, the lower-platform ladder bottom must be within `reach_y_tol≈40` of the player's feet. If no ladder satisfies both conditions strictly, `any_reach=False` and the policy falls into the `fallback_action` (sweep toward x=80), which matches the observed left-right sweep + NOOPs.
+- Even when reachable, the climb gate `overlap >= min_overlap_frac` with frac clipped up to 0.9 and CMA-tuned to ~0.89 means the player must be almost fully inside the ladder column to climb — `horiz_action` uses `climb_x_band≈6` around the center, so the agent stops moving before achieving 89% overlap, then NOOPs.
+- `horiz_action` returns NOOP inside the climb_x_band but `in_column` is false (overlap insufficient), so the agent freezes — explains the 56% NOOP rate.
+- `dismount_action` and `post_ladder_transition` logic is keyed off `pcx<80`, a hard-coded screen split unrelated to actual platform geometry.
+- Dense reward heavily rewards `fire_used_early` (20), `got_real` (40), `survival_term` (10), `approach_term` (20) without requiring climbing, and `climb_term` requires UP+overlap≥0.5 simultaneously — a chicken-and-egg gate. CMA-ES correctly finds that not climbing is locally optimal under this shaping.
+
+## 4. What to preserve
+- The RIGHTFIRE punch branch: `monkey_punchable` test with `punch_x_range`/`row_tol`, no ladder-state gating (rule 13).
+- `_select_target_ladder` reachability formula using `player_bottom_y` vs `ladder_bottom_y` (rule 10).
+- `_clip_params` structure and parameter names that already work for the first reward.
+- The 200-point first-reward route up to and including the punch.
+
+## 5. What to change next
+Policy structural changes:
+- Decouple "approach" from "climb gate". Use a small `climb_x_band` for horizontal action stopping but a *separate, looser* `enter_column_overlap` (e.g. clip 0.3–0.6) for committing UP. Once UP has been issued, latch climbing via a stricter `stay_column_overlap` cannot be done without state — instead, simply use `overlap >= enter_overlap` AND `py > tgt_top + dismount_margin` as the climb condition.
+- Lower the upper bound of `min_overlap_frac` (e.g. clip to [0.3, 0.6]) so CMA-ES cannot tune the climb gate to "never trigger".
+- After the punch (proxy: player at lower platform AND no active monkey within punch_x_range AND target ladder selected), force the horizontal traverse toward the x≈132 ladder *and* widen the column entry test, instead of letting NOOP dominate inside the band.
+- Add a falling-coconut-aware vertical commitment: if `falling_coconut_active` and roughly above the player's column, prefer UP into the ladder (climb out of the kill zone) rather than the current `dodge_action` that sidesteps and stays at y=148.
+- Replace the hard-coded `pcx<80` dismount split with a geometry-driven choice: dismount toward the side where the next reachable ladder from the higher platform's y-level lies (a second ladder-selection pass with a hypothetical `pby' = tgt_top + ph`).
+- Remove the "frozen NOOP" zone: when inside `climb_x_band` but not enough overlap, output UP if any column overlap > 0 and the ladder is reachable, otherwise nudge toward `tgt_cx` rather than NOOP.
+
+Dense reward changes:
+- Drop or strongly reduce `fire_used_early` (20) and `got_real` (40) — they let the optimizer plateau at the punch.
+- Make `upward_progress` the dominant term and gate other bonuses on `upward_progress > threshold` (e.g. multiply `got_real` and `survival_term` by `clip(upward_progress/8, 0, 1)`).
+- Reward `climb_term` based on overlap≥0.3 (not 0.5) to match a looser entry, and add a one-shot `ladder_top_reached` event when `min_player_y` drops below any reachable ladder's `ltop + dismount_margin`.
+- Strengthen `bad_up_pen` only for UP with zero overlap with *any* ladder (not just reachable), so the optimizer is not punished for exploratory UP near a column.
+- Add an explicit "post-punch stagnation" penalty: if score_event has occurred and `y_range` remains 0 for >100 steps, subtract a bounded penalty — directly addresses the observed plateau.
+- Cap `approach_term` lower (currently 20) so it cannot rival climbing reward.

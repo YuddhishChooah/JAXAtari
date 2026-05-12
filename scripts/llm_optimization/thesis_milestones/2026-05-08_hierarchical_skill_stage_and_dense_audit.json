@@ -1,0 +1,71 @@
+{
+  "date": "2026-05-08",
+  "title": "Hierarchical skill-stage and dense-reward audit infrastructure",
+  "status": "completed_failure_evidence",
+  "summary": "The recent planning conversation has now been covered except multi-seed evaluation: LeGPS supports LLM-generated dense rewards, labeled skill-stage runs, hierarchical policy prompting, optional tunable reward-weight experiments, and automatic dense-reward misalignment audits. A small Kangaroo ladder-navigation smoke run validated the path but still scored 0 real return.",
+  "covered_conversation_points": [
+    {
+      "point": "Ask the LLM for a reward function rather than only a policy.",
+      "implementation": "--objective-mode llm_shaped and --objective-mode hybrid require generated policies to provide dense_reward(...)."
+    },
+    {
+      "point": "Reward reaching higher platforms / getting closer to the intended goal through meaningful intermediate progress.",
+      "implementation": "Dense-reward prompt instructions now require observation-grounded skill completion signals such as ladder-column climbing, upward progress, platform transition, hazard survival, and reward-event preservation."
+    },
+    {
+      "point": "Decompose reward into sub-rewards for required skills and optimize a weighted full reward.",
+      "implementation": "Prompts now require skill decomposition and bounded weighted dense objectives. An explicit --tune-reward-weights option allows dense_reward(..., params) for future experiments where reward weights are placed in init_params with a reward_ prefix."
+    },
+    {
+      "point": "Use game simplification or curriculum to learn navigation first.",
+      "implementation": "--skill-stage supports labeled exploratory stages: full_game, kangaroo_ladder_navigation, and kangaroo_post_first_reward."
+    },
+    {
+      "point": "Make the policy hierarchical / subpolicy-like.",
+      "implementation": "Unified system and task prompts now ask for readable skill-like helper functions such as target selection, approach, climb, dismount, hazard avoidance, and goal pursuit."
+    },
+    {
+      "point": "Keep final alignment to actual environment reward.",
+      "implementation": "Real environment reward remains the reported metric. Shaped objectives are stored as optimizer-facing metrics and audited separately."
+    },
+    {
+      "point": "Exclude multi-seed runs for now.",
+      "implementation": "No multi-seed rerun or across-seed normalized-score aggregation was launched."
+    }
+  ],
+  "new_run": {
+    "path": "scripts/llm_optimization/runs/single_game/kangaroo_ladder_navigation_smoke_20260508",
+    "objective_mode": "hybrid",
+    "skill_stage": "kangaroo_ladder_navigation",
+    "budget": "2 outer iterations, 4 environments, 4 episodes, 1000 steps, 4 CMA-ES samples, 1 CMA-ES generation",
+    "best_real_return": 0.0,
+    "best_optimization_score": 42.15009689331055,
+    "best_policy": "policy_v1.py",
+    "best_policy_logger_metrics": {
+      "max_upward_progress": 16.0,
+      "climb_rate": 0.6076129124835364,
+      "fire_action_rate": 0.26945815332421114,
+      "punch_action_rate": 0.23841458727303477,
+      "score_events": 0.0,
+      "reward_total": 0.0
+    },
+    "interpretation": "The skill-stage run produced route-like movement and climbing-state metrics, but no score event. The best policy is useful as failure evidence, not as a Kangaroo solution."
+  },
+  "dense_reward_audit": {
+    "purpose": "Flag likely misaligned LLM-generated dense objectives so shaped-score improvements are not mistaken for task success.",
+    "first_iteration": "Passed in the ladder-navigation skill-stage because it produced measurable upward/climb signals and was explicitly not a full-game claim.",
+    "second_iteration": "Failed because logger metrics showed first_reward_suppressed_pattern=1 and no_fire_scoreless_pattern=1.",
+    "lesson": "Navigation-stage shaping alone is insufficient; the next useful Kangaroo run should preserve or resume from the stable 200-point policy and focus the shaped objective on post-first-reward progress."
+  },
+  "blocked_or_not_done": [
+    "Multi-seed evaluation remains intentionally deferred.",
+    "A post-first-reward resume run was not launched because the current checkout does not contain the original stable policy_v6 run directory; only references/evaluations and exploratory patch files are present.",
+    "No canonical Kangaroo policy was promoted."
+  ],
+  "next_steps": [
+    "Recover or recreate the stable 200-point Kangaroo baseline artifact if post-first-reward reward-aware optimization is the next priority.",
+    "Run --skill-stage kangaroo_post_first_reward with --resume-from-results once a valid stable baseline result directory is available.",
+    "Keep auditing dense_reward(...) before trusting shaped-objective improvements.",
+    "If continuing from scratch, require first-reward preservation to dominate navigation-only shaping."
+  ]
+}

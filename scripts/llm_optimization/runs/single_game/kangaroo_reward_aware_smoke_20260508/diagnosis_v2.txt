@@ -1,0 +1,40 @@
+# Diagnosis
+
+## 1. Root cause
+The policy never reaches the first reachable ladder column and never triggers its punch branch, so it scores 0. The horizontal navigation target is computed correctly (`x≈132` ladder), but the climb/dismount/punch gating is mutually exclusive in a way that effectively disables FIRE entirely, and the climb gate (`on_ladder_band | aligned`) fires before the player has actually arrived under the ladder, causing oscillation/UP-stalling instead of stepping onto the ladder column.
+
+## 2. Evidence from metrics
+- `fire_action_rate = 0`, `punch_action_rate = 0`, `rightfire_action_rate = 0` → first-route punch branch is dead.
+- `no_fire_scoreless_pattern = 1` confirms FIRE was over-gated away.
+- `score_events = 0`, `reward_total = 0`, `final_score = 0`.
+- `horizontal_action_rate = 0.77`, `up_action_rate = 0.23`, `unique_action_count = 3` → only LEFT/RIGHT/UP are emitted; FIRE, UPRIGHT, UPLEFT, dismount variants never appear.
+- `max_upward_progress = 16`, `min_player_y = 132`, `y_range = 17` → reached the first ladder top region but never dismounted onto the next platform.
+- `x_range = 105` → it does sweep horizontally, but never converts approach into a punch or a clean climb.
+- `climb_rate = 0.011` despite 23% UP actions → most UP commands are issued while *not* actually on a ladder column (UP is wasted in air/on platform).
+
+## 3. Policy logic causing it
+- **Punch branch starvation:** `punch_in_range = m_has & (m_dx < punch_dx)` requires `same_row = |dy|<16` in `_nearest_monkey_threat`. Combined with `~on_ladder_band`, and with the same-row test using `monkey_y - player_y` (top-vs-top, not feet-vs-feet), the first lower-platform monkey rarely satisfies `same_row`. With `monkey_punch_dx≈18` tuned tight, the punch window is essentially never open.
+- **Climb gate triggers too early:** `aligned = |dx_to_lad| < align_tol(≈3.95)` alone sets `climb_action=UP` even when `on_column` is false. The policy issues UP whenever x-centers happen to align in passing, producing the 23% UP rate with only 1% real climbing.
+- **`on_column` requires 17% width overlap** (low) but is ANDed with `p_by > tgt_top + climb_top_tol`. After tiny upward progress (y goes from 148→132, ladder top ≈ 96?), the `near_top` band can latch and force a `dismount_action = RIGHT/LEFT` that pushes the player off the column before it has actually climbed.
+- **Dismount selects wrong direction**: `dismount_right = child_x > p_cx` always picks RIGHT toward child_x, but the next reachable ladder may require LEFT; this causes the horizontal sweep without finding the next ladder.
+- **Ladder selection cost** uses `|lcx - p_cx|` among reachable ladders; when no ladder passes `reach_ok` (e.g., during transient frames where player_h or ladder_h fluctuates), it falls back to ladder index 0 silently — `has_ladder` guards nav but not the climb/dismount branches downstream that read `tgt_*` unconditionally.
+- **Coconut dodge supersedes punch** (`coco_danger` overrides `punch_in_range`), and `coco_danger_r≈16` plus the "above" test (`|fx-p_x|<r*0.7 & fy<p_y`) trips on benign distant coconuts, further suppressing the punch.
+
+## 4. What to preserve
+- 440-feature layout and field offsets.
+- Reachability test using `player_bottom_y` vs `ladder_bottom_y` with `lty < p_by - 8`.
+- Column-overlap fraction concept (rule 12) — keep it, just use it as the *only* climb gate.
+- Parametric thresholds (`reach_tol`, `align_tol`, `climb_top_tol`, `monkey_punch_dx`, danger radii, `overlap_frac`).
+- Compact priority-composed action selection via `jnp.where`.
+- The intent of a first-route RIGHTFIRE punch branch (preservation contract, rules 12, 14, 15).
+
+## 5. What to change next
+1. **Re-enable the first-route punch.** Loosen `same_row` to use feet-vs-feet (`|p_by - (m_y+monkey_h_assumed)| < tol`) or just `|m_y - p_y| < align_tol_row` with a *separately tunable* row tolerance (~24). Do not gate `punch_in_range` by `~on_ladder_band`/`~on_column` (rule 13).
+2. **Tighten the climb gate to require `on_column` only.** Drop `aligned` as an independent climb trigger; `aligned` should only switch horizontal motion to "stop and step in," not produce UP. UP must require column overlap AND `p_by > tgt_top + climb_top_tol` AND `p_by <= tgt_bot + small`.
+3. **Add an explicit "approach" sub-state.** When `has_ladder & ~on_column`, command `RIGHT/LEFT` based on sign of `dx_to_lad`; do not emit UP.
+4. **Fix dismount selection.** After reaching `near_top`, recompute the *next* reachable ladder from the new platform (run `_select_reachable_ladder` with `p_by` projected to the upper platform, e.g. `tgt_top + p_h`) and dismount toward that ladder's x, not toward `child_x`.
+5. **Guard `tgt_*` usage with `has_ladder`.** When no reachable ladder, do not allow climb/dismount branches to fire.
+6. **Calm coconut dodge.** Require the falling coconut to be both above and within a smaller horizontal band before overriding punch; let punch beat dodge when the monkey is in punch range and coconut is not imminently colliding (`fy` within a few px of `p_y`).
+7. **Suppress stray UP.** Add a small parametric "must be on column for N frames" check is out of scope (no state); instead require `(overlap/p_w) > overlap_frac` AND `|dx_to_lad| < align_tol` together for UP — this kills the 23% wasted UP rate.
+8. **Re-tune CMA bounds** so `monkey_punch_dx` can grow to ~24–30 and `overlap_frac` stays moderate (0.3–0.6); current best `overlap_frac=0.18` is too permissive and `monkey_punch_dx=18` too tight.
+9. **Shaping fix:** the dense reward rewards `up_term` proportional to UP fraction, which encourages emitting UP even off-column — that is exactly the failure mode observed. Gate `up_term` on `climb_rate`-like signal (UP coincident with column overlap), not raw UP fraction.

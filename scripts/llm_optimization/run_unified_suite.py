@@ -55,7 +55,10 @@ def result_entry(
         "stdout_log": str(stdout_path),
         "stderr_log": str(stderr_path),
         "best_score": result_data.get("best_score"),
+        "best_selection_score": result_data.get("best_selection_score"),
+        "best_selection_source": result_data.get("best_selection_source"),
         "best_policy_path": result_data.get("best_policy_path"),
+        "skill_spec_path": result_data.get("skill_spec_path"),
     }
 
 
@@ -111,6 +114,34 @@ def main() -> int:
     parser.add_argument("--max-steps", type=int, default=4000)
     parser.add_argument("--search-max-steps", type=int, default=2000)
     parser.add_argument("--optimizer", type=str, default="cma-es", choices=["none", "random", "cma-es", "bayes"])
+    parser.add_argument(
+        "--objective-mode",
+        type=str,
+        default="env",
+        choices=["env", "llm_shaped", "hybrid"],
+        help="Inner-loop objective for all games: env, llm_shaped, or hybrid.",
+    )
+    parser.add_argument(
+        "--skill-stage",
+        type=str,
+        default="full_game",
+        choices=["full_game", "kangaroo_ladder_navigation", "kangaroo_post_first_reward"],
+        help="Optional labeled skill/curriculum stage.",
+    )
+    parser.add_argument(
+        "--skill-spec-mode",
+        type=str,
+        default="off",
+        choices=["off", "llm"],
+        help="Generate/load a NEXUS-style skill_spec.json before policy synthesis.",
+    )
+    parser.add_argument(
+        "--refresh-skill-spec",
+        action="store_true",
+        help="Regenerate skill_spec.json in each game output directory.",
+    )
+    parser.add_argument("--no-dense-reward-audit", action="store_true")
+    parser.add_argument("--tune-reward-weights", action="store_true")
     parser.add_argument("--param-samples", type=int, default=16)
     parser.add_argument("--cma-generations", type=int, default=4)
     parser.add_argument("--kangaroo-shaped-objective", action="store_true")
@@ -134,6 +165,13 @@ def main() -> int:
         raise RuntimeError("ANTHROPIC_API_KEY is not set in the environment")
     if args.provider == "openai" and not os.environ.get("OPENAI_API_KEY"):
         raise RuntimeError("OPENAI_API_KEY is not set in the environment")
+    if args.kangaroo_shaped_objective and args.objective_mode != "env":
+        raise RuntimeError(
+            "--kangaroo-shaped-objective is the fixed Kangaroo scaffold and cannot be combined "
+            "with --objective-mode llm_shaped or hybrid"
+        )
+    if args.skill_stage.startswith("kangaroo_") and any(game != "kangaroo" for game in args.games):
+        raise RuntimeError("Kangaroo skill stages can only be used when the suite games are all kangaroo")
 
     run_id = args.run_id or time.strftime("%Y%m%d_%H%M%S")
     suite_dir = PROJECT_ROOT / args.base_dir / run_id
@@ -161,6 +199,12 @@ def main() -> int:
                 "max_steps": args.max_steps,
                 "search_max_steps": args.search_max_steps,
                 "optimizer": args.optimizer,
+                "objective_mode": args.objective_mode,
+                "skill_stage": args.skill_stage,
+                "skill_spec_mode": args.skill_spec_mode,
+                "refresh_skill_spec": args.refresh_skill_spec,
+                "dense_reward_audit": not args.no_dense_reward_audit,
+                "tune_reward_weights": args.tune_reward_weights,
                 "param_samples": args.param_samples,
                 "cma_generations": args.cma_generations,
                 "kangaroo_shaped_objective": args.kangaroo_shaped_objective,
@@ -225,6 +269,12 @@ def main() -> int:
             str(args.search_max_steps),
             "--optimizer",
             args.optimizer,
+            "--objective-mode",
+            args.objective_mode,
+            "--skill-stage",
+            args.skill_stage,
+            "--skill-spec-mode",
+            args.skill_spec_mode,
             "--param-samples",
             str(args.param_samples),
             "--cma-generations",
@@ -237,6 +287,12 @@ def main() -> int:
         ]
         if args.temperature is not None:
             command.extend(["--temperature", str(args.temperature)])
+        if args.refresh_skill_spec:
+            command.append("--refresh-skill-spec")
+        if args.no_dense_reward_audit:
+            command.append("--no-dense-reward-audit")
+        if args.tune_reward_weights:
+            command.append("--tune-reward-weights")
         if game == "kangaroo" and args.kangaroo_shaped_objective:
             command.append("--kangaroo-shaped-objective")
         if game == "kangaroo" and args.kangaroo_dense_reward_objective:

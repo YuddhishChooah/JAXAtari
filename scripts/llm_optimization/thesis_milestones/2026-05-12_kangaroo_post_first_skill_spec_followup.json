@@ -1,0 +1,47 @@
+{
+  "date": "2026-05-12",
+  "title": "Kangaroo post-first SkillSpec continuation and stricter audit",
+  "summary": "A targeted Kangaroo post-first-reward SkillSpec continuation was run from the first-ladder-progress policy. It preserved the 200-point first reward but did not exceed the plateau. The audit was tightened so exactly-one-reward y≈132 stalls now fail the post-first stage instead of being treated as successful skill progress.",
+  "runs": [
+    {
+      "path": "scripts/llm_optimization/runs/single_game/kangaroo_skill_spec_post_first_20260512",
+      "model": "claude-sonnet-4-6",
+      "why_sonnet": "claude-opus-4-7 repeatedly returned Anthropic 529 overloaded errors during the SkillSpec call; this run is exploratory and not canonical Opus evidence.",
+      "protocol": "Resumed from kangaroo_skill_spec_smoke3_20260510 policy_v2, refreshed SkillSpec for kangaroo_post_first_reward, ran 3 post-first iterations with 8 envs/episodes, 4000-step horizon, 8 CMA samples, and 2 CMA generations.",
+      "result": "All generated candidates preserved 200 real reward but none exceeded it. Best selection score was 372.29 under the then-permissive audit. A 16-episode 10000-step follow-up scored exactly 200 in every episode.",
+      "diagnosis": "Policies still stall around y≈132 after the first ladder. Diagnoses point to dismount/next-ladder selection, lingering on-column state, and falling-coconut escape as the main blockers."
+    },
+    {
+      "path": "scripts/llm_optimization/runs/single_game/kangaroo_skill_spec_post_first_auditfix_20260512",
+      "model": "claude-sonnet-4-6",
+      "protocol": "Fresh copy of the first-ladder-progress baseline, post-first SkillSpec refreshed, stricter post-first audit active, 2 post-first iterations with the same 4000-step smoke budget, then a no-LLM resume refresh to re-audit the copied baseline.",
+      "result": "Both generated candidates and the refreshed baseline were marked audit-failed for not progressing beyond the first-ladder 200-point plateau. The saved best_selection_score is now -999800.0 from the audit penalty. A regenerated 16-episode 10000-step follow-up scored exactly 200 in every episode.",
+      "diagnosis": "The audit now correctly separates first-ladder success from post-first success. No candidate achieved post-first progress."
+    }
+  ],
+  "implemented_fixes": [
+    "LLM API calls now retry transient provider errors, including Anthropic overloaded/rate-limit style failures, with exponential backoff.",
+    "Existing skill_spec.json files are no longer silently reused across incompatible game/skill_stage settings.",
+    "The post-first dense-reward requirement explicitly says preserving the first 200-point event alone is not enough.",
+    "The post-first dense-reward audit now fails candidates with avg_return<=200, one score event, max_upward_progress<=18, and no post-reward bonus.",
+    "Refreshed resumed-best metrics are now re-audited before computing best_selection_score, preventing stale positive selection scores after audit-rule changes."
+  ],
+  "interpretation": [
+    "The SkillSpec method has moved Kangaroo from no-climb/horizontal-only failures to first-ladder progress.",
+    "The method still has not solved Kangaroo's post-first transition. The stable long-horizon result remains exactly 200.",
+    "The most useful new evidence is diagnostic rather than performance evidence: the pipeline can now distinguish first-ladder progress from genuine post-first progress.",
+    "Current post-first candidates fail because they do not dismount, avoid the falling coconut, or route to the next ladder/platform after y≈132."
+  ],
+  "rq_mapping": {
+    "RQ1": "No new successful Kangaroo full-game evidence; score remains 200 in standardized follow-ups.",
+    "RQ2": "Stronger evidence for alignment auditing: the stricter audit now rejects policies that score once and stall at y≈132.",
+    "RQ3": "The skill-stage mechanism is operational, but it has not yet produced an adapted post-first behavior.",
+    "RQ4": "The shaped objective and SkillSpec path are useful as instrumentation, but no positive optimizer-performance claim is added."
+  },
+  "next_steps": [
+    "Before more LLM iterations, inspect or trace policy_v3/policy_v4 around the y≈132 state to identify the exact action priority causing failed dismount.",
+    "Consider adding a post-first logger metric for post_reward_progress or above_first_ladder_progress so audits do not rely only on max_upward_progress and score events.",
+    "Add prompt/context constraints for explicit dismount direction, falling-coconut lookahead at ladder top, and next-ladder selection from the upper platform.",
+    "Only after those metric/context fixes, rerun a post-first SkillSpec continuation with Opus when the endpoint is available."
+  ]
+}

@@ -6,7 +6,7 @@
     "update_rule": "Do not overwrite old milestones. Add a new milestone file and update latest_milestone when the thesis state meaningfully changes.",
     "scope": "Milestones should capture interpretation, evidence status, known risks, and next steps. They should not store API keys or private credentials."
   },
-  "latest_milestone": "2026-05-03_kangaroo_top_ladder_transition_probe.json",
+  "latest_milestone": "2026-05-12_kangaroo_post_first_skill_spec_followup.json",
   "milestones": [
     {
       "date": "2026-04-27",
@@ -163,6 +163,42 @@
       "file": "2026-05-03_kangaroo_top_ladder_transition_probe.json",
       "title": "Kangaroo top-ladder transition probe",
       "summary": "A bounded sequence probe from the y=140 post-reward state found no short forced action block above 200; the best short prefix delays failure but still dies at the same ladder-top trap under longer replay."
+    },
+    {
+      "date": "2026-05-08",
+      "file": "2026-05-08_reward_aware_hierarchical_legps_plan.json",
+      "title": "Reward-aware hierarchical LeGPS direction",
+      "summary": "The next method direction is to add an LLM-generated skill/objective layer so CMA-ES can optimize intermediate progress while real environment return remains the final reported metric. Multi-seed and across-seed normalized-score work is explicitly deferred for this step."
+    },
+    {
+      "date": "2026-05-08",
+      "file": "2026-05-08_reward_aware_kangaroo_smoke_first_pass.json",
+      "title": "Reward-aware Kangaroo smoke first pass",
+      "summary": "Two small reward-aware Kangaroo smoke runs validated the new objective-mode execution path but scored 0 real return, exposing that LLM-generated dense objectives must be audited because they can still reward ladder proximity or survival without first-reward preservation."
+    },
+    {
+      "date": "2026-05-08",
+      "file": "2026-05-08_hierarchical_skill_stage_and_dense_audit.json",
+      "title": "Hierarchical skill-stage and dense-reward audit infrastructure",
+      "summary": "The recent planning conversation is covered except multi-seed evaluation: reward-aware objectives, skill-stage/curriculum labels, hierarchical prompting, optional tunable reward weights, and dense-reward audits are implemented. A ladder-navigation Kangaroo smoke run validated the path but remains 0 real return."
+    },
+    {
+      "date": "2026-05-10",
+      "file": "2026-05-10_nexus_style_skill_spec_stage.json",
+      "title": "NEXUS-style skill specification stage added to LeGPS",
+      "summary": "LeGPS now has an optional --skill-spec-mode llm stage that saves a structured skill/reward decomposition before policy generation and feeds it into initial, diagnostic, rewrite, and improvement prompts."
+    },
+    {
+      "date": "2026-05-10",
+      "file": "2026-05-10_kangaroo_skill_spec_smoke_first_pass.json",
+      "title": "First Kangaroo SkillSpec smoke runs",
+      "summary": "The SkillSpec stage ran end-to-end on Kangaroo. The best third-smoke policy reaches the first ladder and shows upward progress, but standardized 10000-step follow-up remains exactly 200 in all episodes, so the remaining blocker is post-ladder transition."
+    },
+    {
+      "date": "2026-05-12",
+      "file": "2026-05-12_kangaroo_post_first_skill_spec_followup.json",
+      "title": "Kangaroo post-first SkillSpec continuation and stricter audit",
+      "summary": "A post-first SkillSpec continuation preserved the first 200-point reward but did not exceed it. The audit now rejects exactly-one-reward y≈132 stalls, and resumed baselines are re-audited before selection scoring."
     }
   ]
 }

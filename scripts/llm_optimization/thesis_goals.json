@@ -13,7 +13,7 @@
   },
   "milestone_log": {
     "index": "scripts/llm_optimization/thesis_milestones/index.json",
-    "latest_milestone": "scripts/llm_optimization/thesis_milestones/2026-05-03_kangaroo_top_ladder_transition_probe.json",
+    "latest_milestone": "scripts/llm_optimization/thesis_milestones/2026-05-12_kangaroo_post_first_skill_spec_followup.json",
     "rule": "When the thesis state changes meaningfully, add a new dated JSON milestone instead of overwriting previous snapshots."
   },
   "method_protocol": {
@@ -29,6 +29,17 @@
       "Compare the revised unified prompt against existing canonical best policies.",
       "Treat regressions as method evidence, not as hidden failures.",
       "Keep canonical artifacts separate from exploratory single-game runs."
+    ],
+    "reward_aware_objectives": [
+      "For sparse or multi-stage games, the LLM may be asked to output a skill decomposition and dense_reward(...) in addition to policy code.",
+      "A NEXUS-style skill-spec stage is available through --skill-spec-mode llm. It first asks the LLM for explicit skills, reward terms, anti-shortcut notes, and skill-selection rules, saves skill_spec.json, then feeds that artifact into policy generation.",
+      "Use --objective-mode env for standard reward-only LeGPS, --objective-mode llm_shaped for a policy-provided full dense objective, and --objective-mode hybrid for real reward plus auxiliary LLM shaping.",
+      "Use --skill-stage to label exploratory curriculum-style runs such as kangaroo_ladder_navigation and kangaroo_post_first_reward, and do not mix these with full-game canonical claims.",
+      "Use --tune-reward-weights only for explicit reward-weight experiments where dense_reward(..., params) reads reward_ parameters from init_params.",
+      "Keep dense-reward audit enabled by default so likely misaligned shaped objectives are flagged before interpretation.",
+      "Real environment reward remains the final reported metric even when CMA-ES uses a shaped objective during parameter search.",
+      "Reject shaped rewards that are naive, unbounded, or misaligned with intended task progress, such as pure Euclidean distance-to-goal in platform games.",
+      "Prefer hierarchical policy helpers for target selection, navigation, ladder climbing, hazard avoidance, and goal pursuit when the game has multiple stages."
     ],
     "reproducibility_requirements": [
       "Save policy code, parameters, seed, model name, provider, evaluation horizon, number of episodes, and runtime metadata.",
@@ -77,7 +88,11 @@
                 "The first shaped-objective Kangaroo fresh run stabilized the first reward: policy_v2 averaged 193.75 over 32 episodes with a 10000-step cap using saved CMA-ES best_params, with 31 episodes at 200 and one at 0. It still had zero episodes above 200.",
                 "The shaped policy_v2 debug trace exactly explains all actions and shows post-200 failure comes from repeated monkey_in_punch_priority RIGHTFIRE overriding route/dismount behavior near the top ladder state.",
                 "Two local post-200 guard patches preserved the stable 200-point behavior but did not improve beyond it. Action probes show the policy reaches a y=132 ladder-top trap where no atomic action escapes before life loss.",
-                "A bounded top-ladder transition sequence probe tested 216 short forced-action candidates from the y=140 post-reward state. No candidate exceeded 200; the best short prefix, DOWNRIGHTx24 + DOWNLEFTx16, delayed failure but a longer replay still died at score 200 near x=126,y=132.",
+      "A bounded top-ladder transition sequence probe tested 216 short forced-action candidates from the y=140 post-reward state. No candidate exceeded 200; the best short prefix, DOWNRIGHTx24 + DOWNLEFTx16, delayed failure but a longer replay still died at score 200 near x=126,y=132.",
+      "The first Kangaroo SkillSpec smoke sequence completed. The third smoke's retained policy reached 200 real return, passed the dense-reward audit, showed max_upward_progress=16.0 and climb_rate=0.269, and retained best_selection_source=skill_stage_shaped_objective.",
+      "A 16-episode 10000-step follow-up of the third SkillSpec smoke scored exactly 200.0 in every episode. It is progress over no-climb policies, but still not a successful Kangaroo route because post-ladder transition remains unsolved.",
+      "A targeted post-first SkillSpec continuation from the first-ladder-progress policy completed with claude-sonnet-4-6 after repeated claude-opus-4-7 overload errors. It preserved the first 200-point reward but did not exceed 200 in smoke or 10000-step follow-up.",
+      "The stricter post-first audit now rejects exactly-one-reward y≈132 stalls. The auditfix run marked both new post-first candidates and the copied baseline as failed post-first progress, and its 16-episode 10000-step follow-up still scored exactly 200 in every episode.",
       "Current results include multiple human-normalized scores above or near human level.",
       "Breakout remains meaningfully below DQN and is an important improvement target."
       ]
@@ -105,6 +120,14 @@
                 "The stack-style debug renderer now shows the exact logical stack and final reason per frame for shaped policy_v2; this supports diagnosing whether score comes from intended route logic or a priority shortcut.",
                 "The post-200 guard probes show the current failure is not only a punch-priority shortcut; it is also a top-of-ladder transition/mechanics failure that needs a targeted action-sequence probe.",
                 "The bounded top-ladder transition probe rules out a simple one- or two-block forced-action prefix as enough to solve the post-200 failure; the remaining problem is a staged route/mechanics problem.",
+                "Reward-aware LeGPS now has an infrastructure path where the LLM can provide dense_reward(...) and skill decomposition, allowing future RQ2 tests to separate intended-task progress from optimizer shortcuts.",
+                "Two reward-aware Kangaroo smoke runs validated the infrastructure but scored 0 real return. They are useful RQ2 failure evidence because the generated dense rewards still gave positive optimizer-facing scores to zero-reward behavior.",
+                "The second reward-aware Kangaroo smoke triggered first_reward_suppressed_pattern=1 and no_fire_scoreless_pattern=1, showing that LLM-shaped objectives must explicitly preserve necessary first-reward behavior rather than only rewarding ladder proximity.",
+                "A ladder-navigation skill-stage Kangaroo smoke run completed with --skill-stage kangaroo_ladder_navigation. It scored 0 real return but produced route-like movement and climb-state metrics; its second candidate failed dense-reward audit due first-reward suppression and no-FIRE scoreless behavior.",
+                "LeGPS now has an optional --skill-spec-mode llm stage inspired by NEXUS Appendix F. It saves skill_spec.json before policy generation, giving future RQ2 audits an explicit skill/reward artifact to compare against observed behavior.",
+                "Kangaroo SkillSpec smoke runs exposed two useful RQ2 pipeline lessons: semantic parameters must be clipped before CMA-ES uses them, and explicit skill-stage runs should select by audited skill objective rather than raw real reward.",
+                "The best current SkillSpec smoke policy shows first-ladder upward progress and no score_without_climb pattern, but the 10000-step follow-up remains at 200, so it is aligned with the first navigation skill but not the full task.",
+                "The post-first audit was strengthened after a permissive run incorrectly passed policies that preserved 200 but made no post-first progress. Those policies are now audit-failed, which better matches the intended-task interpretation.",
                 "A formal RQ2 test suite is not implemented yet."
       ]
     },
@@ -119,6 +142,11 @@
       ],
       "current_evidence": [
         "The mod infrastructure exists for several games.",
+        "The unified prompt now encourages skill-like helper functions for multi-stage games, which is a prerequisite for later few-shot or zero-shot adaptation experiments.",
+        "The loop now supports labeled skill stages, including Kangaroo ladder navigation and Kangaroo post-first-reward. These are infrastructure for hierarchical/curriculum-style adaptation experiments, not completed RQ3 evidence yet.",
+        "The optional skill_spec.json artifact gives a reusable decomposition that can later be edited or re-used for task-variation adaptation, but no RQ3 adaptation run has used it yet.",
+        "Skill-stage selection now separates real score from skill objective, which is required before staged or hierarchical adaptation experiments can be interpreted cleanly.",
+        "The first post-first SkillSpec adaptation attempt did not solve the new stage; this is negative RQ3 evidence for easy stage adaptation on Kangaroo.",
         "The adaptation protocol is not implemented yet."
       ]
     },
@@ -135,7 +163,13 @@
         "An optimizer=none path is available for LLM-only ablation runs.",
         "A first optimizer=none suite has been run on Pong, Freeway, Asterix, Breakout, and Skiing with 5 outer-loop iterations and 10000-step evaluations.",
         "The first RQ4 result shows CMA-ES is especially important for Asterix and Breakout, moderately useful for Pong and Freeway, and nearly neutral on the current Skiing policy.",
-        "For Kangaroo only, an optional shaped search objective has been added. Any run using it must be interpreted separately from pure reward-only CMA-ES evidence."
+        "For Kangaroo only, an optional fixed shaped search objective has been added. Any run using it must be interpreted separately from pure reward-only CMA-ES evidence.",
+        "A general reward-aware objective mode now exists: env, llm_shaped, and hybrid. This creates a future ablation axis between reward-only CMA-ES and LLM-generated shaping.",
+        "The first reward-aware Kangaroo smoke tests are not positive performance evidence, but they confirm the new objective path runs end-to-end and saves redacted artifacts.",
+        "Optional tunable reward weights are supported through dense_reward(..., params) behind --tune-reward-weights, but no reward-weight optimization result has been claimed yet.",
+        "--skill-spec-mode llm adds a future ablation axis: standard LeGPS versus LeGPS with an explicit LLM-generated skill/reward specification before policy synthesis.",
+        "Skill-stage shaped runs now record best_selection_score separately from best_score, making optimizer-objective evidence auditable instead of conflating it with real reward.",
+        "Resumed best policies are now re-audited before selection scoring, preventing stale positive selection scores after audit logic changes."
       ]
     }
   ],
@@ -182,6 +216,14 @@
     {
       "risk": "A shaped objective can improve the optimizer signal while weakening the purity of reward-only evaluation.",
       "mitigation": "Use shaping only as an explicitly labeled Kangaroo scaffold, keep real reward as the final reported metric, and separate shaped runs from canonical evidence."
+    },
+    {
+      "risk": "LLM-generated dense rewards can be misaligned, for example by rewarding naive distance-to-goal or behaviours that do not transfer to real task completion.",
+      "mitigation": "Require skill decomposition, bounded shaping terms, real-reward reporting, logger/video audits, and manual rejection of obviously invalid dense_reward(...) functions before interpreting results."
+    },
+    {
+      "risk": "An LLM-generated skill specification can itself be wrong or hallucinate unavailable state.",
+      "mitigation": "Save skill_spec.json as an auditable artifact, validate it against the documented object-centric observation/action semantics, and treat any run using it as exploratory until real-reward/video/logger checks pass."
     }
   ],
   "next_milestones": [
@@ -202,6 +244,30 @@
     {
       "milestone": "RQ2 shortcut probes",
       "description": "Define task simplifications and shortcut tests for the current games."
+    },
+    {
+      "milestone": "Reward-aware Kangaroo smoke test",
+      "description": "First pass completed as failure evidence: two small --objective-mode hybrid Kangaroo runs scored 0 real return while validating the infrastructure. Next pass should inspect/reject dense_reward(...) objectives and preferably resume from the stable 200-point baseline.",
+      "status": "first_pass_completed_failure_evidence",
+      "artifact": "scripts/llm_optimization/thesis_milestones/2026-05-08_reward_aware_kangaroo_smoke_first_pass.json"
+    },
+    {
+      "milestone": "Kangaroo skill-stage smoke test",
+      "description": "First ladder-navigation skill-stage smoke completed. It validates --skill-stage and dense-reward audit infrastructure but remains 0 real return, so next useful run should recover the stable 200-point baseline and use kangaroo_post_first_reward.",
+      "status": "first_pass_completed_failure_evidence",
+      "artifact": "scripts/llm_optimization/thesis_milestones/2026-05-08_hierarchical_skill_stage_and_dense_audit.json"
+    },
+    {
+      "milestone": "NEXUS-style skill-spec smoke",
+      "description": "First Kangaroo SkillSpec smoke completed. The third smoke reaches first-ladder upward progress and passes dense-reward audit, but 10000-step follow-up remains exactly 200 in every episode.",
+      "status": "first_pass_completed_partial_progress",
+      "artifact": "scripts/llm_optimization/thesis_milestones/2026-05-10_kangaroo_skill_spec_smoke_first_pass.json"
+    },
+    {
+      "milestone": "Kangaroo post-first SkillSpec follow-up",
+      "description": "Post-first continuation completed as negative evidence. The first run preserved 200 but did not exceed it; stricter audit now rejects the y≈132 plateau as post-first failure.",
+      "status": "completed_negative_evidence",
+      "artifact": "scripts/llm_optimization/thesis_milestones/2026-05-12_kangaroo_post_first_skill_spec_followup.json"
     },
         {
             "milestone": "Kangaroo shaped scaffold test",
